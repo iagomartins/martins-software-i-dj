@@ -6,7 +6,7 @@ Follow these steps:
 
 ```sh
 # Step 1: Clone the repository using the project's Git URL.
-git clone [<YOUR_GIT_URL>](https://github.com/iagomartins/martins-software-i-dj.git)
+git clone https://github.com/iagomartins/martins-software-i-dj.git
 
 # Step 2: Navigate to the project directory.
 cd martins-software-i-dj
