@@ -52,15 +52,32 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
-				sidebar: {
-					DEFAULT: 'hsl(var(--sidebar-background))',
-					foreground: 'hsl(var(--sidebar-foreground))',
-					primary: 'hsl(var(--sidebar-primary))',
-					'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
-					accent: 'hsl(var(--sidebar-accent))',
-					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
-					border: 'hsl(var(--sidebar-border))',
-					ring: 'hsl(var(--sidebar-ring))'
+				dj: {
+					console: 'hsl(var(--dj-console))',
+					'console-foreground': 'hsl(var(--dj-console-foreground))',
+					panel: 'hsl(var(--dj-panel))',
+					'panel-foreground': 'hsl(var(--dj-panel-foreground))',
+				},
+				neon: {
+					cyan: 'hsl(var(--neon-cyan))',
+					magenta: 'hsl(var(--neon-magenta))',
+					yellow: 'hsl(var(--neon-yellow))',
+					green: 'hsl(var(--neon-green))'
+				},
+				knob: {
+					chrome: 'hsl(var(--knob-chrome))',
+					shadow: 'hsl(var(--knob-shadow))'
+				},
+				fader: {
+					track: 'hsl(var(--fader-track))',
+					handle: 'hsl(var(--fader-handle))'
+				},
+				button: {
+					off: 'hsl(var(--button-off))',
+					on: 'hsl(var(--button-on))',
+					cue: 'hsl(var(--button-cue))',
+					play: 'hsl(var(--button-play))',
+					sync: 'hsl(var(--button-sync))'
 				}
 			},
 			borderRadius: {
@@ -88,7 +105,8 @@ export default {
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'spin-slow': 'spin 3s linear infinite'
 			}
 		}
 	},

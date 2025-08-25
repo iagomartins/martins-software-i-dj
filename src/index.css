@@ -2,95 +2,199 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+/* DJ Interface Design System - Professional dark theme with neon accents
 All colors MUST be HSL.
 */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* DJ Interface Base Colors */
+    --background: 220 20% 8%;
+    --foreground: 0 0% 95%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    /* DJ Console Colors */
+    --dj-console: 220 25% 12%;
+    --dj-console-foreground: 0 0% 90%;
+    --dj-panel: 220 20% 15%;
+    --dj-panel-foreground: 0 0% 85%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    /* Neon Accent Colors */
+    --neon-cyan: 180 100% 50%;
+    --neon-magenta: 300 100% 50%;
+    --neon-yellow: 60 100% 50%;
+    --neon-green: 120 100% 40%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Control Colors */
+    --knob-chrome: 0 0% 70%;
+    --knob-shadow: 0 0% 20%;
+    --fader-track: 220 30% 20%;
+    --fader-handle: 0 0% 85%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Button States */
+    --button-off: 220 30% 25%;
+    --button-on: 180 100% 50%;
+    --button-cue: 300 100% 50%;
+    --button-play: 120 100% 40%;
+    --button-sync: 60 100% 50%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Glow Effects */
+    --glow-cyan: 0 0 20px hsl(180 100% 50% / 0.5);
+    --glow-magenta: 0 0 20px hsl(300 100% 50% / 0.5);
+    --glow-yellow: 0 0 20px hsl(60 100% 50% / 0.5);
+    --glow-green: 0 0 20px hsl(120 100% 40% / 0.5);
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-
+    /* Legacy mappings for compatibility */
+    --card: var(--dj-panel);
+    --card-foreground: var(--dj-panel-foreground);
+    --popover: var(--dj-console);
+    --popover-foreground: var(--dj-console-foreground);
+    --primary: var(--neon-cyan);
+    --primary-foreground: 220 20% 8%;
+    --secondary: var(--button-off);
+    --secondary-foreground: var(--foreground);
+    --muted: var(--fader-track);
+    --muted-foreground: 0 0% 60%;
+    --accent: var(--neon-magenta);
+    --accent-foreground: var(--background);
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 220 30% 25%;
+    --input: var(--fader-track);
+    --ring: var(--neon-cyan);
     --radius: 0.5rem;
+  }
+}
 
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+/* DJ Component Styles */
+@layer components {
+  .dj-knob {
+    @apply relative w-16 h-16 rounded-full border-2 border-zinc-600 shadow-lg cursor-pointer select-none;
+    background: radial-gradient(circle at 30% 30%, hsl(var(--knob-chrome)), hsl(var(--knob-shadow)));
+    box-shadow: 
+      inset 0 0 10px rgba(0,0,0,0.3),
+      0 4px 8px rgba(0,0,0,0.4),
+      0 0 0 1px rgba(255,255,255,0.1);
   }
 
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+  .dj-knob::before {
+    content: '';
+    @apply absolute top-1 left-1/2 w-1 h-4 bg-white rounded-full transform -translate-x-1/2;
+    box-shadow: 0 0 4px rgba(255,255,255,0.8);
+  }
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+  .dj-button {
+    @apply px-4 py-2 rounded-lg font-semibold text-sm uppercase tracking-wide transition-all duration-150 border-2 select-none cursor-pointer;
+    background: linear-gradient(145deg, hsl(var(--button-off)), hsl(var(--button-off)) 60%);
+    border-color: hsl(var(--border));
+  }
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+  .dj-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  }
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+  .dj-button.active {
+    background: linear-gradient(145deg, hsl(var(--button-on)), hsl(var(--button-on)) 60%);
+    box-shadow: var(--glow-cyan);
+    color: hsl(var(--background));
+  }
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+  .dj-button.cue.active {
+    background: linear-gradient(145deg, hsl(var(--button-cue)), hsl(var(--button-cue)) 60%);
+    box-shadow: var(--glow-magenta);
+  }
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+  .dj-button.play.active {
+    background: linear-gradient(145deg, hsl(var(--button-play)), hsl(var(--button-play)) 60%);
+    box-shadow: var(--glow-green);
+  }
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+  .dj-button.sync.active {
+    background: linear-gradient(145deg, hsl(var(--button-sync)), hsl(var(--button-sync)) 60%);
+    box-shadow: var(--glow-yellow);
+  }
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+  .dj-fader {
+    @apply relative h-32 w-8 rounded-full cursor-pointer select-none;
+    background: linear-gradient(to bottom, 
+      hsl(var(--fader-track)), 
+      hsl(var(--knob-shadow)) 50%, 
+      hsl(var(--fader-track))
+    );
+    box-shadow: inset 0 0 8px rgba(0,0,0,0.5);
+  }
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+  .dj-fader-handle {
+    @apply absolute left-0 w-full h-4 rounded-full transition-all duration-75;
+    background: radial-gradient(circle at 30% 30%, hsl(var(--fader-handle)), hsl(var(--knob-shadow)));
+    box-shadow: 
+      0 2px 6px rgba(0,0,0,0.6),
+      inset 0 1px 2px rgba(255,255,255,0.3);
+  }
+
+  .scratch-wheel {
+    @apply relative w-32 h-32 rounded-full border-4 cursor-pointer select-none;
+    background: conic-gradient(from 0deg, 
+      hsl(var(--knob-shadow)) 0deg 10deg,
+      hsl(var(--knob-chrome)) 10deg 20deg,
+      hsl(var(--knob-shadow)) 20deg 30deg,
+      hsl(var(--knob-chrome)) 30deg 40deg,
+      hsl(var(--knob-shadow)) 40deg 50deg,
+      hsl(var(--knob-chrome)) 50deg 60deg,
+      hsl(var(--knob-shadow)) 60deg 70deg,
+      hsl(var(--knob-chrome)) 70deg 80deg,
+      hsl(var(--knob-shadow)) 80deg 90deg,
+      hsl(var(--knob-chrome)) 90deg 100deg,
+      hsl(var(--knob-shadow)) 100deg 110deg,
+      hsl(var(--knob-chrome)) 110deg 120deg,
+      hsl(var(--knob-shadow)) 120deg 130deg,
+      hsl(var(--knob-chrome)) 130deg 140deg,
+      hsl(var(--knob-shadow)) 140deg 150deg,
+      hsl(var(--knob-chrome)) 150deg 160deg,
+      hsl(var(--knob-shadow)) 160deg 170deg,
+      hsl(var(--knob-chrome)) 170deg 180deg,
+      hsl(var(--knob-shadow)) 180deg 190deg,
+      hsl(var(--knob-chrome)) 190deg 200deg,
+      hsl(var(--knob-shadow)) 200deg 210deg,
+      hsl(var(--knob-chrome)) 210deg 220deg,
+      hsl(var(--knob-shadow)) 220deg 230deg,
+      hsl(var(--knob-chrome)) 230deg 240deg,
+      hsl(var(--knob-shadow)) 240deg 250deg,
+      hsl(var(--knob-chrome)) 250deg 260deg,
+      hsl(var(--knob-shadow)) 260deg 270deg,
+      hsl(var(--knob-chrome)) 270deg 280deg,
+      hsl(var(--knob-shadow)) 280deg 290deg,
+      hsl(var(--knob-chrome)) 290deg 300deg,
+      hsl(var(--knob-shadow)) 300deg 310deg,
+      hsl(var(--knob-chrome)) 310deg 320deg,
+      hsl(var(--knob-shadow)) 320deg 330deg,
+      hsl(var(--knob-chrome)) 330deg 340deg,
+      hsl(var(--knob-shadow)) 340deg 350deg,
+      hsl(var(--knob-chrome)) 350deg 360deg
+    );
+    border-color: hsl(var(--border));
+    box-shadow: 
+      inset 0 0 20px rgba(0,0,0,0.4),
+      0 6px 15px rgba(0,0,0,0.6);
+  }
+
+  .pitch-fader {
+    @apply relative w-6 h-48 rounded-full cursor-pointer select-none;
+    background: linear-gradient(to bottom, 
+      hsl(var(--neon-green)) 0%, 
+      hsl(var(--fader-track)) 48%,
+      hsl(var(--fader-track)) 52%,
+      hsl(var(--neon-magenta)) 100%
+    );
+    box-shadow: inset 0 0 8px rgba(0,0,0,0.5);
+  }
+
+  .pitch-fader-handle {
+    @apply absolute left-0 w-full h-3 rounded-full transition-all duration-75;
+    background: radial-gradient(circle at 30% 30%, hsl(var(--fader-handle)), hsl(var(--knob-shadow)));
+    box-shadow: 
+      0 2px 6px rgba(0,0,0,0.6),
+      inset 0 1px 2px rgba(255,255,255,0.3);
   }
 }
 
