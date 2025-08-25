@@ -1,11 +1,27 @@
 import { DJDeck } from "./DJDeck";
+import { ConfigModal } from "./ConfigModal";
+import { Button } from "@/components/ui/button";
+import { Settings } from "lucide-react";
+import { useDJ } from "@/contexts/DJContext";
 
 export const DJInterface = () => {
+  const { dispatch } = useDJ();
+
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
-        <div className="text-center space-y-2">
+        <div className="text-center space-y-2 relative">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => dispatch({ type: 'TOGGLE_CONFIG_MODAL' })}
+            className="absolute right-0 top-0 flex items-center gap-2"
+          >
+            <Settings className="w-4 h-4" />
+            Configurações
+          </Button>
+          
           <h1 className="text-4xl font-bold bg-gradient-to-r from-neon-cyan to-neon-magenta bg-clip-text text-transparent">
             VIRTUAL DJ CONSOLE
           </h1>
@@ -45,9 +61,11 @@ export const DJInterface = () => {
 
         {/* Footer */}
         <div className="text-center text-sm text-muted-foreground font-mono">
-          Use mouse to interact with controls • Click and drag knobs and faders
+          Use mouse to interact with controls • Click and drag knobs and faders • Press gear icon to configure
         </div>
       </div>
+      
+      <ConfigModal />
     </div>
   );
 };

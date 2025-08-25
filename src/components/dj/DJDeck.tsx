@@ -4,16 +4,18 @@ import { DJButton } from "./DJButton";
 import { DJFader } from "./DJFader";
 import { ScratchWheel } from "./ScratchWheel";
 import { PitchFader } from "./PitchFader";
+import { useDJ } from "@/contexts/DJContext";
 
 interface DJDeckProps {
   deckNumber: 1 | 2;
 }
 
 export const DJDeck = ({ deckNumber }: DJDeckProps) => {
+  const { state, dispatch } = useDJ();
+  
   // Deck state
   const [isPlaying, setIsPlaying] = useState(false);
   const [isCued, setIsCued] = useState(false);
-  const [isHeadphone, setIsHeadphone] = useState(false);
   const [isSynced, setIsSynced] = useState(false);
   const [effectsActive, setEffectsActive] = useState([false, false, false, false]);
   
@@ -30,12 +32,19 @@ export const DJDeck = ({ deckNumber }: DJDeckProps) => {
     );
   };
 
+  const handleHeadphoneToggle = () => {
+    dispatch({ type: 'TOGGLE_HEADPHONE_DECK', payload: deckNumber });
+  };
+
+  const isHeadphone = state.activeHeadphoneDecks.has(deckNumber);
+
   return (
     <div className="bg-dj-console border border-border rounded-lg p-6 space-y-6">
       {/* Deck Header */}
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-bold text-neon-cyan">DECK {deckNumber}</h2>
         <DJButton
+          id={`deck${deckNumber}-load`}
           label="LOAD"
           onClick={() => console.log(`Load track to deck ${deckNumber}`)}
           size="sm"
@@ -75,12 +84,14 @@ export const DJDeck = ({ deckNumber }: DJDeckProps) => {
           <div className="bg-dj-panel rounded-lg p-4 space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <DJButton
+                id={`deck${deckNumber}-cue`}
                 label="CUE"
                 variant="cue"
                 active={isCued}
                 onClick={() => setIsCued(!isCued)}
               />
               <DJButton
+                id={`deck${deckNumber}-play`}
                 label="PLAY"
                 variant="play"
                 active={isPlaying}
@@ -90,15 +101,17 @@ export const DJDeck = ({ deckNumber }: DJDeckProps) => {
             
             <div className="grid grid-cols-2 gap-3">
               <DJButton
+                id={`deck${deckNumber}-sync`}
                 label="SYNC"
                 variant="sync"
                 active={isSynced}
                 onClick={() => setIsSynced(!isSynced)}
               />
               <DJButton
+                id={`deck${deckNumber}-phones`}
                 label="PHONES"
                 active={isHeadphone}
-                onClick={() => setIsHeadphone(!isHeadphone)}
+                onClick={handleHeadphoneToggle}
               />
             </div>
           </div>
@@ -115,6 +128,7 @@ export const DJDeck = ({ deckNumber }: DJDeckProps) => {
           <PitchFader
             value={pitch}
             onChange={setPitch}
+            deckNumber={deckNumber}
           />
           
           <DJFader
@@ -132,6 +146,7 @@ export const DJDeck = ({ deckNumber }: DJDeckProps) => {
           {[1, 2, 3, 4].map((fx) => (
             <DJButton
               key={fx}
+              id={`deck${deckNumber}-fx${fx}`}
               label={`FX ${fx}`}
               active={effectsActive[fx - 1]}
               onClick={() => toggleEffect(fx - 1)}

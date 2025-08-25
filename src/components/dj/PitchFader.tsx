@@ -3,9 +3,10 @@ import { useState } from "react";
 interface PitchFaderProps {
   value: number;
   onChange: (value: number) => void;
+  deckNumber?: number;
 }
 
-export const PitchFader = ({ value, onChange }: PitchFaderProps) => {
+export const PitchFader = ({ value, onChange, deckNumber = 1 }: PitchFaderProps) => {
   const [isDragging, setIsDragging] = useState(false);
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -34,12 +35,14 @@ export const PitchFader = ({ value, onChange }: PitchFaderProps) => {
     <div className="flex flex-col items-center gap-2">
       <div className="flex gap-2 mb-2">
         <button 
+          id={`deck${deckNumber}-pitch-plus`}
           className="w-6 h-6 text-xs bg-button-off hover:bg-neon-green text-foreground rounded font-bold"
           onClick={() => onChange(Math.min(1, value + 0.1))}
         >
           +
         </button>
         <button 
+          id={`deck${deckNumber}-pitch-minus`}
           className="w-6 h-6 text-xs bg-button-off hover:bg-neon-magenta text-foreground rounded font-bold"
           onClick={() => onChange(Math.max(-1, value - 0.1))}
         >

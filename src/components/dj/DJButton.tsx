@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 
 interface DJButtonProps {
+  id?: string;
   label: string;
   active?: boolean;
   onClick?: () => void;
@@ -9,6 +10,7 @@ interface DJButtonProps {
 }
 
 export const DJButton = ({ 
+  id,
   label, 
   active = false, 
   onClick,
@@ -17,6 +19,7 @@ export const DJButton = ({
 }: DJButtonProps) => {
   return (
     <button
+      id={id}
       onClick={onClick}
       className={cn(
         "dj-button",
