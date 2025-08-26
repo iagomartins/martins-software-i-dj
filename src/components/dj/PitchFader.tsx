@@ -4,9 +4,10 @@ interface PitchFaderProps {
   value: number;
   onChange: (value: number) => void;
   deckNumber?: number;
+  onDoubleClick?: () => void;
 }
 
-export const PitchFader = ({ value, onChange, deckNumber = 1 }: PitchFaderProps) => {
+export const PitchFader = ({ value, onChange, deckNumber = 1, onDoubleClick }: PitchFaderProps) => {
   const [isDragging, setIsDragging] = useState(false);
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -56,6 +57,7 @@ export const PitchFader = ({ value, onChange, deckNumber = 1 }: PitchFaderProps)
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        onDoubleClick={onDoubleClick}
       >
         <div
           className="pitch-fader-handle"

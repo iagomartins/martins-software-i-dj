@@ -287,32 +287,35 @@ export const useAudioEngine = () => {
 
     const context = audioContextRef.current;
     
-    // Flanger effect
-    if (effects.flanger) {
-      chain.flanger.gain.setValueAtTime(0.3, context.currentTime);
-    } else {
-      chain.flanger.gain.setValueAtTime(0, context.currentTime);
-    }
-    
-    // Filter effect
-    if (effects.filter) {
-      chain.filter.gain.setValueAtTime(0.5, context.currentTime);
-    } else {
-      chain.filter.gain.setValueAtTime(0, context.currentTime);
-    }
-    
-    // Echo effect
-    if (effects.echo) {
-      chain.echo.gain.setValueAtTime(0.4, context.currentTime);
-    } else {
-      chain.echo.gain.setValueAtTime(0, context.currentTime);
-    }
-    
-    // Reverb effect
-    if (effects.reverb) {
-      chain.reverb.gain.setValueAtTime(0.3, context.currentTime);
-    } else {
-      chain.reverb.gain.setValueAtTime(0, context.currentTime);
+    // Ensure all effects and their gain nodes exist before trying to access them
+    if (chain.flangerGain && chain.filterGain && chain.echoGain && chain.reverbGain) {
+      // Flanger effect
+      if (effects.flanger) {
+        chain.flangerGain.gain.setValueAtTime(0.3, context.currentTime);
+      } else {
+        chain.flangerGain.gain.setValueAtTime(0, context.currentTime);
+      }
+      
+      // Filter effect
+      if (effects.filter) {
+        chain.filterGain.gain.setValueAtTime(0.5, context.currentTime);
+      } else {
+        chain.filterGain.gain.setValueAtTime(0, context.currentTime);
+      }
+      
+      // Echo effect
+      if (effects.echo) {
+        chain.echoGain.gain.setValueAtTime(0.4, context.currentTime);
+      } else {
+        chain.echoGain.gain.setValueAtTime(0, context.currentTime);
+      }
+      
+      // Reverb effect
+      if (effects.reverb) {
+        chain.reverbGain.gain.setValueAtTime(0.3, context.currentTime);
+      } else {
+        chain.reverbGain.gain.setValueAtTime(0, context.currentTime);
+      }
     }
   }, []);
 

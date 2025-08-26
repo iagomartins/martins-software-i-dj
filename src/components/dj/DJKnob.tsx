@@ -8,6 +8,7 @@ interface DJKnobProps {
   max?: number;
   step?: number;
   color?: "cyan" | "magenta" | "yellow" | "green";
+  onDoubleClick?: () => void;
 }
 
 export const DJKnob = ({ 
@@ -17,7 +18,8 @@ export const DJKnob = ({
   min = -1, 
   max = 1, 
   step = 0.01,
-  color = "cyan"
+  color = "cyan",
+  onDoubleClick
 }: DJKnobProps) => {
   const [isDragging, setIsDragging] = useState(false);
 
@@ -58,6 +60,7 @@ export const DJKnob = ({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        onDoubleClick={onDoubleClick}
       />
       <span className="text-xs font-mono text-dj-panel-foreground uppercase tracking-wider">
         {label}

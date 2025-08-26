@@ -36,13 +36,20 @@ function DJDeck({ deckNumber }: DJDeckProps) {
     reverb: false
   });
   
-  // Control values
+    // Control values
   const [lowEQ, setLowEQ] = useState(0);
   const [midEQ, setMidEQ] = useState(0);
   const [highEQ, setHighEQ] = useState(0);
   const [volume, setVolume] = useState(0.8);
   const [pitch, setPitch] = useState(0);
-  
+
+  // Reset functions for double-click
+  const resetLowEQ = () => setLowEQ(0);
+  const resetMidEQ = () => setMidEQ(0);
+  const resetHighEQ = () => setHighEQ(0);
+  const resetVolume = () => setVolume(1.0); // 100%
+  const resetPitch = () => setPitch(0); // 0%
+
   // Audio state
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
@@ -54,7 +61,7 @@ function DJDeck({ deckNumber }: DJDeckProps) {
   
   const audioRef = useRef<HTMLAudioElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
-  const deckChainRef = useRef<any>(null);
+  const deckChainRef = useRef<{ volumeGain: GainNode } | null>(null);
 
   const toggleEffect = (effectType: keyof AudioEffects) => {
     const newEffects = { ...effectsActive, [effectType]: !effectsActive[effectType] };
@@ -228,18 +235,21 @@ function DJDeck({ deckNumber }: DJDeckProps) {
                 value={highEQ}
                 onChange={setHighEQ}
                 color="magenta"
+                onDoubleClick={resetHighEQ}
               />
               <DJKnob
                 label="MID"
                 value={midEQ}
                 onChange={setMidEQ}
                 color="yellow"
+                onDoubleClick={resetMidEQ}
               />
               <DJKnob
                 label="LOW"
                 value={lowEQ}
                 onChange={setLowEQ}
                 color="green"
+                onDoubleClick={resetLowEQ}
               />
             </div>
           </div>
@@ -259,19 +269,21 @@ function DJDeck({ deckNumber }: DJDeckProps) {
             />
           </div>
 
-          {/* Right Side - Pitch and Volume */}
-          <div className="flex gap-2 justify-center">
-            <PitchFader
-              value={pitch}
-              onChange={setPitch}
-              deckNumber={deckNumber}
-            />
-            <DJFader
-              label="VOLUME"
-              value={volume}
-              onChange={setVolume}
-            />
-          </div>
+                     {/* Right Side - Pitch and Volume */}
+           <div className="flex gap-2 justify-center">
+             <PitchFader
+               value={pitch}
+               onChange={setPitch}
+               deckNumber={deckNumber}
+               onDoubleClick={resetPitch}
+             />
+             <DJFader
+               label="VOLUME"
+               value={volume}
+               onChange={setVolume}
+               onDoubleClick={resetVolume}
+             />
+           </div>
         </div>
 
         {/* Bottom Row - Main Controls and Effects */}

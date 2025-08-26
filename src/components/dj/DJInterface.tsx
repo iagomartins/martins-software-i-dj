@@ -18,7 +18,7 @@ import { useAudioEngine } from "@/hooks/useAudioEngine";
 export const DJInterface = () => {
   const { dispatch } = useDJ();
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [crossfaderValue, setCrossfaderValue] = useState(0);
+  const [crossfaderValue, setCrossfaderValue] = useState(0.5); // Start at center (0.5 = 50%)
   const [headphoneVolume, setHeadphoneVolume] = useState(0.7);
   const { applyCrossfader, updateHeadphoneVolume } = useAudioEngine();
 
@@ -72,6 +72,17 @@ export const DJInterface = () => {
     updateHeadphoneVolume(value);
   };
 
+  // Reset functions for double-click
+  const resetCrossfader = () => {
+    setCrossfaderValue(0.5); // Center position (0)
+    applyCrossfader(0);
+  };
+
+  const resetHeadphoneVolume = () => {
+    setHeadphoneVolume(1.0); // 100%
+    updateHeadphoneVolume(1.0);
+  };
+
   return (
     <div className="h-screen bg-background p-2 overflow-hidden flex flex-col">
       <div className="flex-1 flex flex-col min-h-0">
@@ -121,6 +132,7 @@ export const DJInterface = () => {
               <CrossFader
                 value={crossfaderValue * 2 - 1}
                 onChange={handleCrossfaderChange}
+                onDoubleClick={resetCrossfader}
               />
 
               <div className="w-20">
@@ -131,6 +143,7 @@ export const DJInterface = () => {
                   min={0}
                   max={1}
                   color="cyan"
+                  onDoubleClick={resetHeadphoneVolume}
                 />
               </div>
             </div>

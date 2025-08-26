@@ -3,9 +3,10 @@ import { useState } from "react";
 interface CrossFaderProps {
   value: number; // -1 to 1, -1 = deck 1 only, 0 = both equal, 1 = deck 2 only
   onChange: (value: number) => void;
+  onDoubleClick?: () => void;
 }
 
-export const CrossFader = ({ value, onChange }: CrossFaderProps) => {
+export const CrossFader = ({ value, onChange, onDoubleClick }: CrossFaderProps) => {
   const [isDragging, setIsDragging] = useState(false);
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -36,16 +37,17 @@ export const CrossFader = ({ value, onChange }: CrossFaderProps) => {
         CROSSFADER
       </span>
       <div
-        className="dj-fader-horizontal"
+        className="dj-fader-horizontal relative"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        onDoubleClick={onDoubleClick}
       >
         <div
-          className="dj-fader-handle-horizontal"
+          className="dj-fader-handle-horizontal absolute"
           style={{ 
-            left: `${position}%`,
+            left: `calc(${position}% - 6px)`, // Center the handle (12px width = 6px offset)
             boxShadow: isDragging ? `0 0 15px hsl(var(--neon-cyan))` : undefined
           }}
         />

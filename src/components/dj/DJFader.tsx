@@ -6,6 +6,7 @@ interface DJFaderProps {
   onChange: (value: number) => void;
   min?: number;
   max?: number;
+  onDoubleClick?: () => void;
 }
 
 export const DJFader = ({ 
@@ -13,7 +14,8 @@ export const DJFader = ({
   value, 
   onChange, 
   min = 0, 
-  max = 1 
+  max = 1,
+  onDoubleClick
 }: DJFaderProps) => {
   const [isDragging, setIsDragging] = useState(false);
 
@@ -50,6 +52,7 @@ export const DJFader = ({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        onDoubleClick={onDoubleClick}
       >
         <div
           className="dj-fader-handle"
