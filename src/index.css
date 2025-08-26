@@ -2,6 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Global height and overflow styles */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  overflow-x: hidden;
+  height: 100%;
+}
+
+#root {
+  height: 100%;
+  overflow-x: hidden;
+}
+
 /* DJ Interface Design System - Professional dark theme with neon accents
 All colors MUST be HSL.
 */
@@ -70,7 +85,7 @@ All colors MUST be HSL.
 /* DJ Component Styles */
 @layer components {
   .dj-knob {
-    @apply relative w-16 h-16 rounded-full border-2 border-zinc-600 shadow-lg cursor-pointer select-none;
+    @apply relative w-12 h-12 rounded-full border-2 border-zinc-600 shadow-lg cursor-pointer select-none;
     background: radial-gradient(circle at 30% 30%, hsl(var(--knob-chrome)), hsl(var(--knob-shadow)));
     box-shadow: 
       inset 0 0 10px rgba(0,0,0,0.3),
@@ -80,7 +95,7 @@ All colors MUST be HSL.
 
   .dj-knob::before {
     content: '';
-    @apply absolute top-1 left-1/2 w-1 h-4 bg-white rounded-full transform -translate-x-1/2;
+    @apply absolute top-1 left-1/2 w-0.5 h-3 bg-white rounded-full transform -translate-x-1/2;
     box-shadow: 0 0 4px rgba(255,255,255,0.8);
   }
 
@@ -101,6 +116,12 @@ All colors MUST be HSL.
     color: hsl(var(--background));
   }
 
+  .dj-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
   .dj-button.cue.active {
     background: linear-gradient(145deg, hsl(var(--button-cue)), hsl(var(--button-cue)) 60%);
     box-shadow: var(--glow-magenta);
@@ -117,7 +138,7 @@ All colors MUST be HSL.
   }
 
   .dj-fader {
-    @apply relative h-32 w-8 rounded-full cursor-pointer select-none;
+    @apply relative h-32 w-8 rounded-sm cursor-pointer select-none;
     background: linear-gradient(to bottom, 
       hsl(var(--fader-track)), 
       hsl(var(--knob-shadow)) 50%, 
@@ -127,7 +148,7 @@ All colors MUST be HSL.
   }
 
   .dj-fader-handle {
-    @apply absolute left-0 w-full h-4 rounded-full transition-all duration-75;
+    @apply absolute left-0 w-full h-4 rounded-sm transition-all duration-75;
     background: radial-gradient(circle at 30% 30%, hsl(var(--fader-handle)), hsl(var(--knob-shadow)));
     box-shadow: 
       0 2px 6px rgba(0,0,0,0.6),
@@ -181,7 +202,7 @@ All colors MUST be HSL.
   }
 
   .pitch-fader {
-    @apply relative w-6 h-48 rounded-full cursor-pointer select-none;
+    @apply relative w-6 h-48 rounded-sm cursor-pointer select-none;
     background: linear-gradient(to bottom, 
       hsl(var(--neon-light)) 0%, 
       hsl(var(--fader-track)) 48%,
@@ -192,11 +213,74 @@ All colors MUST be HSL.
   }
 
   .pitch-fader-handle {
-    @apply absolute left-0 w-full h-3 rounded-full transition-all duration-75;
+    @apply absolute left-0 w-full h-3 rounded-sm transition-all duration-75;
     background: radial-gradient(circle at 30% 30%, hsl(var(--fader-handle)), hsl(var(--knob-shadow)));
     box-shadow: 
       0 2px 6px rgba(0,0,0,0.6),
       inset 0 1px 2px rgba(255,255,255,0.3);
+  }
+
+  /* Waveform Panel Styles */
+  .waveform-panel {
+    @apply bg-dj-panel rounded-sm p-4 space-y-3;
+  }
+
+  .waveform-canvas {
+    @apply w-full h-20 bg-black/20 rounded-sm cursor-pointer border border-border/50;
+    transition: border-color 0.2s ease;
+  }
+
+  .waveform-canvas:hover {
+    border-color: hsl(var(--neon-cyan) / 0.5);
+  }
+
+  .waveform-load-button {
+    @apply px-3 py-1 bg-neon-cyan/20 text-neon-cyan border border-neon-cyan/30 rounded-sm text-xs font-medium cursor-pointer hover:bg-neon-cyan/30 transition-colors;
+  }
+
+  .waveform-progress-bar {
+    @apply w-full bg-black/20 rounded-full h-1 overflow-hidden;
+  }
+
+  .waveform-progress-fill {
+    @apply bg-neon-magenta h-1 rounded-full transition-all duration-75;
+  }
+
+  /* Height-based responsive adjustments */
+  @media (max-height: 800px) {
+    .dj-knob {
+      @apply w-10 h-10;
+    }
+    
+    .dj-fader {
+      @apply h-24;
+    }
+    
+    .pitch-fader {
+      @apply h-36;
+    }
+    
+    .scratch-wheel {
+      @apply w-24 h-24;
+    }
+  }
+
+  @media (max-height: 600px) {
+    .dj-knob {
+      @apply w-8 h-8;
+    }
+    
+    .dj-fader {
+      @apply h-20;
+    }
+    
+    .pitch-fader {
+      @apply h-28;
+    }
+    
+    .scratch-wheel {
+      @apply w-20 h-20;
+    }
   }
 }
 

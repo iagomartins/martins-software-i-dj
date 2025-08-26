@@ -70,7 +70,7 @@ export const KeyMappingSection = () => {
           Configure teclas do teclado ou controles USB para cada função do DJ
         </p>
         {mappingButton && (
-          <div className="p-3 bg-neon-cyan/10 border border-neon-cyan/20 rounded-lg">
+          <div className="p-3 bg-neon-cyan/10 border border-neon-cyan/20 rounded-sm">
             <p className="text-sm font-medium text-neon-cyan">
               Pressione uma tecla para mapear "{DJ_BUTTONS.find(b => b.id === mappingButton)?.label}"
             </p>
@@ -98,7 +98,7 @@ export const KeyMappingSection = () => {
                 return (
                   <div
                     key={button.id}
-                    className="flex items-center justify-between p-3 bg-dj-console/20 rounded-lg border border-border/50"
+                    className="flex items-center justify-between p-3 bg-dj-console/20 rounded-sm border border-border/50"
                   >
                     <div className="flex items-center gap-3">
                       <span className="font-medium text-sm">{button.label}</span>

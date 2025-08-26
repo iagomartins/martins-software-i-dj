@@ -1,18 +1,19 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { DJKnob } from "./DJKnob";
 import { DJButton } from "./DJButton";
 import { DJFader } from "./DJFader";
 import { ScratchWheel } from "./ScratchWheel";
 import { PitchFader } from "./PitchFader";
+import { AudioWaveform } from "./AudioWaveform";
 import { useDJ } from "@/contexts/DJContext";
 
 interface DJDeckProps {
   deckNumber: 1 | 2;
 }
 
-export const DJDeck = ({ deckNumber }: DJDeckProps) => {
+function DJDeck({ deckNumber }: DJDeckProps) {
   const { state, dispatch } = useDJ();
-  
+
   // Deck state
   const [isPlaying, setIsPlaying] = useState(false);
   const [isCued, setIsCued] = useState(false);
@@ -25,6 +26,12 @@ export const DJDeck = ({ deckNumber }: DJDeckProps) => {
   const [highEQ, setHighEQ] = useState(0);
   const [volume, setVolume] = useState(0.8);
   const [pitch, setPitch] = useState(0);
+  
+  // Audio state
+  const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   const toggleEffect = (index: number) => {
     setEffectsActive(prev => 
@@ -38,17 +45,84 @@ export const DJDeck = ({ deckNumber }: DJDeckProps) => {
 
   const isHeadphone = state.activeHeadphoneDecks.has(deckNumber);
 
-  return (
-    <div className="bg-dj-console border border-border rounded-lg p-6 space-y-6">
+  // Audio handling functions
+  const handleAudioLoad = (file: File) => {
+    setAudioFile(file);
+    setCurrentTime(0);
+    setDuration(0);
+    setIsPlaying(false);
+  };
+
+  const handleTimeUpdate = (time: number) => {
+    setCurrentTime(time);
+  };
+
+  const handlePlayToggle = () => {
+    if (!audioFile) return;
+    
+    if (isPlaying) {
+      setIsPlaying(false);
+    } else {
+      setIsPlaying(true);
+    }
+  };
+
+  // Update duration when audio metadata is loaded
+  useEffect(() => {
+    if (audioRef.current) {
+      const handleLoadedMetadata = () => {
+        setDuration(audioRef.current?.duration || 0);
+      };
+      
+      audioRef.current.addEventListener('loadedmetadata', handleLoadedMetadata);
+      return () => {
+        audioRef.current?.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      };
+    }
+  }, [audioFile]);
+
+  // Update audio volume when volume changes
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume;
+    }
+  }, [volume]);
+
+    return (
+    <div className="bg-dj-console border border-border rounded-sm p-4 space-y-4">
+      {/* Waveform Panel */}
+      <AudioWaveform
+        deckNumber={deckNumber}
+        audioFile={audioFile}
+        isPlaying={isPlaying}
+        currentTime={currentTime}
+        duration={duration}
+        onTimeUpdate={handleTimeUpdate}
+        onLoad={handleAudioLoad}
+      />
+
       {/* Deck Header */}
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold text-neon-cyan">DECK {deckNumber}</h2>
-        <DJButton
-          id={`deck${deckNumber}-load`}
-          label="LOAD"
-          onClick={() => console.log(`Load track to deck ${deckNumber}`)}
-          size="sm"
-        />
+        <div className="flex flex-col">
+          <h2 className="text-xl font-bold text-neon-cyan">DECK {deckNumber}</h2>
+          {audioFile && (
+            <span className="text-sm text-neon-cyan/80 font-medium">
+              {audioFile.name.replace(/\.[^/.]+$/, "")}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {audioFile && (
+            <>
+              <span className="text-xs text-neon-cyan bg-dj-panel px-2 py-1 rounded-sm">
+                {formatTime(currentTime)} / {formatTime(duration)}
+              </span>
+              <span className="text-xs text-muted-foreground bg-dj-panel px-2 py-1 rounded-sm">
+                {isPlaying ? '▶ PLAYING' : '⏸ PAUSED'}
+              </span>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Top Row - Scratch Wheel and Controls */}
@@ -56,9 +130,9 @@ export const DJDeck = ({ deckNumber }: DJDeckProps) => {
         {/* Left Side - EQ and Controls */}
         <div className="space-y-6">
           {/* EQ Section */}
-          <div className="bg-dj-panel rounded-lg p-4">
-            <h3 className="text-sm font-bold text-dj-panel-foreground mb-4 text-center">EQ</h3>
-            <div className="flex gap-4">
+                     <div className="bg-dj-panel rounded-sm p-3">
+            <h3 className="text-sm font-bold text-dj-panel-foreground mb-3 text-center">EQ</h3>
+            <div className="flex gap-3">
               <DJKnob
                 label="HIGH"
                 value={highEQ}
@@ -81,7 +155,7 @@ export const DJDeck = ({ deckNumber }: DJDeckProps) => {
           </div>
 
           {/* Main Controls */}
-          <div className="bg-dj-panel rounded-lg p-4 space-y-3">
+                     <div className="bg-dj-panel rounded-sm p-3 space-y-2">
             <div className="grid grid-cols-2 gap-3">
               <DJButton
                 id={`deck${deckNumber}-cue`}
@@ -95,7 +169,8 @@ export const DJDeck = ({ deckNumber }: DJDeckProps) => {
                 label="PLAY"
                 variant="play"
                 active={isPlaying}
-                onClick={() => setIsPlaying(!isPlaying)}
+                onClick={handlePlayToggle}
+                disabled={!audioFile}
               />
             </div>
             
@@ -140,9 +215,9 @@ export const DJDeck = ({ deckNumber }: DJDeckProps) => {
       </div>
 
       {/* Effects Section */}
-      <div className="bg-dj-panel rounded-lg p-4">
-        <h3 className="text-sm font-bold text-dj-panel-foreground mb-4 text-center">EFFECTS</h3>
-        <div className="grid grid-cols-4 gap-3">
+              <div className="bg-dj-panel rounded-sm p-3">
+        <h3 className="text-sm font-bold text-dj-panel-foreground mb-3 text-center">EFFECTS</h3>
+        <div className="grid grid-cols-4 gap-2">
           {[1, 2, 3, 4].map((fx) => (
             <DJButton
               key={fx}
@@ -155,6 +230,24 @@ export const DJDeck = ({ deckNumber }: DJDeckProps) => {
           ))}
         </div>
       </div>
+      
+      {/* Hidden audio element for playback control */}
+      <audio 
+        ref={audioRef} 
+        preload="metadata"
+        onEnded={() => setIsPlaying(false)}
+      />
     </div>
   );
 };
+
+// Helper function to format time
+const formatTime = (seconds: number): string => {
+  if (!seconds || isNaN(seconds)) return '0:00';
+  
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+};
+
+export { DJDeck };
