@@ -2,6 +2,8 @@
 
 To run this project you need Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
 
+Access app: https://martins-software-i-dj.lovable.app/
+
 Follow these steps:
 
 ```sh
