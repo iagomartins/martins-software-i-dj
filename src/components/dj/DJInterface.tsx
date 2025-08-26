@@ -57,9 +57,6 @@ export const DJInterface = () => {
         <div className="flex justify-between items-center mb-3">
           <div className="flex items-center gap-3">
             <img src={djLogo} width={60} alt="DJ Logo" />
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-neon-cyan to-neon-magenta bg-clip-text text-transparent">
-              DJ INTERFACE
-            </h1>
           </div>
           <div className="flex items-center gap-2">
             <Tooltip>
