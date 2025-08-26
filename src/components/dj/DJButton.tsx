@@ -6,7 +6,7 @@ interface DJButtonProps {
   active?: boolean;
   onClick?: () => void;
   variant?: "default" | "cue" | "play" | "sync";
-  size?: "sm" | "md" | "lg";
+  size?: "xs" | "sm" | "md" | "lg";
   disabled?: boolean;
 }
 
@@ -30,6 +30,7 @@ export const DJButton = ({
         variant === "cue" && "cue",
         variant === "play" && "play", 
         variant === "sync" && "sync",
+        size === "xs" && "px-1 py-0.5 text-[10px]",
         size === "sm" && "px-2 py-1 text-xs",
         size === "lg" && "px-6 py-3 text-base",
         disabled && "opacity-50 cursor-not-allowed"

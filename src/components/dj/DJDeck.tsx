@@ -89,7 +89,7 @@ function DJDeck({ deckNumber }: DJDeckProps) {
   }, [volume]);
 
     return (
-    <div className="bg-dj-console border border-border rounded-sm p-4 space-y-4">
+    <div className="bg-dj-console border border-border rounded-sm p-2 space-y-2 flex flex-col h-full">
       {/* Waveform Panel */}
       <AudioWaveform
         deckNumber={deckNumber}
@@ -103,36 +103,29 @@ function DJDeck({ deckNumber }: DJDeckProps) {
 
       {/* Deck Header */}
       <div className="flex justify-between items-center">
-        <div className="flex flex-col">
-          <h2 className="text-xl font-bold text-neon-cyan">DECK {deckNumber}</h2>
-          {audioFile && (
-            <span className="text-sm text-neon-cyan/80 font-medium">
-              {audioFile.name.replace(/\.[^/.]+$/, "")}
-            </span>
-          )}
-        </div>
+        <h2 className="text-lg font-bold text-neon-cyan">DECK {deckNumber}</h2>
         <div className="flex items-center gap-2">
           {audioFile && (
             <>
-              <span className="text-xs text-neon-cyan bg-dj-panel px-2 py-1 rounded-sm">
+              <span className="text-[10px] text-neon-cyan bg-dj-panel px-1 py-0.5 rounded-sm">
                 {formatTime(currentTime)} / {formatTime(duration)}
               </span>
-              <span className="text-xs text-muted-foreground bg-dj-panel px-2 py-1 rounded-sm">
-                {isPlaying ? '▶ PLAYING' : '⏸ PAUSED'}
+              <span className="text-[10px] text-muted-foreground bg-dj-panel px-1 py-0.5 rounded-sm">
+                {isPlaying ? '▶ PLAY' : '⏸ PAUSE'}
               </span>
             </>
           )}
         </div>
       </div>
 
-      {/* Top Row - Scratch Wheel and Controls */}
-      <div className="flex justify-between items-start">
-        {/* Left Side - EQ and Controls */}
-        <div className="space-y-6">
+      {/* Controls Layout - Optimized for smaller space */}
+      <div className="flex-1 flex flex-col space-y-2">
+        {/* Top Row - EQ and Main Controls */}
+        <div className="grid grid-cols-3 gap-2">
           {/* EQ Section */}
-                     <div className="bg-dj-panel rounded-sm p-3">
-            <h3 className="text-sm font-bold text-dj-panel-foreground mb-3 text-center">EQ</h3>
-            <div className="flex gap-3">
+          <div className="bg-dj-panel rounded-sm p-2">
+            <h3 className="text-[10px] font-bold text-dj-panel-foreground mb-1 text-center">EQ</h3>
+            <div className="flex gap-1">
               <DJKnob
                 label="HIGH"
                 value={highEQ}
@@ -154,15 +147,48 @@ function DJDeck({ deckNumber }: DJDeckProps) {
             </div>
           </div>
 
+          {/* Center - Scratch Wheel */}
+          <div className="flex justify-center">
+            <ScratchWheel 
+              isPlaying={isPlaying}
+              onScratch={(delta) => {
+                if (audioRef.current && duration > 0) {
+                  const timeChange = (delta * duration) / (Math.PI * 2) * 10; // Scale factor for sensitivity
+                  const newTime = Math.max(0, Math.min(duration, currentTime + timeChange));
+                  audioRef.current.currentTime = newTime;
+                  setCurrentTime(newTime);
+                }
+              }}
+            />
+          </div>
+
+          {/* Right Side - Pitch and Volume */}
+          <div className="flex gap-2 justify-center">
+            <PitchFader
+              value={pitch}
+              onChange={setPitch}
+              deckNumber={deckNumber}
+            />
+            <DJFader
+              label="VOLUME"
+              value={volume}
+              onChange={setVolume}
+            />
+          </div>
+        </div>
+
+        {/* Bottom Row - Main Controls and Effects */}
+        <div className="grid grid-cols-2 gap-2">
           {/* Main Controls */}
-                     <div className="bg-dj-panel rounded-sm p-3 space-y-2">
-            <div className="grid grid-cols-2 gap-3">
+          <div className="bg-dj-panel rounded-sm p-2 space-y-1">
+            <div className="grid grid-cols-2 gap-1">
               <DJButton
                 id={`deck${deckNumber}-cue`}
                 label="CUE"
                 variant="cue"
                 active={isCued}
                 onClick={() => setIsCued(!isCued)}
+                size="sm"
               />
               <DJButton
                 id={`deck${deckNumber}-play`}
@@ -171,63 +197,44 @@ function DJDeck({ deckNumber }: DJDeckProps) {
                 active={isPlaying}
                 onClick={handlePlayToggle}
                 disabled={!audioFile}
+                size="sm"
               />
             </div>
-            
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-1">
               <DJButton
                 id={`deck${deckNumber}-sync`}
                 label="SYNC"
                 variant="sync"
                 active={isSynced}
                 onClick={() => setIsSynced(!isSynced)}
+                size="sm"
               />
               <DJButton
                 id={`deck${deckNumber}-phones`}
                 label="PHONES"
                 active={isHeadphone}
                 onClick={handleHeadphoneToggle}
+                size="sm"
               />
             </div>
           </div>
-        </div>
 
-        {/* Center - Scratch Wheel */}
-        <ScratchWheel 
-          isPlaying={isPlaying}
-          onScratch={(delta) => console.log(`Scratch delta: ${delta}`)}
-        />
-
-        {/* Right Side - Pitch and Volume */}
-        <div className="flex gap-6 items-start">
-          <PitchFader
-            value={pitch}
-            onChange={setPitch}
-            deckNumber={deckNumber}
-          />
-          
-          <DJFader
-            label="VOLUME"
-            value={volume}
-            onChange={setVolume}
-          />
-        </div>
-      </div>
-
-      {/* Effects Section */}
-              <div className="bg-dj-panel rounded-sm p-3">
-        <h3 className="text-sm font-bold text-dj-panel-foreground mb-3 text-center">EFFECTS</h3>
-        <div className="grid grid-cols-4 gap-2">
-          {[1, 2, 3, 4].map((fx) => (
-            <DJButton
-              key={fx}
-              id={`deck${deckNumber}-fx${fx}`}
-              label={`FX ${fx}`}
-              active={effectsActive[fx - 1]}
-              onClick={() => toggleEffect(fx - 1)}
-              size="sm"
-            />
-          ))}
+          {/* Effects Section */}
+          <div className="bg-dj-panel rounded-sm p-2">
+            <h3 className="text-[10px] font-bold text-dj-panel-foreground mb-1 text-center">EFFECTS</h3>
+            <div className="grid grid-cols-2 gap-1">
+              {[1, 2, 3, 4].map((fx) => (
+                <DJButton
+                  key={fx}
+                  id={`deck${deckNumber}-fx${fx}`}
+                  label={`FX${fx}`}
+                  active={effectsActive[fx - 1]}
+                  onClick={() => toggleEffect(fx - 1)}
+                  size="xs"
+                />
+              ))}
+            </div>
+          </div>
         </div>
       </div>
       
