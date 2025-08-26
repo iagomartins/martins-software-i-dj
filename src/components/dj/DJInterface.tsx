@@ -3,6 +3,7 @@ import { ConfigModal } from "./ConfigModal";
 import { Button } from "@/components/ui/button";
 import { Settings } from "lucide-react";
 import { useDJ } from "@/contexts/DJContext";
+import djLogo from "@/assets/iDJLogo.svg";
 
 export const DJInterface = () => {
   const { dispatch } = useDJ();
@@ -23,9 +24,9 @@ export const DJInterface = () => {
           </Button>
           
           <h1 className="text-4xl font-bold bg-gradient-to-r from-neon-cyan to-neon-magenta bg-clip-text text-transparent">
-            VIRTUAL DJ CONSOLE
+            <img src={djLogo} width={100} alt="Be the DJ you want to be!" />
           </h1>
-          <p className="text-dj-console-foreground font-mono">
+          <p className="text-dj-console-foreground text-left">
             Professional DJ Mixing Interface
           </p>
         </div>
