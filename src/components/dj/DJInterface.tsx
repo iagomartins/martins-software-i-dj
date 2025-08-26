@@ -9,49 +9,49 @@ export const DJInterface = () => {
   const { dispatch } = useDJ();
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header */}
-        <div className="text-center space-y-2 relative">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => dispatch({ type: 'TOGGLE_CONFIG_MODAL' })}
-            className="absolute right-0 top-0 flex items-center gap-2"
-          >
-            <Settings className="w-4 h-4" />
-            Configurações
-          </Button>
-          
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-neon-cyan to-neon-magenta bg-clip-text text-transparent">
-            <img src={djLogo} width={100} alt="Be the DJ you want to be!" />
-          </h1>
-          <p className="text-dj-console-foreground text-left">
-            Professional DJ Mixing Interface
-          </p>
-        </div>
-
         {/* DJ Console */}
         <div className="bg-dj-console/50 rounded-2xl p-8 border border-border backdrop-blur-sm">
+          {/* Header */}
+          <div className="text-center space-y-2 relative">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => dispatch({ type: "TOGGLE_CONFIG_MODAL" })}
+              className="absolute right-0 top-0 flex items-center gap-2"
+            >
+              <Settings className="w-4 h-4" />
+              Configurações
+            </Button>
+
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-neon-cyan to-neon-magenta bg-clip-text text-transparent">
+              <img src={djLogo} width={100} alt="Be the DJ you want to be!" />
+            </h1>
+          </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <DJDeck deckNumber={1} />
             <DJDeck deckNumber={2} />
           </div>
-          
+
           {/* Crossfader Section */}
           <div className="mt-8 bg-dj-panel rounded-lg p-6">
             <div className="flex justify-center items-center space-x-8">
-              <span className="text-sm font-mono text-dj-panel-foreground">DECK A</span>
-              
+              <span className="text-sm font-mono text-dj-panel-foreground">
+                DECK A
+              </span>
+
               <div className="relative w-64 h-4 bg-fader-track rounded-full cursor-pointer">
                 <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-8 h-4 bg-fader-handle rounded-full shadow-lg">
                   <div className="w-full h-full bg-gradient-to-b from-white/30 to-transparent rounded-full" />
                 </div>
               </div>
-              
-              <span className="text-sm font-mono text-dj-panel-foreground">DECK B</span>
+
+              <span className="text-sm font-mono text-dj-panel-foreground">
+                DECK B
+              </span>
             </div>
-            
+
             <div className="text-center mt-2">
               <span className="text-xs font-mono text-neon-cyan uppercase tracking-wider">
                 Crossfader
@@ -61,11 +61,11 @@ export const DJInterface = () => {
         </div>
 
         {/* Footer */}
-        <div className="text-center text-sm text-muted-foreground font-mono">
-          Use mouse to interact with controls • Click and drag knobs and faders • Press gear icon to configure
+        <div className="text-center text-xs text-muted-foreground font-mono">
+          A <a href="https://soundcloud.com/corvolive" className="text-neon-cyan" target="_blank" rel="noopener">Corvo Live</a> Production © 2025. Todos os direitos reservados.
         </div>
       </div>
-      
+
       <ConfigModal />
     </div>
   );
