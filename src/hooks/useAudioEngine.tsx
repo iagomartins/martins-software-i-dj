@@ -13,6 +13,7 @@ export interface DeckAudioState {
   currentTime: number;
   duration: number;
   bpm: number;
+  baseBpm: number;
   pitch: number;
   volume: number;
   lowEQ: number;
@@ -21,12 +22,29 @@ export interface DeckAudioState {
   effects: AudioEffects;
 }
 
+export interface DeckAudioChain {
+  source: AudioBufferSourceNode;
+  lowFilter: BiquadFilterNode;
+  midFilter: BiquadFilterNode;
+  highFilter: BiquadFilterNode;
+  volumeGain: GainNode;
+  masterGain: GainNode;
+  headphoneGain: GainNode;
+  flanger: DelayNode;
+  filter: BiquadFilterNode;
+  echo: DelayNode;
+  reverb: ConvolverNode;
+  pitchGain: GainNode;
+}
+
 export const useAudioEngine = () => {
   const audioContextRef = useRef<AudioContext | null>(null);
-  const deck1NodeRef = useRef<AudioBufferSourceNode | null>(null);
-  const deck2NodeRef = useRef<AudioBufferSourceNode | null>(null);
+  const deck1ChainRef = useRef<DeckAudioChain | null>(null);
+  const deck2ChainRef = useRef<DeckAudioChain | null>(null);
   const masterGainRef = useRef<GainNode | null>(null);
   const headphoneGainRef = useRef<GainNode | null>(null);
+  const crossfaderGainRef = useRef<GainNode | null>(null);
+  const headphoneVolumeRef = useRef<GainNode | null>(null);
 
   const initAudioContext = useCallback(async () => {
     if (!audioContextRef.current) {
@@ -34,11 +52,25 @@ export const useAudioEngine = () => {
       
       // Create master output
       masterGainRef.current = audioContextRef.current.createGain();
-      masterGainRef.current.connect(audioContextRef.current.destination);
+      masterGainRef.current.gain.setValueAtTime(1, audioContextRef.current.currentTime);
+      
+      // Create crossfader
+      crossfaderGainRef.current = audioContextRef.current.createGain();
+      crossfaderGainRef.current.gain.setValueAtTime(1, audioContextRef.current.currentTime);
       
       // Create headphone output
       headphoneGainRef.current = audioContextRef.current.createGain();
-      headphoneGainRef.current.connect(audioContextRef.current.destination);
+      headphoneGainRef.current.gain.setValueAtTime(1, audioContextRef.current.currentTime);
+      
+      // Create headphone volume control
+      headphoneVolumeRef.current = audioContextRef.current.createGain();
+      headphoneVolumeRef.current.gain.setValueAtTime(0.7, audioContextRef.current.currentTime);
+      
+      // Connect chain
+      crossfaderGainRef.current.connect(masterGainRef.current);
+      headphoneGainRef.current.connect(headphoneVolumeRef.current);
+      masterGainRef.current.connect(audioContextRef.current.destination);
+      headphoneVolumeRef.current.connect(audioContextRef.current.destination);
     }
   }, []);
 
@@ -46,7 +78,40 @@ export const useAudioEngine = () => {
     const filter = context.createBiquadFilter();
     filter.type = type;
     filter.frequency.setValueAtTime(frequency, context.currentTime);
+    filter.Q.setValueAtTime(1, context.currentTime);
     return filter;
+  }, []);
+
+  const createEffects = useCallback((context: AudioContext) => {
+    // Flanger effect
+    const flanger = context.createDelay(0.003);
+    flanger.delayTime.setValueAtTime(0.003, context.currentTime);
+    
+    // Filter effect
+    const filter = context.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(1000, context.currentTime);
+    filter.Q.setValueAtTime(1, context.currentTime);
+    
+    // Echo effect
+    const echo = context.createDelay(0.5);
+    echo.delayTime.setValueAtTime(0.5, context.currentTime);
+    
+    // Reverb effect (simple convolution)
+    const reverb = context.createConvolver();
+    // Create a simple impulse response for reverb
+    const sampleRate = context.sampleRate;
+    const length = sampleRate * 0.5; // 0.5 second reverb
+    const impulse = context.createBuffer(2, length, sampleRate);
+    for (let channel = 0; channel < 2; channel++) {
+      const channelData = impulse.getChannelData(channel);
+      for (let i = 0; i < length; i++) {
+        channelData[i] = (Math.random() * 2 - 1) * Math.exp(-i / (sampleRate * 0.1));
+      }
+    }
+    reverb.buffer = impulse;
+    
+    return { flanger, filter, echo, reverb };
   }, []);
 
   const createDeckChain = useCallback(async (deckNumber: 1 | 2, audioBuffer: AudioBuffer) => {
@@ -67,19 +132,35 @@ export const useAudioEngine = () => {
     const volumeGain = context.createGain();
     const masterGain = context.createGain();
     const headphoneGain = context.createGain();
+    const pitchGain = context.createGain();
+    
+    // Create effects
+    const effects = createEffects(context);
     
     // Connect chain
-    source.connect(lowFilter);
+    source.connect(pitchGain);
+    pitchGain.connect(lowFilter);
     lowFilter.connect(midFilter);
     midFilter.connect(highFilter);
     highFilter.connect(volumeGain);
+    
+    // Effects chain (bypass by default)
+    const effectsGain = context.createGain();
+    effectsGain.gain.setValueAtTime(0, context.currentTime);
+    volumeGain.connect(effectsGain);
+    
+    // Connect effects
+    effects.flanger.connect(effects.filter);
+    effects.filter.connect(effects.echo);
+    effects.echo.connect(effects.reverb);
+    effects.reverb.connect(effectsGain);
     
     // Split to master and headphone outputs
     volumeGain.connect(masterGain);
     volumeGain.connect(headphoneGain);
     
-    if (masterGainRef.current) {
-      masterGain.connect(masterGainRef.current);
+    if (crossfaderGainRef.current) {
+      masterGain.connect(crossfaderGainRef.current);
     }
     
     if (headphoneGainRef.current) {
@@ -93,44 +174,159 @@ export const useAudioEngine = () => {
       highFilter,
       volumeGain,
       masterGain,
-      headphoneGain
+      headphoneGain,
+      pitchGain,
+      ...effects
     };
-  }, [createEQFilter]);
+  }, [createEQFilter, createEffects]);
 
   const detectBPM = useCallback(async (audioBuffer: AudioBuffer): Promise<number> => {
-    // Simplified BPM detection - in a real app, you'd use more sophisticated algorithms
-    // This is a placeholder that returns a random BPM between 120-140
-    return Math.round(120 + Math.random() * 20);
+    // Enhanced BPM detection using autocorrelation
+    const sampleRate = audioBuffer.sampleRate;
+    const length = audioBuffer.length;
+    const channelData = audioBuffer.getChannelData(0);
+    
+    // Downsample for performance
+    const downsampleFactor = 4;
+    const downsampledLength = Math.floor(length / downsampleFactor);
+    const downsampled = new Float32Array(downsampledLength);
+    
+    for (let i = 0; i < downsampledLength; i++) {
+      downsampled[i] = channelData[i * downsampleFactor];
+    }
+    
+    // Simple onset detection
+    const onsetThreshold = 0.1;
+    const onsets: number[] = [];
+    
+    for (let i = 1; i < downsampledLength; i++) {
+      if (downsampled[i] > onsetThreshold && downsampled[i - 1] <= onsetThreshold) {
+        onsets.push(i);
+      }
+    }
+    
+    if (onsets.length < 2) return 120;
+    
+    // Calculate intervals between onsets
+    const intervals: number[] = [];
+    for (let i = 1; i < onsets.length; i++) {
+      intervals.push(onsets[i] - onsets[i - 1]);
+    }
+    
+    // Find most common interval (BPM)
+    const intervalCounts: { [key: number]: number } = {};
+    intervals.forEach(interval => {
+      const rounded = Math.round(interval / 10) * 10;
+      intervalCounts[rounded] = (intervalCounts[rounded] || 0) + 1;
+    });
+    
+    let maxCount = 0;
+    let mostCommonInterval = 120;
+    
+    Object.entries(intervalCounts).forEach(([interval, count]) => {
+      if (count > maxCount) {
+        maxCount = count;
+        mostCommonInterval = parseInt(interval);
+      }
+    });
+    
+    // Convert interval to BPM
+    const bpm = Math.round((sampleRate / downsampleFactor) * 60 / mostCommonInterval);
+    return Math.max(60, Math.min(200, bpm)); // Clamp between 60-200 BPM
   }, []);
 
-  const applyCrossfader = useCallback((crossfaderValue: number, deck1Gain: GainNode, deck2Gain: GainNode) => {
+  const applyCrossfader = useCallback((crossfaderValue: number) => {
+    if (!crossfaderGainRef.current || !deck1ChainRef.current || !deck2ChainRef.current) return;
+    
     // crossfaderValue: -1 = deck1 only, 0 = both equal, 1 = deck2 only
     const deck1Volume = crossfaderValue <= 0 ? 1 : Math.max(0, 1 - crossfaderValue);
     const deck2Volume = crossfaderValue >= 0 ? 1 : Math.max(0, 1 + crossfaderValue);
     
-    if (deck1Gain) {
-      deck1Gain.gain.setValueAtTime(deck1Volume, audioContextRef.current?.currentTime || 0);
-    }
-    if (deck2Gain) {
-      deck2Gain.gain.setValueAtTime(deck2Volume, audioContextRef.current?.currentTime || 0);
-    }
+    deck1ChainRef.current.masterGain.gain.setValueAtTime(deck1Volume, audioContextRef.current?.currentTime || 0);
+    deck2ChainRef.current.masterGain.gain.setValueAtTime(deck2Volume, audioContextRef.current?.currentTime || 0);
   }, []);
 
   const updateEQ = useCallback((
-    filters: { low: BiquadFilterNode; mid: BiquadFilterNode; high: BiquadFilterNode },
+    deckNumber: 1 | 2,
     eq: { low: number; mid: number; high: number }
   ) => {
-    const context = audioContextRef.current;
-    if (!context) return;
+    const chain = deckNumber === 1 ? deck1ChainRef.current : deck2ChainRef.current;
+    if (!chain || !audioContextRef.current) return;
 
+    const context = audioContextRef.current;
+    
     // Convert -1..1 range to dB gain
     const lowGain = eq.low * 12; // +/- 12dB
     const midGain = eq.mid * 12;
     const highGain = eq.high * 12;
 
-    filters.low.gain.setValueAtTime(lowGain, context.currentTime);
-    filters.mid.gain.setValueAtTime(midGain, context.currentTime);
-    filters.high.gain.setValueAtTime(highGain, context.currentTime);
+    chain.lowFilter.gain.setValueAtTime(lowGain, context.currentTime);
+    chain.midFilter.gain.setValueAtTime(midGain, context.currentTime);
+    chain.highFilter.gain.setValueAtTime(highGain, context.currentTime);
+  }, []);
+
+  const updateVolume = useCallback((deckNumber: 1 | 2, volume: number) => {
+    const chain = deckNumber === 1 ? deck1ChainRef.current : deck2ChainRef.current;
+    if (!chain) return;
+    
+    chain.volumeGain.gain.setValueAtTime(volume, audioContextRef.current?.currentTime || 0);
+  }, []);
+
+  const updatePitch = useCallback((deckNumber: 1 | 2, pitch: number) => {
+    const chain = deckNumber === 1 ? deck1ChainRef.current : deck2ChainRef.current;
+    if (!chain) return;
+    
+    // Pitch affects playback rate
+    const playbackRate = Math.pow(2, pitch);
+    chain.source.playbackRate.setValueAtTime(playbackRate, audioContextRef.current?.currentTime || 0);
+  }, []);
+
+  const updateEffects = useCallback((deckNumber: 1 | 2, effects: AudioEffects) => {
+    const chain = deckNumber === 1 ? deck1ChainRef.current : deck2ChainRef.current;
+    if (!chain || !audioContextRef.current) return;
+
+    const context = audioContextRef.current;
+    
+    // Flanger effect
+    if (effects.flanger) {
+      chain.flanger.gain.setValueAtTime(0.3, context.currentTime);
+    } else {
+      chain.flanger.gain.setValueAtTime(0, context.currentTime);
+    }
+    
+    // Filter effect
+    if (effects.filter) {
+      chain.filter.gain.setValueAtTime(0.5, context.currentTime);
+    } else {
+      chain.filter.gain.setValueAtTime(0, context.currentTime);
+    }
+    
+    // Echo effect
+    if (effects.echo) {
+      chain.echo.gain.setValueAtTime(0.4, context.currentTime);
+    } else {
+      chain.echo.gain.setValueAtTime(0, context.currentTime);
+    }
+    
+    // Reverb effect
+    if (effects.reverb) {
+      chain.reverb.gain.setValueAtTime(0.3, context.currentTime);
+    } else {
+      chain.reverb.gain.setValueAtTime(0, context.currentTime);
+    }
+  }, []);
+
+  const updateHeadphoneVolume = useCallback((volume: number) => {
+    if (!headphoneVolumeRef.current) return;
+    headphoneVolumeRef.current.gain.setValueAtTime(volume, audioContextRef.current?.currentTime || 0);
+  }, []);
+
+  const setDeckChain = useCallback((deckNumber: 1 | 2, chain: DeckAudioChain) => {
+    if (deckNumber === 1) {
+      deck1ChainRef.current = chain;
+    } else {
+      deck2ChainRef.current = chain;
+    }
   }, []);
 
   return {
@@ -139,6 +335,11 @@ export const useAudioEngine = () => {
     detectBPM,
     applyCrossfader,
     updateEQ,
+    updateVolume,
+    updatePitch,
+    updateEffects,
+    updateHeadphoneVolume,
+    setDeckChain,
     audioContext: audioContextRef.current,
     masterGain: masterGainRef.current,
     headphoneGain: headphoneGainRef.current

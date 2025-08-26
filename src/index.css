@@ -105,7 +105,7 @@ All colors MUST be HSL.
   }
 
   .dj-fader-handle {
-    @apply absolute left-1/2 transform -translate-x-1/2 w-8 h-3 bg-gradient-to-r from-neon-cyan to-neon-magenta border border-white/30 rounded-sm shadow-lg transition-shadow duration-150;
+    @apply absolute left-1/2 transform w-8 h-3 bg-gradient-to-r from-neon-cyan to-neon-magenta border border-white/30 rounded-sm shadow-lg transition-shadow duration-150;
   }
 
   /* Horizontal Fader Styles */

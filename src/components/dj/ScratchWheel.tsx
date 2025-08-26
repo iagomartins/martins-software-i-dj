@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
 const VinylSVG = () => (
   <svg viewBox="0 0 200 200" className="w-full h-full">
@@ -28,10 +28,10 @@ const VinylSVG = () => (
     <circle cx="100" cy="100" r="25" fill="#f0f0f0" />
     <circle cx="100" cy="100" r="5" fill="#1a1a1a" />
     {/* iDJ text */}
-    <text x="100" y="95" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#000">
+    <text x="100" y="95" textAnchor="middle" fontSize="18" fontWeight="bold" fill="#000">
       iDJ
     </text>
-    <text x="100" y="108" textAnchor="middle" fontSize="8" fill="#666">
+    <text x="100" y="112" textAnchor="middle" fontSize="12" fill="#666">
       VINYL
     </text>
   </svg>
@@ -46,6 +46,26 @@ export const ScratchWheel = ({ onScratch, isPlaying = false }: ScratchWheelProps
   const [isDragging, setIsDragging] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [lastAngle, setLastAngle] = useState(0);
+  const animationRef = useRef<number>();
+
+  // Auto-rotation when playing
+  useEffect(() => {
+    if (isPlaying && !isDragging) {
+      const animate = () => {
+        setRotation(prev => prev + 2); // Rotate 2 degrees per frame
+        animationRef.current = requestAnimationFrame(animate);
+      };
+      animationRef.current = requestAnimationFrame(animate);
+    } else if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
+    }
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [isPlaying, isDragging]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
@@ -82,13 +102,13 @@ export const ScratchWheel = ({ onScratch, isPlaying = false }: ScratchWheelProps
   return (
     <div className="flex flex-col items-center gap-2">
       <div
-        className="relative w-16 h-16 cursor-pointer select-none"
+        className="relative w-32 h-32 cursor-pointer select-none"
         style={{ 
           transform: `rotate(${rotation}deg)`,
           filter: isDragging 
-            ? `drop-shadow(0 0 15px hsl(var(--neon-cyan)))`
+            ? `drop-shadow(0 0 25px hsl(var(--neon-cyan)))`
             : isPlaying 
-            ? `drop-shadow(0 0 10px hsl(var(--neon-green)))`
+            ? `drop-shadow(0 0 20px hsl(var(--neon-green)))`
             : undefined,
         }}
         onMouseDown={handleMouseDown}
@@ -98,7 +118,7 @@ export const ScratchWheel = ({ onScratch, isPlaying = false }: ScratchWheelProps
       >
         <VinylSVG />
       </div>
-      <span className="text-[10px] font-mono text-dj-panel-foreground uppercase tracking-wider">
+      <span className="text-[12px] font-mono text-dj-panel-foreground uppercase tracking-wider">
         SCRATCH
       </span>
     </div>

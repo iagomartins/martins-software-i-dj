@@ -6,7 +6,7 @@ import { ScratchWheel } from "./ScratchWheel";
 import { PitchFader } from "./PitchFader";
 import { AudioWaveform } from "./AudioWaveform";
 import { useDJ } from "@/contexts/DJContext";
-import { useAudioEngine } from "@/hooks/useAudioEngine";
+import { useAudioEngine, AudioEffects } from "@/hooks/useAudioEngine";
 
 interface DJDeckProps {
   deckNumber: 1 | 2;
@@ -14,13 +14,27 @@ interface DJDeckProps {
 
 function DJDeck({ deckNumber }: DJDeckProps) {
   const { state, dispatch } = useDJ();
-  const { initAudioContext, detectBPM, updateEQ } = useAudioEngine();
+  const { 
+    initAudioContext, 
+    detectBPM, 
+    updateEQ, 
+    updateVolume, 
+    updatePitch, 
+    updateEffects, 
+    setDeckChain,
+    createDeckChain 
+  } = useAudioEngine();
 
   // Deck state
   const [isPlaying, setIsPlaying] = useState(false);
   const [isCued, setIsCued] = useState(false);
   const [isSynced, setIsSynced] = useState(false);
-  const [effectsActive, setEffectsActive] = useState([false, false, false, false]);
+  const [effectsActive, setEffectsActive] = useState<AudioEffects>({
+    flanger: false,
+    filter: false,
+    echo: false,
+    reverb: false
+  });
   
   // Control values
   const [lowEQ, setLowEQ] = useState(0);
@@ -37,15 +51,15 @@ function DJDeck({ deckNumber }: DJDeckProps) {
   const [baseBpm, setBaseBpm] = useState(120);
   const [cuePoint, setCuePoint] = useState(0);
   const [isHeadphoneActive, setIsHeadphoneActive] = useState(false);
+  
   const audioRef = useRef<HTMLAudioElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
-  const filtersRef = useRef<{ low: BiquadFilterNode; mid: BiquadFilterNode; high: BiquadFilterNode } | null>(null);
+  const deckChainRef = useRef<any>(null);
 
-  const toggleEffect = (index: number) => {
-    setEffectsActive(prev => 
-      prev.map((active, i) => i === index ? !active : active)
-    );
-    // TODO: Apply audio effects based on effectsActive state
+  const toggleEffect = (effectType: keyof AudioEffects) => {
+    const newEffects = { ...effectsActive, [effectType]: !effectsActive[effectType] };
+    setEffectsActive(newEffects);
+    updateEffects(deckNumber, newEffects);
   };
 
   const handleHeadphoneToggle = () => {
@@ -63,6 +77,9 @@ function DJDeck({ deckNumber }: DJDeckProps) {
     setIsPlaying(false);
     setCuePoint(0);
     
+    // Initialize audio context
+    await initAudioContext();
+    
     // Detect BPM
     try {
       const arrayBuffer = await file.arrayBuffer();
@@ -71,6 +88,14 @@ function DJDeck({ deckNumber }: DJDeckProps) {
       const detectedBPM = await detectBPM(audioBuffer);
       setBaseBpm(detectedBPM);
       setBpm(detectedBPM);
+      
+      // Create deck audio chain
+      const deckChain = await createDeckChain(deckNumber, audioBuffer);
+      if (deckChain) {
+        deckChainRef.current = deckChain;
+        setDeckChain(deckNumber, deckChain);
+      }
+      
       audioContext.close();
     } catch (error) {
       console.warn('Could not detect BPM:', error);
@@ -135,65 +160,27 @@ function DJDeck({ deckNumber }: DJDeckProps) {
 
   // Update audio volume when volume changes
   useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = volume;
-    }
-  }, [volume]);
+    updateVolume(deckNumber, volume);
+  }, [volume, deckNumber, updateVolume]);
 
   // Update BPM when pitch changes
   useEffect(() => {
-    const newBpm = baseBpm * (1 + pitch);
+    const newBpm = baseBpm * Math.pow(2, pitch);
     setBpm(Number(newBpm.toFixed(2)));
     
-    // Update playback rate
-    if (audioRef.current) {
-      audioRef.current.playbackRate = 1 + pitch;
-    }
-  }, [pitch, baseBpm]);
-
-  // Initialize audio context and EQ
-  useEffect(() => {
-    const initAudio = async () => {
-      await initAudioContext();
-      
-      if (audioRef.current && !filtersRef.current) {
-        const context = new AudioContext();
-        const source = context.createMediaElementSource(audioRef.current);
-        
-        // Create EQ filters
-        const lowFilter = context.createBiquadFilter();
-        lowFilter.type = 'lowshelf';
-        lowFilter.frequency.setValueAtTime(320, context.currentTime);
-        
-        const midFilter = context.createBiquadFilter();
-        midFilter.type = 'peaking';
-        midFilter.frequency.setValueAtTime(1000, context.currentTime);
-        midFilter.Q.setValueAtTime(1, context.currentTime);
-        
-        const highFilter = context.createBiquadFilter();
-        highFilter.type = 'highshelf';
-        highFilter.frequency.setValueAtTime(3200, context.currentTime);
-        
-        // Connect chain
-        source.connect(lowFilter);
-        lowFilter.connect(midFilter);
-        midFilter.connect(highFilter);
-        highFilter.connect(context.destination);
-        
-        filtersRef.current = { low: lowFilter, mid: midFilter, high: highFilter };
-        audioContextRef.current = context;
-      }
-    };
-    
-    initAudio();
-  }, [audioFile, initAudioContext]);
+    // Update pitch in audio engine
+    updatePitch(deckNumber, pitch);
+  }, [pitch, baseBpm, deckNumber, updatePitch]);
 
   // Update EQ when values change
   useEffect(() => {
-    if (filtersRef.current && audioContextRef.current) {
-      updateEQ(filtersRef.current, { low: lowEQ, mid: midEQ, high: highEQ });
-    }
-  }, [lowEQ, midEQ, highEQ, updateEQ]);
+    updateEQ(deckNumber, { low: lowEQ, mid: midEQ, high: highEQ });
+  }, [lowEQ, midEQ, highEQ, deckNumber, updateEQ]);
+
+  // Initialize audio context
+  useEffect(() => {
+    initAudioContext();
+  }, [initAudioContext]);
 
     return (
     <div className="bg-dj-console border border-border rounded-sm p-2 space-y-2 flex flex-col h-full">
@@ -218,7 +205,7 @@ function DJDeck({ deckNumber }: DJDeckProps) {
                 {formatTime(currentTime)} / {formatTime(duration)}
               </span>
               <span className="text-[10px] text-neon-magenta bg-dj-panel px-1 py-0.5 rounded-sm">
-                {bpm} BPM
+                {bpm.toFixed(2)} BPM
               </span>
               <span className="text-[10px] text-muted-foreground bg-dj-panel px-1 py-0.5 rounded-sm">
                 {isPlaying ? '▶ PLAY' : isCued ? '⏸ CUE' : '⏹ STOP'}
@@ -335,16 +322,38 @@ function DJDeck({ deckNumber }: DJDeckProps) {
           <div className="bg-dj-panel rounded-sm p-2">
             <h3 className="text-[10px] font-bold text-dj-panel-foreground mb-1 text-center">EFFECTS</h3>
             <div className="grid grid-cols-2 gap-1">
-              {[1, 2, 3, 4].map((fx) => (
-                <DJButton
-                  key={fx}
-                  id={`deck${deckNumber}-fx${fx}`}
-                  label={`FX${fx}`}
-                  active={effectsActive[fx - 1]}
-                  onClick={() => toggleEffect(fx - 1)}
-                  size="xs"
-                />
-              ))}
+              <DJButton
+                key="flanger"
+                id={`deck${deckNumber}-fx1`}
+                label="FX1"
+                active={effectsActive.flanger}
+                onClick={() => toggleEffect('flanger')}
+                size="xs"
+              />
+              <DJButton
+                key="filter"
+                id={`deck${deckNumber}-fx2`}
+                label="FX2"
+                active={effectsActive.filter}
+                onClick={() => toggleEffect('filter')}
+                size="xs"
+              />
+              <DJButton
+                key="echo"
+                id={`deck${deckNumber}-fx3`}
+                label="FX3"
+                active={effectsActive.echo}
+                onClick={() => toggleEffect('echo')}
+                size="xs"
+              />
+              <DJButton
+                key="reverb"
+                id={`deck${deckNumber}-fx4`}
+                label="FX4"
+                active={effectsActive.reverb}
+                onClick={() => toggleEffect('reverb')}
+                size="xs"
+              />
             </div>
           </div>
         </div>

@@ -13,12 +13,14 @@ import { Settings, Maximize2, Minimize2 } from "lucide-react";
 import { useDJ } from "@/contexts/DJContext";
 import djLogo from "@/assets/iDJLogo.svg";
 import { useState, useEffect } from "react";
+import { useAudioEngine } from "@/hooks/useAudioEngine";
 
 export const DJInterface = () => {
   const { dispatch } = useDJ();
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [crossfaderValue, setCrossfaderValue] = useState(0);
   const [headphoneVolume, setHeadphoneVolume] = useState(0.7);
+  const { applyCrossfader, updateHeadphoneVolume } = useAudioEngine();
 
   // Handle fullscreen toggle
   const toggleFullscreen = () => {
@@ -54,6 +56,21 @@ export const DJInterface = () => {
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, []);
+
+  // Handle crossfader changes
+  const handleCrossfaderChange = (value: number) => {
+    // Convert from -1..1 to 0..1 for state storage
+    const normalizedValue = (value + 1) / 2;
+    setCrossfaderValue(normalizedValue);
+    // Apply the original -1..1 value to audio
+    applyCrossfader(value);
+  };
+
+  // Handle headphone volume changes
+  const handleHeadphoneVolumeChange = (value: number) => {
+    setHeadphoneVolume(value);
+    updateHeadphoneVolume(value);
+  };
 
   return (
     <div className="h-screen bg-background p-2 overflow-hidden flex flex-col">
@@ -96,27 +113,28 @@ export const DJInterface = () => {
         </div>
 
         {/* DJ Console */}
-        <div className="bg-dj-console/50 rounded-lg p-3 border border-border backdrop-blur-sm flex-1 flex flex-col min-h-0">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 min-h-0">
+        <div className="bg-dj-console/50 rounded-lg p-4 border border-border backdrop-blur-sm flex-1 flex flex-col min-h-0">
+          <div className="grid lg:grid-flow-col gap-8 flex-1 min-h-0">
             <DJDeck deckNumber={1} />
-            <DJDeck deckNumber={2} />
-          </div>
+            {/* Center Controls */}
+            <div className="mt-4 bg-dj-panel rounded-sm p-5 flex flex-col space-y-4 justify-center items-center gap-10">
+              <CrossFader
+                value={crossfaderValue * 2 - 1}
+                onChange={handleCrossfaderChange}
+              />
 
-          {/* Center Controls */}
-          <div className="mt-3 bg-dj-panel rounded-sm p-4 flex justify-center items-center gap-8">
-            <CrossFader
-              value={crossfaderValue}
-              onChange={setCrossfaderValue}
-            />
-            
-            <DJKnob
-              label="HEADPHONE"
-              value={headphoneVolume}
-              onChange={setHeadphoneVolume}
-              min={0}
-              max={1}
-              color="cyan"
-            />
+              <div className="w-20">
+                <DJKnob
+                  label="HEADPHONE"
+                  value={headphoneVolume}
+                  onChange={handleHeadphoneVolumeChange}
+                  min={0}
+                  max={1}
+                  color="cyan"
+                />
+              </div>
+            </div>
+            <DJDeck deckNumber={2} />
           </div>
         </div>
 
