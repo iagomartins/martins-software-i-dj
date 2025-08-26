@@ -6,6 +6,7 @@ import { ScratchWheel } from "./ScratchWheel";
 import { PitchFader } from "./PitchFader";
 import { AudioWaveform } from "./AudioWaveform";
 import { useDJ } from "@/contexts/DJContext";
+import { useAudioEngine } from "@/hooks/useAudioEngine";
 
 interface DJDeckProps {
   deckNumber: 1 | 2;
@@ -13,6 +14,7 @@ interface DJDeckProps {
 
 function DJDeck({ deckNumber }: DJDeckProps) {
   const { state, dispatch } = useDJ();
+  const { initAudioContext, detectBPM, updateEQ } = useAudioEngine();
 
   // Deck state
   const [isPlaying, setIsPlaying] = useState(false);
@@ -31,26 +33,48 @@ function DJDeck({ deckNumber }: DJDeckProps) {
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [bpm, setBpm] = useState(120);
+  const [baseBpm, setBaseBpm] = useState(120);
+  const [cuePoint, setCuePoint] = useState(0);
+  const [isHeadphoneActive, setIsHeadphoneActive] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const filtersRef = useRef<{ low: BiquadFilterNode; mid: BiquadFilterNode; high: BiquadFilterNode } | null>(null);
 
   const toggleEffect = (index: number) => {
     setEffectsActive(prev => 
       prev.map((active, i) => i === index ? !active : active)
     );
+    // TODO: Apply audio effects based on effectsActive state
   };
 
   const handleHeadphoneToggle = () => {
+    setIsHeadphoneActive(!isHeadphoneActive);
     dispatch({ type: 'TOGGLE_HEADPHONE_DECK', payload: deckNumber });
   };
 
   const isHeadphone = state.activeHeadphoneDecks.has(deckNumber);
 
   // Audio handling functions
-  const handleAudioLoad = (file: File) => {
+  const handleAudioLoad = async (file: File) => {
     setAudioFile(file);
     setCurrentTime(0);
     setDuration(0);
     setIsPlaying(false);
+    setCuePoint(0);
+    
+    // Detect BPM
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const audioContext = new AudioContext();
+      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+      const detectedBPM = await detectBPM(audioBuffer);
+      setBaseBpm(detectedBPM);
+      setBpm(detectedBPM);
+      audioContext.close();
+    } catch (error) {
+      console.warn('Could not detect BPM:', error);
+    }
   };
 
   const handleTimeUpdate = (time: number) => {
@@ -62,8 +86,36 @@ function DJDeck({ deckNumber }: DJDeckProps) {
     
     if (isPlaying) {
       setIsPlaying(false);
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
     } else {
       setIsPlaying(true);
+      if (audioRef.current) {
+        audioRef.current.play();
+      }
+    }
+  };
+
+  const handleCue = (pressed: boolean) => {
+    if (!audioFile || !audioRef.current) return;
+    
+    if (pressed) {
+      // Store current position as cue point if not playing
+      if (!isPlaying) {
+        setCuePoint(currentTime);
+      }
+      setIsCued(true);
+      // Play from current position
+      audioRef.current.play();
+    } else {
+      setIsCued(false);
+      // If play button is not active, stop and return to cue point
+      if (!isPlaying) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = cuePoint;
+        setCurrentTime(cuePoint);
+      }
     }
   };
 
@@ -88,6 +140,61 @@ function DJDeck({ deckNumber }: DJDeckProps) {
     }
   }, [volume]);
 
+  // Update BPM when pitch changes
+  useEffect(() => {
+    const newBpm = baseBpm * (1 + pitch);
+    setBpm(Number(newBpm.toFixed(2)));
+    
+    // Update playback rate
+    if (audioRef.current) {
+      audioRef.current.playbackRate = 1 + pitch;
+    }
+  }, [pitch, baseBpm]);
+
+  // Initialize audio context and EQ
+  useEffect(() => {
+    const initAudio = async () => {
+      await initAudioContext();
+      
+      if (audioRef.current && !filtersRef.current) {
+        const context = new AudioContext();
+        const source = context.createMediaElementSource(audioRef.current);
+        
+        // Create EQ filters
+        const lowFilter = context.createBiquadFilter();
+        lowFilter.type = 'lowshelf';
+        lowFilter.frequency.setValueAtTime(320, context.currentTime);
+        
+        const midFilter = context.createBiquadFilter();
+        midFilter.type = 'peaking';
+        midFilter.frequency.setValueAtTime(1000, context.currentTime);
+        midFilter.Q.setValueAtTime(1, context.currentTime);
+        
+        const highFilter = context.createBiquadFilter();
+        highFilter.type = 'highshelf';
+        highFilter.frequency.setValueAtTime(3200, context.currentTime);
+        
+        // Connect chain
+        source.connect(lowFilter);
+        lowFilter.connect(midFilter);
+        midFilter.connect(highFilter);
+        highFilter.connect(context.destination);
+        
+        filtersRef.current = { low: lowFilter, mid: midFilter, high: highFilter };
+        audioContextRef.current = context;
+      }
+    };
+    
+    initAudio();
+  }, [audioFile, initAudioContext]);
+
+  // Update EQ when values change
+  useEffect(() => {
+    if (filtersRef.current && audioContextRef.current) {
+      updateEQ(filtersRef.current, { low: lowEQ, mid: midEQ, high: highEQ });
+    }
+  }, [lowEQ, midEQ, highEQ, updateEQ]);
+
     return (
     <div className="bg-dj-console border border-border rounded-sm p-2 space-y-2 flex flex-col h-full">
       {/* Waveform Panel */}
@@ -110,8 +217,11 @@ function DJDeck({ deckNumber }: DJDeckProps) {
               <span className="text-[10px] text-neon-cyan bg-dj-panel px-1 py-0.5 rounded-sm">
                 {formatTime(currentTime)} / {formatTime(duration)}
               </span>
+              <span className="text-[10px] text-neon-magenta bg-dj-panel px-1 py-0.5 rounded-sm">
+                {bpm} BPM
+              </span>
               <span className="text-[10px] text-muted-foreground bg-dj-panel px-1 py-0.5 rounded-sm">
-                {isPlaying ? '▶ PLAY' : '⏸ PAUSE'}
+                {isPlaying ? '▶ PLAY' : isCued ? '⏸ CUE' : '⏹ STOP'}
               </span>
             </>
           )}
@@ -187,7 +297,9 @@ function DJDeck({ deckNumber }: DJDeckProps) {
                 label="CUE"
                 variant="cue"
                 active={isCued}
-                onClick={() => setIsCued(!isCued)}
+                onMouseDown={() => handleCue(true)}
+                onMouseUp={() => handleCue(false)}
+                onMouseLeave={() => handleCue(false)}
                 size="sm"
               />
               <DJButton

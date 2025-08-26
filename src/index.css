@@ -99,6 +99,24 @@ All colors MUST be HSL.
     box-shadow: 0 0 4px rgba(255,255,255,0.8);
   }
 
+  /* Fader Styles */
+  .dj-fader {
+    @apply relative w-6 h-24 bg-dj-panel border border-border rounded-sm cursor-pointer;
+  }
+
+  .dj-fader-handle {
+    @apply absolute left-1/2 transform -translate-x-1/2 w-8 h-3 bg-gradient-to-r from-neon-cyan to-neon-magenta border border-white/30 rounded-sm shadow-lg transition-shadow duration-150;
+  }
+
+  /* Horizontal Fader Styles */
+  .dj-fader-horizontal {
+    @apply relative w-32 h-6 bg-dj-panel border border-border rounded-sm cursor-pointer;
+  }
+
+  .dj-fader-handle-horizontal {
+    @apply absolute top-1/2 transform -translate-y-1/2 w-3 h-8 bg-gradient-to-b from-neon-cyan to-neon-magenta border border-white/30 rounded-sm shadow-lg transition-shadow duration-150;
+  }
+
   .dj-button {
     @apply px-4 py-0 rounded-sm font-semibold text-sm uppercase tracking-wide transition-all duration-150 border-2 select-none cursor-pointer;
     background: linear-gradient(145deg, hsl(var(--button-off)), hsl(var(--button-off)) 60%);

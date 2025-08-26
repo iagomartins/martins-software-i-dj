@@ -1,5 +1,42 @@
 import { useState } from "react";
 
+const VinylSVG = () => (
+  <svg viewBox="0 0 200 200" className="w-full h-full">
+    <defs>
+      <radialGradient id="vinylGradient" cx="50%" cy="50%">
+        <stop offset="0%" stopColor="#1a1a1a" />
+        <stop offset="30%" stopColor="#2a2a2a" />
+        <stop offset="60%" stopColor="#1a1a1a" />
+        <stop offset="100%" stopColor="#0a0a0a" />
+      </radialGradient>
+    </defs>
+    {/* Vinyl record circles */}
+    {Array.from({length: 15}, (_, i) => (
+      <circle
+        key={i}
+        cx="100"
+        cy="100"
+        r={10 + i * 6}
+        fill="none"
+        stroke="#333"
+        strokeWidth="0.5"
+      />
+    ))}
+    {/* Main vinyl body */}
+    <circle cx="100" cy="100" r="95" fill="url(#vinylGradient)" />
+    {/* Center label */}
+    <circle cx="100" cy="100" r="25" fill="#f0f0f0" />
+    <circle cx="100" cy="100" r="5" fill="#1a1a1a" />
+    {/* iDJ text */}
+    <text x="100" y="95" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#000">
+      iDJ
+    </text>
+    <text x="100" y="108" textAnchor="middle" fontSize="8" fill="#666">
+      VINYL
+    </text>
+  </svg>
+);
+
 interface ScratchWheelProps {
   onScratch?: (delta: number) => void;
   isPlaying?: boolean;
@@ -43,33 +80,26 @@ export const ScratchWheel = ({ onScratch, isPlaying = false }: ScratchWheelProps
   };
 
   return (
-    <div className="flex flex-col items-center gap-4">
+    <div className="flex flex-col items-center gap-2">
       <div
-        className={`scratch-wheel ${isPlaying ? 'animate-spin-slow' : ''}`}
+        className="relative w-16 h-16 cursor-pointer select-none"
         style={{ 
           transform: `rotate(${rotation}deg)`,
-          boxShadow: isDragging 
-            ? `0 0 30px hsl(var(--neon-cyan)), inset 0 0 20px rgba(0,0,0,0.4)`
+          filter: isDragging 
+            ? `drop-shadow(0 0 15px hsl(var(--neon-cyan)))`
             : isPlaying 
-            ? `0 0 20px hsl(var(--neon-green)), inset 0 0 20px rgba(0,0,0,0.4)`
+            ? `drop-shadow(0 0 10px hsl(var(--neon-green)))`
             : undefined,
-          borderColor: isDragging 
-            ? 'hsl(var(--neon-cyan))' 
-            : isPlaying 
-            ? 'hsl(var(--neon-green))' 
-            : undefined
         }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
       >
-        <div className="absolute inset-4 rounded-full bg-black/50 flex items-center justify-center">
-          <div className="w-2 h-2 rounded-full bg-white/80 shadow-md" />
-        </div>
+        <VinylSVG />
       </div>
-      <span className="text-xs font-mono text-dj-panel-foreground uppercase tracking-wider">
-        Scratch Wheel
+      <span className="text-[10px] font-mono text-dj-panel-foreground uppercase tracking-wider">
+        SCRATCH
       </span>
     </div>
   );

@@ -5,6 +5,9 @@ interface DJButtonProps {
   label: string;
   active?: boolean;
   onClick?: () => void;
+  onMouseDown?: () => void;
+  onMouseUp?: () => void;
+  onMouseLeave?: () => void;
   variant?: "default" | "cue" | "play" | "sync";
   size?: "xs" | "sm" | "md" | "lg";
   disabled?: boolean;
@@ -15,6 +18,9 @@ export const DJButton = ({
   label, 
   active = false, 
   onClick,
+  onMouseDown,
+  onMouseUp,
+  onMouseLeave,
   variant = "default",
   size = "md",
   disabled = false
@@ -23,6 +29,9 @@ export const DJButton = ({
     <button
       id={id}
       onClick={onClick}
+      onMouseDown={onMouseDown}
+      onMouseUp={onMouseUp}
+      onMouseLeave={onMouseLeave}
       disabled={disabled}
       className={cn(
         "dj-button",

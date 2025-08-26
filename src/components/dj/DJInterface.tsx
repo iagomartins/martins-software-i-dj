@@ -1,5 +1,8 @@
 import { DJDeck } from "./DJDeck";
+import { DJButton } from "./DJButton";
 import { ConfigModal } from "./ConfigModal";
+import { CrossFader } from "./CrossFader";
+import { DJKnob } from "./DJKnob";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -14,6 +17,8 @@ import { useState, useEffect } from "react";
 export const DJInterface = () => {
   const { dispatch } = useDJ();
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [crossfaderValue, setCrossfaderValue] = useState(0);
+  const [headphoneVolume, setHeadphoneVolume] = useState(0.7);
 
   // Handle fullscreen toggle
   const toggleFullscreen = () => {
@@ -97,20 +102,21 @@ export const DJInterface = () => {
             <DJDeck deckNumber={2} />
           </div>
 
-          {/* Crossfader Section */}
-          <div className="mt-3 bg-dj-panel rounded-sm p-2">
-            <div className="flex justify-center items-center space-x-6">
-              <span className="text-xs font-mono text-dj-panel-foreground">DECK A</span>
-              <div className="relative w-48 h-3 bg-fader-track rounded-sm cursor-pointer">
-                <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-6 h-3 bg-fader-handle rounded-sm shadow-lg">
-                  <div className="w-full h-full bg-gradient-to-b from-white/30 to-transparent rounded-sm" />
-                </div>
-              </div>
-              <span className="text-xs font-mono text-dj-panel-foreground">DECK B</span>
-            </div>
-            <div className="text-center mt-1">
-              <span className="text-[10px] font-mono text-neon-cyan uppercase tracking-wider">Crossfader</span>
-            </div>
+          {/* Center Controls */}
+          <div className="mt-3 bg-dj-panel rounded-sm p-4 flex justify-center items-center gap-8">
+            <CrossFader
+              value={crossfaderValue}
+              onChange={setCrossfaderValue}
+            />
+            
+            <DJKnob
+              label="HEADPHONE"
+              value={headphoneVolume}
+              onChange={setHeadphoneVolume}
+              min={0}
+              max={1}
+              color="cyan"
+            />
           </div>
         </div>
 
