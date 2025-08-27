@@ -6,13 +6,14 @@ import { ScratchWheel } from "./ScratchWheel";
 import { PitchFader } from "./PitchFader";
 import { AudioWaveform } from "./AudioWaveform";
 import { useDJ } from "@/contexts/DJContext";
-import { useAudioEngine, AudioEffects } from "@/hooks/useAudioEngine";
+import { useAudioEngine, AudioEffects, DeckAudioChain } from "@/hooks/useAudioEngine";
 
 interface DJDeckProps {
   deckNumber: 1 | 2;
+  deckState: boolean;
 }
 
-function DJDeck({ deckNumber }: DJDeckProps) {
+function DJDeck({ deckNumber, deckState }: DJDeckProps) {
   const { state, dispatch } = useDJ();
   const { 
     initAudioContext, 
@@ -61,7 +62,7 @@ function DJDeck({ deckNumber }: DJDeckProps) {
   
   const audioRef = useRef<HTMLAudioElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
-  const deckChainRef = useRef<{ volumeGain: GainNode } | null>(null);
+  const deckChainRef = useRef<DeckAudioChain | null>(null); // Fix: Use proper type
 
   const toggleEffect = (effectType: keyof AudioEffects) => {
     const newEffects = { ...effectsActive, [effectType]: !effectsActive[effectType] };
@@ -74,7 +75,8 @@ function DJDeck({ deckNumber }: DJDeckProps) {
     dispatch({ type: 'TOGGLE_HEADPHONE_DECK', payload: deckNumber });
   };
 
-  const isHeadphone = state.activeHeadphoneDecks.has(deckNumber);
+  // Fix: Use isHeadphoneActive state instead of undefined activeHeadphoneDecks
+  const isHeadphone = isHeadphoneActive;
 
   // Audio handling functions
   const handleAudioLoad = async (file: File) => {
@@ -98,11 +100,17 @@ function DJDeck({ deckNumber }: DJDeckProps) {
       
       // Create deck audio chain
       const deckChain = await createDeckChain(deckNumber, audioBuffer);
-      if (deckChain) {
-        deckChainRef.current = deckChain;
-        setDeckChain(deckNumber, deckChain);
+      if (
+        deckChain &&
+        'reverbGain' in deckChain &&
+        'echoGain' in deckChain &&
+        'filterGain' in deckChain &&
+        'flangerGain' in deckChain
+      ) {
+        deckChainRef.current = deckChain as DeckAudioChain;
+        setDeckChain(deckNumber, deckChain as DeckAudioChain);
       }
-      
+
       audioContext.close();
     } catch (error) {
       console.warn('Could not detect BPM:', error);

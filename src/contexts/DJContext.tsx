@@ -1,155 +1,212 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, ReactNode } from 'react';
 
-export interface KeyMapping {
-  [key: string]: string; // key code -> button id
-}
-
-export interface AudioConfig {
-  masterOutput: string;
-  headphoneOutput: string;
-  inputChannels: {
-    deck1: string;
-    deck2: string;
+// Your DJ state interface
+interface DJState {
+  activeHeadphoneDecks: Set<number>; // Fix: Replace 'any' with proper type
+  connectedDevices: MediaDeviceInfo[]; // Add missing property
+  audioConfig: { // Add missing property
+    masterOutput: string;
+    headphoneOutput: string;
+    latency: number;
+    sampleRate: number;
+    inputChannels: string;
   };
-  outputChannels: {
-    master: string;
-    headphone: string;
+  isConfigModalOpen: boolean; // Add missing property
+  deck1: {
+    isPlaying: boolean;
+    isCued: boolean;
+    currentTime: number;
+    duration: number;
+    bpm: number;
+    baseBpm: number;
+    pitch: number;
+    volume: number;
+    lowEQ: number;
+    midEQ: number;
+    highEQ: number;
+    effects: {
+      flanger: boolean;
+      filter: boolean;
+      echo: boolean;
+      reverb: boolean;
+    };
   };
-  latency: number;
-  sampleRate: number;
+  deck2: {
+    isPlaying: boolean;
+    isCued: boolean;
+    currentTime: number;
+    duration: number;
+    bpm: number;
+    baseBpm: number;
+    pitch: number;
+    volume: number;
+    lowEQ: number;
+    midEQ: number;
+    highEQ: number;
+    effects: {
+      flanger: boolean;
+      filter: boolean;
+      echo: boolean;
+      reverb: boolean;
+    };
+  };
+  crossfader: number;
+  headphoneVolume: number;
 }
 
-export interface DJState {
-  keyMappings: KeyMapping;
-  audioConfig: AudioConfig;
-  connectedDevices: MediaDeviceInfo[];
-  isConfigModalOpen: boolean;
-  activeHeadphoneDecks: Set<number>;
-}
-
-type DJAction =
-  | { type: 'SET_KEY_MAPPING'; payload: { key: string; buttonId: string } }
-  | { type: 'UPDATE_AUDIO_CONFIG'; payload: Partial<AudioConfig> }
-  | { type: 'SET_CONNECTED_DEVICES'; payload: MediaDeviceInfo[] }
+// Your DJ actions
+type DJAction = 
+  | { type: 'SET_DECK_1_STATE'; payload: Partial<DJState['deck1']> }
+  | { type: 'SET_DECK_2_STATE'; payload: Partial<DJState['deck2']> }
+  | { type: 'SET_CROSSFADER'; payload: number }
+  | { type: 'SET_HEADPHONE_VOLUME'; payload: number }
+  | { type: 'RESET_DECK_1' }
+  | { type: 'RESET_DECK_2' }
+  | { type: 'UPDATE_AUDIO_CONFIG'; payload: Partial<DJState['audioConfig']> }
   | { type: 'TOGGLE_CONFIG_MODAL' }
   | { type: 'TOGGLE_HEADPHONE_DECK'; payload: number }
-  | { type: 'CLEAR_KEY_MAPPING'; payload: string };
+  | { type: 'SET_CONNECTED_DEVICES'; payload: MediaDeviceInfo[] };
 
+// Initial state
 const initialState: DJState = {
-  keyMappings: {},
+  activeHeadphoneDecks: new Set<number>(), // Fix: Initialize properly
+  connectedDevices: [], // Add missing property
   audioConfig: {
     masterOutput: 'default',
     headphoneOutput: 'default',
-    inputChannels: {
-      deck1: 'default',
-      deck2: 'default',
-    },
-    outputChannels: {
-      master: 'default',
-      headphone: 'default',
-    },
-    latency: 128,
-    sampleRate: 44100,
+    latency: 0,
+    sampleRate: 0,
+    inputChannels: 'default'
   },
-  connectedDevices: [],
-  isConfigModalOpen: false,
-  activeHeadphoneDecks: new Set(),
+  isConfigModalOpen: false, // Add missing property
+  deck1: {
+    isPlaying: false,
+    isCued: false,
+    currentTime: 0,
+    duration: 0,
+    bpm: 120,
+    baseBpm: 120,
+    pitch: 0,
+    volume: 1,
+    lowEQ: 0,
+    midEQ: 0,
+    highEQ: 0,
+    effects: {
+      flanger: false,
+      filter: false,
+      echo: false,
+      reverb: false,
+    },
+  },
+  deck2: {
+    isPlaying: false,
+    isCued: false,
+    duration: 0,
+    currentTime: 0,
+    bpm: 120,
+    baseBpm: 120,
+    pitch: 0,
+    volume: 1,
+    lowEQ: 0,
+    midEQ: 0,
+    highEQ: 0,
+    effects: {
+      flanger: false,
+      filter: false,
+      echo: false,
+      reverb: false,
+    },
+  },
+  crossfader: 0.5,
+  headphoneVolume: 1,
 };
 
+// Reducer function
 function djReducer(state: DJState, action: DJAction): DJState {
   switch (action.type) {
-    case 'SET_KEY_MAPPING':
+    case 'SET_DECK_1_STATE':
       return {
         ...state,
-        keyMappings: {
-          ...state.keyMappings,
-          [action.payload.key]: action.payload.buttonId,
-        },
+        deck1: { ...state.deck1, ...action.payload }
       };
-    case 'CLEAR_KEY_MAPPING':
-      const newMappings = { ...state.keyMappings };
-      delete newMappings[action.payload];
+    case 'SET_DECK_2_STATE':
       return {
         ...state,
-        keyMappings: newMappings,
+        deck2: { ...state.deck2, ...action.payload }
+      };
+    case 'SET_CROSSFADER':
+      return {
+        ...state,
+        crossfader: action.payload
+      };
+    case 'SET_HEADPHONE_VOLUME':
+      return {
+        ...state,
+        headphoneVolume: action.payload
+      };
+    case 'RESET_DECK_1':
+      return {
+        ...state,
+        deck1: initialState.deck1
+      };
+    case 'RESET_DECK_2':
+      return {
+        ...state,
+        deck2: initialState.deck2
       };
     case 'UPDATE_AUDIO_CONFIG':
       return {
         ...state,
-        audioConfig: {
-          ...state.audioConfig,
-          ...action.payload,
-        },
-      };
-    case 'SET_CONNECTED_DEVICES':
-      return {
-        ...state,
-        connectedDevices: action.payload,
+        audioConfig: { ...state.audioConfig, ...action.payload }
       };
     case 'TOGGLE_CONFIG_MODAL':
       return {
         ...state,
-        isConfigModalOpen: !state.isConfigModalOpen,
+        isConfigModalOpen: !state.isConfigModalOpen
       };
     case 'TOGGLE_HEADPHONE_DECK':
-      const newActiveDecks = new Set(state.activeHeadphoneDecks);
-      if (newActiveDecks.has(action.payload)) {
-        newActiveDecks.delete(action.payload);
+      { const newActiveHeadphoneDecks = new Set(state.activeHeadphoneDecks);
+      if (newActiveHeadphoneDecks.has(action.payload)) {
+        newActiveHeadphoneDecks.delete(action.payload);
       } else {
-        newActiveDecks.add(action.payload);
+        newActiveHeadphoneDecks.add(action.payload);
       }
       return {
         ...state,
-        activeHeadphoneDecks: newActiveDecks,
+        activeHeadphoneDecks: newActiveHeadphoneDecks
+      }; }
+    case 'SET_CONNECTED_DEVICES':
+      return {
+        ...state,
+        connectedDevices: action.payload
       };
     default:
       return state;
   }
 }
 
+// Create context
 const DJContext = createContext<{
   state: DJState;
   dispatch: React.Dispatch<DJAction>;
-} | null>(null);
+} | undefined>(undefined);
 
-export const DJProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+// Provider component
+export function DJProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(djReducer, initialState);
-
-  // Load audio devices on mount
-  useEffect(() => {
-    const loadDevices = async () => {
-      try {
-        await navigator.mediaDevices.getUserMedia({ audio: true });
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const audioDevices = devices.filter(device => 
-          device.kind === 'audioinput' || device.kind === 'audiooutput'
-        );
-        dispatch({ type: 'SET_CONNECTED_DEVICES', payload: audioDevices });
-      } catch (error) {
-        console.warn('Could not access audio devices:', error);
-      }
-    };
-
-    loadDevices();
-
-    // Listen for device changes
-    navigator.mediaDevices.addEventListener('devicechange', loadDevices);
-    return () => {
-      navigator.mediaDevices.removeEventListener('devicechange', loadDevices);
-    };
-  }, []);
 
   return (
     <DJContext.Provider value={{ state, dispatch }}>
       {children}
     </DJContext.Provider>
   );
-};
+}
 
-export const useDJ = () => {
+// Hook to use DJ context
+export function useDJ() {
   const context = useContext(DJContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useDJ must be used within a DJProvider');
   }
   return context;
-};
+}

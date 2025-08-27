@@ -17,7 +17,7 @@ import { Settings, Volume2, Headphones, Mic, Speaker } from "lucide-react";
 export const ConfigModal = () => {
   const { state, dispatch } = useDJ();
 
-  const handleAudioConfigChange = (key: string, value: any) => {
+  const handleAudioConfigChange = (key: keyof typeof state.audioConfig, value: string) => {
     dispatch({
       type: 'UPDATE_AUDIO_CONFIG',
       payload: { [key]: value },
@@ -121,12 +121,9 @@ export const ConfigModal = () => {
                 <div className="space-y-2">
                   <Label htmlFor="deck1-input">Entrada Deck 1</Label>
                   <Select
-                    value={state.audioConfig.inputChannels.deck1}
-                    onValueChange={(value) => 
-                      handleAudioConfigChange('inputChannels', {
-                        ...state.audioConfig.inputChannels,
-                        deck1: value
-                      })
+                    value={state.audioConfig.inputChannels}
+                    onValueChange={(value) =>
+                      handleAudioConfigChange('inputChannels', value)
                     }
                   >
                     <SelectTrigger>
@@ -146,12 +143,9 @@ export const ConfigModal = () => {
                 <div className="space-y-2">
                   <Label htmlFor="deck2-input">Entrada Deck 2</Label>
                   <Select
-                    value={state.audioConfig.inputChannels.deck2}
+                    value={state.audioConfig.inputChannels}
                     onValueChange={(value) => 
-                      handleAudioConfigChange('inputChannels', {
-                        ...state.audioConfig.inputChannels,
-                        deck2: value
-                      })
+                      handleAudioConfigChange('inputChannels', value)
                     }
                   >
                     <SelectTrigger>
@@ -184,7 +178,7 @@ export const ConfigModal = () => {
                   <Label>Latência: {state.audioConfig.latency}ms</Label>
                   <Slider
                     value={[state.audioConfig.latency]}
-                    onValueChange={([value]) => handleAudioConfigChange('latency', value)}
+                    onValueChange={([value]) => handleAudioConfigChange('latency', value.toString())}
                     min={64}
                     max={512}
                     step={64}
@@ -200,7 +194,7 @@ export const ConfigModal = () => {
                   <Label>Sample Rate</Label>
                   <Select
                     value={state.audioConfig.sampleRate.toString()}
-                    onValueChange={(value) => handleAudioConfigChange('sampleRate', parseInt(value))}
+                    onValueChange={(value) => handleAudioConfigChange('sampleRate', value)}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -229,7 +223,7 @@ export const ConfigModal = () => {
                     payload: {
                       masterOutput: 'default',
                       headphoneOutput: 'default',
-                      inputChannels: { deck1: 'default', deck2: 'default' },
+                      inputChannels: 'default',
                       latency: 128,
                       sampleRate: 44100,
                     }

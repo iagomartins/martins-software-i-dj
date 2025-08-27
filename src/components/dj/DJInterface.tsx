@@ -1,172 +1,172 @@
-import { DJDeck } from "./DJDeck";
-import { DJButton } from "./DJButton";
-import { ConfigModal } from "./ConfigModal";
-import { CrossFader } from "./CrossFader";
-import { DJKnob } from "./DJKnob";
-import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Settings, Maximize2, Minimize2 } from "lucide-react";
-import { useDJ } from "@/contexts/DJContext";
-import djLogo from "@/assets/iDJLogo.svg";
-import { useState, useEffect } from "react";
-import { useAudioEngine } from "@/hooks/useAudioEngine";
+import React, { Suspense } from 'react';
+import { useDJ } from '../../contexts/DJContext';
+import { CrossFader } from './CrossFader';
+import { DJKnob } from './DJKnob';
+import { DJDeck } from './DJDeck';
+// Import the logo directly
+import iDJLogo from '../../assets/iDJLogo.svg';
 
-export const DJInterface = () => {
-  const { dispatch } = useDJ();
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [crossfaderValue, setCrossfaderValue] = useState(0.5); // Start at center (0.5 = 50%)
-  const [headphoneVolume, setHeadphoneVolume] = useState(0.7);
-  const { applyCrossfader, updateHeadphoneVolume } = useAudioEngine();
+export function DJInterface() {
+  const { state } = useDJ();
 
-  // Handle fullscreen toggle
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen();
-      setIsFullscreen(true);
-    } else {
-      document.exitFullscreen();
-      setIsFullscreen(false);
-    }
+  // Add null checks and default values
+  if (!state) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-4">Loading DJ Interface...</h2>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+        </div>
+      </div>
+    );
+  }
+
+  // Ensure deck states exist with defaults
+  const deck1 = state.deck1 || {
+    isPlaying: false,
+    isCued: false,
+    currentTime: 0,
+    duration: 0,
+    bpm: 120,
+    baseBpm: 120,
+    pitch: 0,
+    volume: 1,
+    lowEQ: 0,
+    midEQ: 0,
+    highEQ: 0,
+    effects: { flanger: false, filter: false, echo: false, reverb: false }
   };
 
-  // Listen for fullscreen changes
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
-
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () =>
-      document.removeEventListener("fullscreenchange", handleFullscreenChange);
-  }, []);
-
-  // Keyboard shortcut for fullscreen (F11 or Ctrl+F)
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "F11" || (event.ctrlKey && event.key === "f")) {
-        event.preventDefault();
-        toggleFullscreen();
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, []);
-
-  // Handle crossfader changes
-  const handleCrossfaderChange = (value: number) => {
-    // Convert from -1..1 to 0..1 for state storage
-    const normalizedValue = (value + 1) / 2;
-    setCrossfaderValue(normalizedValue);
-    // Apply the original -1..1 value to audio
-    applyCrossfader(value);
+  const deck2 = state.deck2 || {
+    isPlaying: false,
+    isCued: false,
+    currentTime: 0,
+    duration: 0,
+    bpm: 120,
+    baseBpm: 120,
+    pitch: 0,
+    volume: 1,
+    lowEQ: 0,
+    midEQ: 0,
+    highEQ: 0,
+    effects: { flanger: false, filter: false, echo: false, reverb: false }
   };
 
-  // Handle headphone volume changes
-  const handleHeadphoneVolumeChange = (value: number) => {
-    setHeadphoneVolume(value);
-    updateHeadphoneVolume(value);
-  };
-
-  // Reset functions for double-click
-  const resetCrossfader = () => {
-    setCrossfaderValue(0.5); // Center position (0)
-    applyCrossfader(0);
-  };
-
-  const resetHeadphoneVolume = () => {
-    setHeadphoneVolume(1.0); // 100%
-    updateHeadphoneVolume(1.0);
-  };
+  const crossfader = state.crossfader ?? 0.5;
+  const headphoneVolume = state.headphoneVolume ?? 1;
 
   return (
-    <div className="h-screen bg-background p-2 overflow-hidden flex flex-col">
-      <div className="flex-1 flex flex-col min-h-0">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-3">
-          <div className="flex items-center gap-3">
-            <img src={djLogo} width={60} alt="DJ Logo" />
-          </div>
-          <div className="flex items-center gap-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={toggleFullscreen}
-                  className="flex items-center gap-2"
-                >
-                  {isFullscreen ? (
-                    <Minimize2 className="w-4 h-4" />
-                  ) : (
-                    <Maximize2 className="w-4 h-4" />
-                  )}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Toggle fullscreen (F11 or Ctrl+F)</p>
-              </TooltipContent>
-            </Tooltip>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => dispatch({ type: "TOGGLE_CONFIG_MODAL" })}
-              className="flex items-center gap-2"
-            >
-              <Settings className="w-4 h-4" />
-              Configurações
-            </Button>
-          </div>
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-4">Loading DJ Interface...</h2>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
         </div>
+      </div>
+    }>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
+        {/* Header */}
+        <header className="bg-black/20 backdrop-blur-sm border-b border-white/10 p-4">
+          <div className="max-w-7xl mx-auto flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              {/* Use imported logo or fallback text */}
+              {iDJLogo ? (
+                <img src={iDJLogo} alt="iDJ Logo" className="h-12 w-auto" />
+              ) : (
+                <div className="h-12 w-12 bg-gradient-to-r from-cyan-400 to-purple-400 rounded-lg flex items-center justify-center text-white font-bold text-xl">
+                  iDJ
+                </div>
+              )}
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
+                iDJ Professional
+              </h1>
+            </div>
+            <div className="flex items-center space-x-4">
+              <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+                Settings
+              </button>
+            </div>
+          </div>
+        </header>
 
-        {/* DJ Console */}
-        <div className="bg-dj-console/50 rounded-lg p-4 border border-border backdrop-blur-sm flex-1 flex flex-col min-h-0">
-          <div className="grid lg:grid-flow-col gap-8 flex-1 min-h-0">
-            <DJDeck deckNumber={1} />
-            {/* Center Controls */}
-            <div className="mt-4 bg-dj-panel rounded-sm p-5 flex flex-col space-y-4 justify-center items-center gap-10">
-              <CrossFader
-                value={crossfaderValue * 2 - 1}
-                onChange={handleCrossfaderChange}
-                onDoubleClick={resetCrossfader}
-              />
+        {/* Main DJ Console */}
+        <main className="flex-1 p-8">
+          <div className="max-w-7xl mx-auto">
+            {/* DJ Console Header */}
+            <div className="bg-black/30 backdrop-blur-sm rounded-t-xl border border-white/10 p-6 mb-8">
+              <h2 className="text-2xl font-bold text-center mb-4">DJ Console</h2>
+              <div className="grid grid-cols-3 gap-8 text-center">
+                <div>
+                  <h3 className="text-lg font-semibold text-cyan-400">Deck 1</h3>
+                  <p className="text-sm text-gray-300">BPM: {deck1.bpm?.toFixed(2) || '120.00'}</p>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-purple-400">Master</h3>
+                  <p className="text-sm text-gray-300">Crossfader: {((crossfader - 0.5) * 200).toFixed(0)}%</p>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-cyan-400">Deck 2</h3>
+                  <p className="text-sm text-gray-300">BPM: {deck2.bpm?.toFixed(2) || '120.00'}</p>
+                </div>
+              </div>
+            </div>
 
-              <div className="w-20">
-                <DJKnob
-                  label="HEADPHONE"
-                  value={headphoneVolume}
-                  onChange={handleHeadphoneVolumeChange}
-                  min={0}
-                  max={1}
-                  color="cyan"
-                  onDoubleClick={resetHeadphoneVolume}
+            {/* Main Deck Area */}
+            <div className="grid lg:grid-cols-12 gap-8">
+              {/* Deck 1 */}
+              <div className="lg:col-span-5">
+                <DJDeck 
+                  deckNumber={1} 
+                  deckState={deck1.isPlaying}
+                />
+              </div>
+
+              {/* Center Controls */}
+              <div className="lg:col-span-2 flex flex-col items-center space-y-8">
+                {/* Crossfader */}
+                <div className="w-full">
+                  <h3 className="text-lg font-semibold text-center mb-4">Crossfader</h3>
+                  <CrossFader 
+                    value={crossfader}
+                    onChange={(value) => {
+                      // Handle crossfader change
+                    }}
+                    onDoubleClick={() => {
+                      // Reset crossfader
+                    }}
+                  />
+                </div>
+
+                {/* Headphone Volume */}
+                <div className="w-full">
+                  <h3 className="text-lg font-semibold text-center mb-4">Headphones</h3>
+                  <DJKnob 
+                    value={headphoneVolume}
+                    onChange={(value) => {
+                      // Handle headphone volume change
+                    }}
+                    onDoubleClick={() => {
+                      // Reset headphone volume
+                    }}
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    label="Volume"
+                  />
+                </div>
+              </div>
+
+              {/* Deck 2 */}
+              <div className="lg:col-span-5">
+                <DJDeck 
+                  deckNumber={2} 
+                  deckState={deck2.isPlaying}
                 />
               </div>
             </div>
-            <DJDeck deckNumber={2} />
           </div>
-        </div>
-
-        {/* Footer */}
-        <div className="text-center text-[10px] text-muted-foreground font-mono mt-2">
-          A{" "}
-          <a
-            href="https://soundcloud.com/corvolive"
-            className="text-neon-cyan"
-            target="_blank"
-            rel="noopener"
-          >
-            Corvo Live
-          </a>{" "}
-          Production © 2025. Todos os direitos reservados.
-        </div>
+        </main>
       </div>
-
-      <ConfigModal />
-    </div>
+    </Suspense>
   );
-};
+}

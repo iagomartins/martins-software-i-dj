@@ -23,6 +23,10 @@ export interface DeckAudioState {
 }
 
 export interface DeckAudioChain {
+  reverbGain: GainNode;
+  echoGain: GainNode;
+  filterGain: GainNode;
+  flangerGain: GainNode;
   source: AudioBufferSourceNode;
   lowFilter: BiquadFilterNode;
   midFilter: BiquadFilterNode;
@@ -47,30 +51,66 @@ export const useAudioEngine = () => {
   const headphoneVolumeRef = useRef<GainNode | null>(null);
 
   const initAudioContext = useCallback(async () => {
-    if (!audioContextRef.current) {
-      audioContextRef.current = new AudioContext();
+    try {
+      // Check if we're in Electron
+      const isElectron = window.require && window.require('electron');
       
-      // Create master output
-      masterGainRef.current = audioContextRef.current.createGain();
-      masterGainRef.current.gain.setValueAtTime(1, audioContextRef.current.currentTime);
+      if (isElectron) {
+        // In Electron, we don't need to request permissions through IPC
+        // Just initialize the audio context
+        if (!audioContextRef.current) {
+          audioContextRef.current = new AudioContext({
+            latencyHint: 'interactive',
+            sampleRate: 48000
+          });
+          
+          // Create master output
+          masterGainRef.current = audioContextRef.current.createGain();
+          masterGainRef.current.gain.setValueAtTime(1, audioContextRef.current.currentTime);
+          
+          // Create crossfader
+          crossfaderGainRef.current = audioContextRef.current.createGain();
+          crossfaderGainRef.current.gain.setValueAtTime(1, audioContextRef.current.currentTime);
+          
+          // Create headphone output
+          headphoneGainRef.current = audioContextRef.current.createGain();
+          headphoneGainRef.current.gain.setValueAtTime(1, audioContextRef.current.currentTime);
+          
+          // Create headphone volume control
+          headphoneVolumeRef.current = audioContextRef.current.createGain();
+          headphoneVolumeRef.current.gain.setValueAtTime(0.7, audioContextRef.current.currentTime);
+          
+          // Connect chain
+          crossfaderGainRef.current.connect(masterGainRef.current);
+          headphoneGainRef.current.connect(headphoneVolumeRef.current);
+          masterGainRef.current.connect(audioContextRef.current.destination);
+          headphoneVolumeRef.current.connect(audioContextRef.current.destination);
+          
+          console.log('Electron audio context initialized successfully');
+        }
+
+        // Get available audio devices directly (in renderer process)
+        if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+          try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const audioDevices = devices.filter(device => 
+              device.kind === 'audioinput' || device.kind === 'audiooutput'
+            );
+            // setAudioDevices(audioDevices); // This line was not in the original file, so it's removed.
+            console.log('Audio devices found:', audioDevices.length);
+          } catch (error) {
+            console.warn('Could not enumerate audio devices:', error);
+          }
+        }
+      } else {
+        // Web version - request permissions normally
+        const hasPermission = await navigator.mediaDevices.getUserMedia({ audio: true });
+        // ... rest of web initialization
+      }
       
-      // Create crossfader
-      crossfaderGainRef.current = audioContextRef.current.createGain();
-      crossfaderGainRef.current.gain.setValueAtTime(1, audioContextRef.current.currentTime);
-      
-      // Create headphone output
-      headphoneGainRef.current = audioContextRef.current.createGain();
-      headphoneGainRef.current.gain.setValueAtTime(1, audioContextRef.current.currentTime);
-      
-      // Create headphone volume control
-      headphoneVolumeRef.current = audioContextRef.current.createGain();
-      headphoneVolumeRef.current.gain.setValueAtTime(0.7, audioContextRef.current.currentTime);
-      
-      // Connect chain
-      crossfaderGainRef.current.connect(masterGainRef.current);
-      headphoneGainRef.current.connect(headphoneVolumeRef.current);
-      masterGainRef.current.connect(audioContextRef.current.destination);
-      headphoneVolumeRef.current.connect(audioContextRef.current.destination);
+    } catch (error) {
+      console.error('Failed to initialize audio context:', error);
+      throw error;
     }
   }, []);
 
