@@ -217,7 +217,7 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
 
       {/* Deck Header */}
       <div className="flex justify-between items-center">
-        <h2 className="text-lg font-bold text-neon-cyan">DECK {deckNumber}</h2>
+        <h2 className="text-lg font-bold text-light">DECK {deckNumber}</h2>
         <div className="flex items-center gap-2">
           {audioFile && (
             <>
@@ -303,6 +303,7 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
         <div className="grid grid-cols-2 gap-2">
           {/* Main Controls */}
           <div className="bg-dj-panel rounded-sm p-2 space-y-1">
+          <h3 className="text-[10px] font-bold text-dj-panel-foreground mb-1 text-center">CONTROLS</h3>
             <div className="grid grid-cols-2 gap-1">
               <DJButton
                 id={`deck${deckNumber}-cue`}

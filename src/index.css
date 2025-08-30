@@ -24,12 +24,13 @@ All colors MUST be HSL.
 @layer base {
   :root {
     /* New Soft Color Palette */
-    --soft-primary: 240 30% 60%;      /* #6C6DBA */
+    --soft-primary: #5E60E6;      /* #6C6DBA */
     --soft-secondary: 240 20% 55%;    /* #6C6C91 */
-    --soft-accent: 240 70% 65%;      /* #5E60E6 */
-    --soft-muted: 240 10% 40%;       /* #5B5B66 */
+    --soft-accent: #85b5f9;      /* #5E60E6 */
+    --soft-muted: #DEDEDE;    /* #DEDEDE */
     --soft-dark: 240 20% 20%;        /* #2A2B3B */
     --soft-darker: 240 25% 15%;      /* #1C1D33 */
+    --soft-light: #f2f2f2;    /* #f2f2f2 */
 
     /* DJ Interface Base Colors - Updated with new palette */
     --background: var(--soft-darker);
@@ -90,6 +91,30 @@ All colors MUST be HSL.
   }
 }
 
+.text-light {
+  color: var(--soft-light);
+}
+
+.text-primary {
+  color: var(--soft-primary);
+}
+
+.text-secondary {
+  color: var(--soft-secondary);
+}
+.bg-primary {
+  background-color: var(--soft-primary);
+}
+.bg-secondary {
+  background-color: var(--soft-secondary);
+}
+.bg-accent {
+  background-color: var(--soft-accent);
+}
+.bg-accent-hover:hover {
+  background-color: var(--soft-accent);
+}
+
 /* DJ Component Styles */
 @layer components {
   .dj-knob {
@@ -110,6 +135,7 @@ All colors MUST be HSL.
   /* Fader Styles */
   .dj-fader {
     @apply relative w-6 h-24 bg-dj-panel border border-border rounded-sm cursor-pointer;
+    padding: 1rem 0;
   }
 
   .dj-fader-handle {
@@ -132,7 +158,7 @@ All colors MUST be HSL.
   }
 
   .dj-button:hover {
-    transform: translateY(-1px);
+    background-color: var(--soft-accent);
     box-shadow: 0 4px 12px rgba(0,0,0,0.4);
   }
 

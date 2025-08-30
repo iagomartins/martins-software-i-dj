@@ -26,13 +26,9 @@ const VinylSVG = () => (
     <circle cx="100" cy="100" r="95" fill="url(#vinylGradient)" />
     {/* Center label */}
     <circle cx="100" cy="100" r="25" fill="#f0f0f0" />
-    <circle cx="100" cy="100" r="5" fill="#1a1a1a" />
     {/* iDJ text */}
-    <text x="100" y="95" textAnchor="middle" fontSize="18" fontWeight="bold" fill="#000">
+    <text x="100" y="100" textAnchor="middle" fontSize="18" fontWeight="bold" fill="#1C1D33">
       iDJ
-    </text>
-    <text x="100" y="112" textAnchor="middle" fontSize="12" fill="#666">
-      VINYL
     </text>
   </svg>
 );

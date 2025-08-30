@@ -16,7 +16,7 @@ export function DJInterface() {
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-4">Loading DJ Interface...</h2>
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-600 mx-auto"></div>
         </div>
       </div>
     );
@@ -61,30 +61,30 @@ export function DJInterface() {
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-4">Loading DJ Interface...</h2>
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-600 mx-auto"></div>
         </div>
       </div>
     }>
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-slate-900 text-white">
         {/* Header */}
-        <header className="bg-black/20 backdrop-blur-sm border-b border-white/10 p-4">
+        <header className="bg-black/20 backdrop-blur-sm border-b border-white/10 p-2">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
             <div className="flex items-center space-x-4">
               {/* Use imported logo or fallback text */}
               {iDJLogo ? (
                 <img src={iDJLogo} alt="iDJ Logo" className="h-12 w-auto" />
               ) : (
-                <div className="h-12 w-12 bg-gradient-to-r from-cyan-400 to-purple-400 rounded-lg flex items-center justify-center text-white font-bold text-xl">
+                <div className="h-12 w-12 bg-gradient-to-r from-cyan-400 to-gr-400 rounded-lg flex items-center justify-center text-white font-bold text-xl">
                   iDJ
                 </div>
               )}
             </div>
             <div className="flex items-center space-x-4">
               <button 
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                className="px-4 bg-primary bg-accent-hover rounded-sm text-sm transition-colors"
                 onClick={() => dispatch({ type: 'TOGGLE_CONFIG_MODAL' })}
               >
-                Settings
+                SETTINGS
               </button>
             </div>
           </div>
@@ -94,18 +94,18 @@ export function DJInterface() {
         <main className="flex-1 p-8">
           <div className="max-w-7xl mx-auto">
             {/* DJ Console Header */}
-            <div className="bg-black/30 backdrop-blur-sm rounded-t-xl border border-white/10 p-6 mb-8">
+            <div className="bg-black/30 backdrop-blur-sm rounded-t-xl border border-white/10 p-4 mb-8">
               <div className="grid grid-cols-3 gap-8 text-center">
                 <div>
-                  <h3 className="text-lg font-semibold text-cyan-400">Deck 1</h3>
+                  <h3 className="text-lg font-semibold text-light">Deck 1</h3>
                   <p className="text-sm text-gray-300">BPM: {deck1.bpm?.toFixed(2) || '120.00'}</p>
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-purple-400">Master</h3>
+                  <h3 className="text-lg font-semibold text-primary">Master</h3>
                   <p className="text-sm text-gray-300">Crossfader: {((crossfader - 0.5) * 200).toFixed(0)}%</p>
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-cyan-400">Deck 2</h3>
+                  <h3 className="text-lg font-semibold text-light">Deck 2</h3>
                   <p className="text-sm text-gray-300">BPM: {deck2.bpm?.toFixed(2) || '120.00'}</p>
                 </div>
               </div>
