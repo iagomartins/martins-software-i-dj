@@ -24,13 +24,13 @@ All colors MUST be HSL.
 @layer base {
   :root {
     /* New Soft Color Palette */
-    --soft-primary: #5E60E6;      /* #6C6DBA */
+    --soft-primary: 240 60% 65%;      /* #5E60E6 */
     --soft-secondary: 240 20% 55%;    /* #6C6C91 */
-    --soft-accent: #85b5f9;      /* #5E60E6 */
-    --soft-muted: #DEDEDE;    /* #DEDEDE */
+    --soft-accent: 217 100% 75%;      /* #85b5f9 */
+    --soft-muted: 0 0% 87%;    /* #DEDEDE */
     --soft-dark: 240 20% 20%;        /* #2A2B3B */
     --soft-darker: 240 25% 15%;      /* #1C1D33 */
-    --soft-light: #f2f2f2;    /* #f2f2f2 */
+    --soft-light: 0 0% 95%;    /* #f2f2f2 */
 
     /* DJ Interface Base Colors - Updated with new palette */
     --background: var(--soft-darker);
@@ -39,7 +39,7 @@ All colors MUST be HSL.
     /* DJ Console Colors - Updated with new palette */
     --dj-console: var(--soft-dark);
     --dj-console-foreground: 0 0% 90%;
-    --dj-panel: var(--soft-muted);
+    --dj-panel: var(--soft-darker);
     --dj-panel-foreground: 0 0% 85%;
 
     /* Neon Accent Colors - Updated with new palette */
@@ -57,8 +57,8 @@ All colors MUST be HSL.
     --fader-handle: var(--soft-primary);
 
     /* Button States - Updated with new palette */
-    --button-off: var(--soft-muted);
-    --button-on: var(--soft-primary);
+    --button-off: var(--soft-darker);
+    --button-on: var(--soft-light);
     --button-cue: var(--soft-accent);
     --button-play: var(--soft-secondary);
     --button-sync: var(--soft-primary);
@@ -92,27 +92,31 @@ All colors MUST be HSL.
 }
 
 .text-light {
-  color: var(--soft-light);
+  color:hsl(var(--soft-light));
 }
 
 .text-primary {
-  color: var(--soft-primary);
+  color: hsl(var(--soft-primary));
 }
 
 .text-secondary {
-  color: var(--soft-secondary);
+  color:hsl( var(--soft-secondary));
 }
 .bg-primary {
-  background-color: var(--soft-primary);
+  background-color: hsl(var(--soft-primary));
 }
 .bg-secondary {
-  background-color: var(--soft-secondary);
+  background-color: hsl(var(--soft-secondary));
 }
 .bg-accent {
-  background-color: var(--soft-accent);
+  background-color: hsl(var(--soft-accent));
 }
 .bg-accent-hover:hover {
-  background-color: var(--soft-accent);
+  background-color: hsl(var(--soft-accent));
+  box-shadow: 0 4px 12px hsl(var(--soft-light));
+}
+.bg-light {
+  background-color: hsl(var(--soft-light));
 }
 
 /* DJ Component Styles */
@@ -278,7 +282,7 @@ All colors MUST be HSL.
   }
 
   .waveform-canvas {
-    @apply w-full h-20 bg-black/20 rounded-sm cursor-pointer border border-border/50;
+    @apply w-full h-20 bg-[hsl(var(--soft-darker)/0.2)] rounded-sm cursor-pointer border border-border/50;
     transition: border-color 0.2s ease;
   }
 
@@ -291,7 +295,7 @@ All colors MUST be HSL.
   }
 
   .waveform-progress-bar {
-    @apply w-full bg-black/20 rounded-full h-1 overflow-hidden;
+    @apply w-full bg-[hsl(var(--soft-darker)/0.2)] rounded-full h-1 overflow-hidden;
   }
 
   .waveform-progress-fill {

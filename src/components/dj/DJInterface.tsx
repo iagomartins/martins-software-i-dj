@@ -67,7 +67,7 @@ export function DJInterface() {
     }>
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-slate-900 text-white">
         {/* Header */}
-        <header className="bg-black/20 backdrop-blur-sm border-b border-white/10 p-2">
+        <header className="bg-[#1C1D33]/20 backdrop-blur-sm border-b border-white/10 p-2">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
             <div className="flex items-center space-x-4">
               {/* Use imported logo or fallback text */}
@@ -94,18 +94,18 @@ export function DJInterface() {
         <main className="flex-1 p-8">
           <div className="max-w-7xl mx-auto">
             {/* DJ Console Header */}
-            <div className="bg-black/30 backdrop-blur-sm rounded-t-xl border border-white/10 p-4 mb-8">
+            <div className="bg-[#1C1D33]/30 backdrop-blur-sm rounded-t-xl border border-white/10 p-4 mb-8">
               <div className="grid grid-cols-3 gap-8 text-center">
                 <div>
-                  <h3 className="text-lg font-semibold text-light">Deck 1</h3>
+                  <h3 className="text-md font-semibold text-light">DECK 1</h3>
                   <p className="text-sm text-gray-300">BPM: {deck1.bpm?.toFixed(2) || '120.00'}</p>
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-primary">Master</h3>
-                  <p className="text-sm text-gray-300">Crossfader: {((crossfader - 0.5) * 200).toFixed(0)}%</p>
+                  <h3 className="text-md font-semibold text-primary">MASTER</h3>
+                  <p className="text-sm text-gray-300">CROSSFADER: {((crossfader - 0.5) * 200).toFixed(0)}%</p>
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-light">Deck 2</h3>
+                  <h3 className="text-md font-semibold text-light">DECK 2</h3>
                   <p className="text-sm text-gray-300">BPM: {deck2.bpm?.toFixed(2) || '120.00'}</p>
                 </div>
               </div>
@@ -125,7 +125,7 @@ export function DJInterface() {
               <div className="lg:col-span-2 flex flex-col items-center space-y-8">
                 {/* Crossfader */}
                 <div className="w-full">
-                  <h3 className="text-lg font-semibold text-center mb-4">Crossfader</h3>
+                  <h3 className="text-lg font-semibold text-center mb-4">CROSSFADER</h3>
                   <CrossFader 
                     value={(crossfader - 0.5) * 2} // Convert from 0..1 to -1..1 range
                     onChange={(value) => {
@@ -142,7 +142,7 @@ export function DJInterface() {
 
                 {/* Headphone Volume */}
                 <div className="w-full">
-                  <h3 className="text-lg font-semibold text-center mb-4">Headphones</h3>
+                  <h3 className="text-lg font-semibold text-center mb-4">HEADPHONES</h3>
                   <DJKnob 
                     value={headphoneVolume}
                     onChange={(value) => {

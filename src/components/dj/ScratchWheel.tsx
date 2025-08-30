@@ -27,7 +27,7 @@ const VinylSVG = () => (
     {/* Center label */}
     <circle cx="100" cy="100" r="25" fill="#f0f0f0" />
     {/* iDJ text */}
-    <text x="100" y="100" textAnchor="middle" fontSize="18" fontWeight="bold" fill="#1C1D33">
+    <text x="100" y="105" textAnchor="middle" fontSize="16" fontWeight="bold" fill="#1C1D33">
       iDJ
     </text>
   </svg>
@@ -102,9 +102,9 @@ export const ScratchWheel = ({ onScratch, isPlaying = false }: ScratchWheelProps
         style={{ 
           transform: `rotate(${rotation}deg)`,
           filter: isDragging 
-            ? `drop-shadow(0 0 25px hsl(var(--neon-cyan)))`
+            ? `drop-shadow(0 0 50px hsl(var(--soft-accent)))`
             : isPlaying 
-            ? `drop-shadow(0 0 20px hsl(var(--neon-green)))`
+            ? `drop-shadow(0 0 30px hsl(var(--soft-light)))`
             : undefined,
         }}
         onMouseDown={handleMouseDown}
@@ -114,9 +114,6 @@ export const ScratchWheel = ({ onScratch, isPlaying = false }: ScratchWheelProps
       >
         <VinylSVG />
       </div>
-      <span className="text-[12px] font-mono text-dj-panel-foreground uppercase tracking-wider">
-        SCRATCH
-      </span>
     </div>
   );
 };

@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState } from "react";
-import { cn } from "@/lib/utils";
+import { useEffect, useRef, useState, useCallback } from "react";
 
 interface AudioWaveformProps {
   deckNumber: 1 | 2;
@@ -9,7 +8,7 @@ interface AudioWaveformProps {
   duration: number;
   onTimeUpdate: (time: number) => void;
   onLoad: (file: File) => void;
-  onDurationLoad: (duration: number) => void; // Add this new prop
+  onDurationLoad: (duration: number) => void;
 }
 
 export const AudioWaveform = ({ 
@@ -20,13 +19,14 @@ export const AudioWaveform = ({
   duration, 
   onTimeUpdate, 
   onLoad,
-  onDurationLoad // Add this
+  onDurationLoad
 }: AudioWaveformProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const animationRef = useRef<number>();
   const [waveformData, setWaveformData] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const canvasSizeRef = useRef({ width: 0, height: 0 });
 
   // Handle file input change
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -45,7 +45,7 @@ export const AudioWaveform = ({
       const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
       
       const channelData = audioBuffer.getChannelData(0);
-      const samples = 1000; // Number of waveform points
+      const samples = 800; // Reduced for better performance
       const blockSize = Math.floor(channelData.length / samples);
       const waveform: number[] = [];
       
@@ -67,63 +67,89 @@ export const AudioWaveform = ({
     }
   };
 
-  // Draw waveform on canvas
-  const drawWaveform = () => {
+  // Optimized draw function with proper canvas scaling
+  const drawWaveform = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas || waveformData.length === 0) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // Get actual display size
+    const rect = canvas.getBoundingClientRect();
+    const displayWidth = rect.width;
+    const displayHeight = rect.height;
+
+    // Set canvas internal size to match display size (fixes scaling issues)
+    if (canvas.width !== displayWidth || canvas.height !== displayHeight) {
+      canvas.width = displayWidth;
+      canvas.height = displayHeight;
+      canvasSizeRef.current = { width: displayWidth, height: displayHeight };
+    }
+
     const { width, height } = canvas;
     ctx.clearRect(0, 0, width, height);
 
-    // Draw waveform
+    // Enable image smoothing for better quality
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+
+    // Draw waveform with better performance
     const barWidth = width / waveformData.length;
     const maxAmplitude = Math.max(...waveformData);
     const progressX = duration > 0 ? (currentTime / duration) * width : 0;
     
+    // Batch draw operations for better performance
+    ctx.save();
+    
+    // Draw unplayed bars first (background)
+    ctx.fillStyle = 'hsl(var(--soft-darker))';
     waveformData.forEach((amplitude, index) => {
       const barHeight = (amplitude / maxAmplitude) * height * 0.6;
       const x = index * barWidth;
       const y = (height - barHeight) / 2;
       
-      // Color bars based on progress - played vs unplayed
-      if (x < progressX) {
-        // Already played - brighter color
-        ctx.fillStyle = 'hsl(var(--neon-magenta))';
-      } else {
-        // Not yet played - dimmer color
-        ctx.fillStyle = 'hsl(var(--neon-cyan) / 0.4)';
+      if (x >= progressX) {
+        ctx.fillRect(x, y, Math.max(1, barWidth - 1), barHeight);
       }
-      
-      ctx.fillRect(x, y, barWidth - 1, barHeight);
     });
 
-    // Draw progress line/cursor
+    // Draw played bars (foreground)
+    ctx.fillStyle = '#DEDEDE';
+    waveformData.forEach((amplitude, index) => {
+      const barHeight = (amplitude / maxAmplitude) * height * 0.6;
+      const x = index * barWidth;
+      const y = (height - barHeight) / 2;
+      
+      if (x < progressX) {
+        ctx.fillRect(x, y, Math.max(1, barWidth - 1), barHeight);
+      }
+    });
+
+    ctx.restore();
+
+    // Draw progress line with better precision
     if (duration > 0) {
-      ctx.strokeStyle = 'hsl(var(--neon-yellow))';
-      ctx.lineWidth = 3;
+      ctx.save();
+      ctx.strokeStyle = '#3C3C3C';
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      
+      // Anti-aliased line
       ctx.beginPath();
-      ctx.moveTo(progressX, 0);
-      ctx.lineTo(progressX, height);
+      ctx.moveTo(progressX + 0.5, 0);
+      ctx.lineTo(progressX + 0.5, height);
       ctx.stroke();
 
-      // Draw progress indicator circle
-      ctx.fillStyle = 'hsl(var(--neon-yellow))';
-      ctx.beginPath();
-      ctx.arc(progressX, height / 2, 6, 0, 2 * Math.PI);
-      ctx.fill();
-
-      // Add glow effect to progress cursor
-      ctx.shadowColor = 'hsl(var(--neon-yellow))';
-      ctx.shadowBlur = 10;
+      // Progress indicator circle
+      ctx.fillStyle = '#6C6C91';
       ctx.beginPath();
       ctx.arc(progressX, height / 2, 4, 0, 2 * Math.PI);
       ctx.fill();
-      ctx.shadowBlur = 0;
+
+      ctx.restore();
     }
-  };
+  }, [waveformData, currentTime, duration]);
 
   // Update audio time
   const updateTime = () => {
@@ -133,22 +159,35 @@ export const AudioWaveform = ({
     }
   };
 
-  // Handle canvas click for seeking
-  const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
+  // High-precision click handling with proper coordinate mapping
+  const handleCanvasClick = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
     if (!duration) return;
     
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    // Get precise click coordinates relative to canvas
     const rect = canvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
+    const x = (event.clientX - rect.left) * scaleX;
+    const y = (event.clientY - rect.top) * scaleY;
+    
+    // Ensure click is within canvas bounds
+    if (x < 0 || x > canvas.width || y < 0 || y > canvas.height) return;
+    
+    // Calculate precise seek time
     const seekTime = (x / canvas.width) * duration;
     
+    // Clamp seek time to valid range
+    const clampedTime = Math.max(0, Math.min(seekTime, duration));
+    
     if (audioRef.current) {
-      audioRef.current.currentTime = seekTime;
-      onTimeUpdate(seekTime);
+      audioRef.current.currentTime = clampedTime;
+      onTimeUpdate(clampedTime);
     }
-  };
+  }, [duration, onTimeUpdate]);
 
   // Effects
   useEffect(() => {
@@ -157,9 +196,20 @@ export const AudioWaveform = ({
     }
   }, [audioFile]);
 
+  // Optimized redraw with requestAnimationFrame
   useEffect(() => {
-    drawWaveform();
-  }, [waveformData, currentTime, duration]);
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
+    }
+    
+    animationRef.current = requestAnimationFrame(drawWaveform);
+    
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [drawWaveform]);
 
   useEffect(() => {
     if (audioRef.current) {
@@ -187,7 +237,6 @@ export const AudioWaveform = ({
     }
   }, [audioFile]);
 
-  // Add this useEffect to handle duration extraction
   useEffect(() => {
     if (audioRef.current && audioFile) {
       const handleLoadedMetadata = () => {
@@ -264,7 +313,7 @@ export const AudioWaveform = ({
       {waveformData.length > 0 && (
         <>
           {/* Progress bar above canvas */}
-          <div className="w-full h-1 bg-black/40 rounded-sm overflow-hidden">
+          <div className="w-full h-1 rounded-sm overflow-hidden">
             <div 
               className="h-full bg-gradient-to-r from-neon-cyan to-neon-magenta transition-all duration-100 ease-out"
               style={{ 
@@ -275,9 +324,7 @@ export const AudioWaveform = ({
           
           <canvas
             ref={canvasRef}
-            width={400}
-            height={50}
-            className="w-full h-12 bg-black/20 rounded-sm cursor-pointer border border-border/50 hover:border-neon-cyan/50 transition-colors"
+            className="w-full h-12 rounded-sm cursor-pointer border border-border/50 hover:border-neon-cyan/50 transition-colors"
             onClick={handleCanvasClick}
           />
           
