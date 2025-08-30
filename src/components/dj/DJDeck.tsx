@@ -197,6 +197,10 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
     initAudioContext();
   }, [initAudioContext]);
 
+  const handleDurationLoad = (audioDuration: number) => {
+    setDuration(audioDuration);
+  };
+
     return (
     <div className="bg-dj-console border border-border rounded-sm p-2 space-y-2 flex flex-col h-full">
       {/* Waveform Panel */}
@@ -208,6 +212,7 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
         duration={duration}
         onTimeUpdate={handleTimeUpdate}
         onLoad={handleAudioLoad}
+        onDurationLoad={handleDurationLoad}
       />
 
       {/* Deck Header */}

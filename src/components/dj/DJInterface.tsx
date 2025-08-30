@@ -3,11 +3,12 @@ import { useDJ } from '../../contexts/DJContext';
 import { CrossFader } from './CrossFader';
 import { DJKnob } from './DJKnob';
 import { DJDeck } from './DJDeck';
+import { ConfigModal } from './ConfigModal';
 // Import the logo directly
 import iDJLogo from '../../assets/iDJLogo.svg';
 
 export function DJInterface() {
-  const { state } = useDJ();
+  const { state, dispatch } = useDJ();
 
   // Add null checks and default values
   if (!state) {
@@ -77,12 +78,12 @@ export function DJInterface() {
                   iDJ
                 </div>
               )}
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
-                iDJ Professional
-              </h1>
             </div>
             <div className="flex items-center space-x-4">
-              <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+              <button 
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                onClick={() => dispatch({ type: 'TOGGLE_CONFIG_MODAL' })}
+              >
                 Settings
               </button>
             </div>
@@ -94,7 +95,6 @@ export function DJInterface() {
           <div className="max-w-7xl mx-auto">
             {/* DJ Console Header */}
             <div className="bg-black/30 backdrop-blur-sm rounded-t-xl border border-white/10 p-6 mb-8">
-              <h2 className="text-2xl font-bold text-center mb-4">DJ Console</h2>
               <div className="grid grid-cols-3 gap-8 text-center">
                 <div>
                   <h3 className="text-lg font-semibold text-cyan-400">Deck 1</h3>
@@ -127,12 +127,15 @@ export function DJInterface() {
                 <div className="w-full">
                   <h3 className="text-lg font-semibold text-center mb-4">Crossfader</h3>
                   <CrossFader 
-                    value={crossfader}
+                    value={(crossfader - 0.5) * 2} // Convert from 0..1 to -1..1 range
                     onChange={(value) => {
-                      // Handle crossfader change
+                      // Convert from -1..1 to 0..1 range and dispatch
+                      const newValue = (value + 1) / 2;
+                      dispatch({ type: 'SET_CROSSFADER', payload: newValue });
                     }}
                     onDoubleClick={() => {
-                      // Reset crossfader
+                      // Reset crossfader to center
+                      dispatch({ type: 'SET_CROSSFADER', payload: 0.5 });
                     }}
                   />
                 </div>
@@ -143,10 +146,11 @@ export function DJInterface() {
                   <DJKnob 
                     value={headphoneVolume}
                     onChange={(value) => {
-                      // Handle headphone volume change
+                      dispatch({ type: 'SET_HEADPHONE_VOLUME', payload: value });
                     }}
                     onDoubleClick={() => {
-                      // Reset headphone volume
+                      // Reset headphone volume to 100%
+                      dispatch({ type: 'SET_HEADPHONE_VOLUME', payload: 1.0 });
                     }}
                     min={0}
                     max={1}
@@ -167,6 +171,9 @@ export function DJInterface() {
           </div>
         </main>
       </div>
+      
+      {/* Config Modal */}
+      <ConfigModal />
     </Suspense>
   );
 }

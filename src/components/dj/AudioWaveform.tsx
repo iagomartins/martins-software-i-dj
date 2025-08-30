@@ -9,6 +9,7 @@ interface AudioWaveformProps {
   duration: number;
   onTimeUpdate: (time: number) => void;
   onLoad: (file: File) => void;
+  onDurationLoad: (duration: number) => void; // Add this new prop
 }
 
 export const AudioWaveform = ({ 
@@ -18,7 +19,8 @@ export const AudioWaveform = ({
   currentTime, 
   duration, 
   onTimeUpdate, 
-  onLoad 
+  onLoad,
+  onDurationLoad // Add this
 }: AudioWaveformProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -185,6 +187,28 @@ export const AudioWaveform = ({
     }
   }, [audioFile]);
 
+  // Add this useEffect to handle duration extraction
+  useEffect(() => {
+    if (audioRef.current && audioFile) {
+      const handleLoadedMetadata = () => {
+        if (audioRef.current) {
+          const audioDuration = audioRef.current.duration;
+          if (!isNaN(audioDuration) && audioDuration > 0) {
+            onDurationLoad(audioDuration);
+          }
+        }
+      };
+
+      audioRef.current.addEventListener('loadedmetadata', handleLoadedMetadata);
+      
+      return () => {
+        if (audioRef.current) {
+          audioRef.current.removeEventListener('loadedmetadata', handleLoadedMetadata);
+        }
+      };
+    }
+  }, [audioFile, onDurationLoad]);
+
   // Cleanup animation frame
   useEffect(() => {
     return () => {
@@ -239,6 +263,16 @@ export const AudioWaveform = ({
 
       {waveformData.length > 0 && (
         <>
+          {/* Progress bar above canvas */}
+          <div className="w-full h-1 bg-black/40 rounded-sm overflow-hidden">
+            <div 
+              className="h-full bg-gradient-to-r from-neon-cyan to-neon-magenta transition-all duration-100 ease-out"
+              style={{ 
+                width: duration > 0 ? `${(currentTime / duration) * 100}%` : '0%' 
+              }}
+            />
+          </div>
+          
           <canvas
             ref={canvasRef}
             width={400}

@@ -1,4 +1,5 @@
-import { useRef, useCallback, useEffect } from 'react';
+import { useRef, useCallback, useState } from 'react';
+import { useDJ } from "@/contexts/DJContext";
 
 export interface AudioEffects {
   flanger: boolean;
@@ -49,6 +50,7 @@ export const useAudioEngine = () => {
   const headphoneGainRef = useRef<GainNode | null>(null);
   const crossfaderGainRef = useRef<GainNode | null>(null);
   const headphoneVolumeRef = useRef<GainNode | null>(null);
+  const { dispatch, state } = useDJ(); // Add state to destructuring
 
   const initAudioContext = useCallback(async () => {
     try {
@@ -93,11 +95,17 @@ export const useAudioEngine = () => {
         if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
           try {
             const devices = await navigator.mediaDevices.enumerateDevices();
-            const audioDevices = devices.filter(device => 
+            const audioDevicesFound = devices.filter(device => 
               device.kind === 'audioinput' || device.kind === 'audiooutput'
             );
-            // setAudioDevices(audioDevices); // This line was not in the original file, so it's removed.
-            console.log('Audio devices found:', audioDevices.length);
+            
+            // Dispatch to DJContext instead of local state
+            dispatch({ 
+              type: 'SET_CONNECTED_DEVICES', 
+              payload: audioDevicesFound 
+            });
+            
+            console.log('Audio devices found:', audioDevicesFound.length);
           } catch (error) {
             console.warn('Could not enumerate audio devices:', error);
           }
@@ -112,7 +120,7 @@ export const useAudioEngine = () => {
       console.error('Failed to initialize audio context:', error);
       throw error;
     }
-  }, []);
+  }, [dispatch]);
 
   const createEQFilter = useCallback((context: AudioContext, type: BiquadFilterType, frequency: number) => {
     const filter = context.createBiquadFilter();
@@ -385,6 +393,7 @@ export const useAudioEngine = () => {
     setDeckChain,
     audioContext: audioContextRef.current,
     masterGain: masterGainRef.current,
-    headphoneGain: headphoneGainRef.current
+    headphoneGain: headphoneGainRef.current,
+    audioDevices: state.connectedDevices // Access state directly instead of dispatching
   };
 };

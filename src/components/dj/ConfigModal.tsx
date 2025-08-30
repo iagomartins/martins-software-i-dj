@@ -13,9 +13,11 @@ import { Separator } from "@/components/ui/separator";
 import { useDJ } from "@/contexts/DJContext";
 import { KeyMappingSection } from "./KeyMappingSection";
 import { Settings, Volume2, Headphones, Mic, Speaker } from "lucide-react";
+import { useAudioEngine } from "@/hooks/useAudioEngine";
 
 export const ConfigModal = () => {
   const { state, dispatch } = useDJ();
+  const { audioDevices } = useAudioEngine();
 
   const handleAudioConfigChange = (key: keyof typeof state.audioConfig, value: string) => {
     dispatch({
@@ -24,11 +26,11 @@ export const ConfigModal = () => {
     });
   };
 
-  const audioInputDevices = state.connectedDevices.filter(
+  const audioInputDevices = audioDevices.filter(
     device => device.kind === 'audioinput'
   );
   
-  const audioOutputDevices = state.connectedDevices.filter(
+  const audioOutputDevices = audioDevices.filter(
     device => device.kind === 'audiooutput'
   );
 

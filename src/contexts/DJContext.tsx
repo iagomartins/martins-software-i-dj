@@ -12,6 +12,7 @@ interface DJState {
     inputChannels: string;
   };
   isConfigModalOpen: boolean; // Add missing property
+  keyMappings: Record<string, string>; // Add this missing property
   deck1: {
     isPlaying: boolean;
     isCued: boolean;
@@ -65,7 +66,9 @@ type DJAction =
   | { type: 'UPDATE_AUDIO_CONFIG'; payload: Partial<DJState['audioConfig']> }
   | { type: 'TOGGLE_CONFIG_MODAL' }
   | { type: 'TOGGLE_HEADPHONE_DECK'; payload: number }
-  | { type: 'SET_CONNECTED_DEVICES'; payload: MediaDeviceInfo[] };
+  | { type: 'SET_CONNECTED_DEVICES'; payload: MediaDeviceInfo[] }
+  | { type: 'SET_KEY_MAPPING'; payload: { key: string; buttonId: string } } // Add this
+  | { type: 'CLEAR_KEY_MAPPING'; payload: string }; // Add this
 
 // Initial state
 const initialState: DJState = {
@@ -74,11 +77,12 @@ const initialState: DJState = {
   audioConfig: {
     masterOutput: 'default',
     headphoneOutput: 'default',
-    latency: 0,
-    sampleRate: 0,
+    latency: 128,
+    sampleRate: 44100,
     inputChannels: 'default'
   },
   isConfigModalOpen: false, // Add missing property
+  keyMappings: {}, // Add this missing property
   deck1: {
     isPlaying: false,
     isCued: false,
@@ -180,6 +184,22 @@ function djReducer(state: DJState, action: DJAction): DJState {
         ...state,
         connectedDevices: action.payload
       };
+    case 'SET_KEY_MAPPING':
+      return {
+        ...state,
+        keyMappings: {
+          ...state.keyMappings,
+          [action.payload.key]: action.payload.buttonId
+        }
+      };
+      
+    case 'CLEAR_KEY_MAPPING':
+      { const newKeyMappings = { ...state.keyMappings };
+      delete newKeyMappings[action.payload];
+      return {
+        ...state,
+        keyMappings: newKeyMappings
+      }; }
     default:
       return state;
   }
