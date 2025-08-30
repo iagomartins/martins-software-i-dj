@@ -19,6 +19,15 @@ export default {
 		},
 		extend: {
 			colors: {
+				/* New Soft Color Palette */
+				soft: {
+					primary: 'hsl(var(--soft-primary))',      /* #6C6DBA */
+					secondary: 'hsl(var(--soft-secondary))',  /* #6C6C91 */
+					accent: 'hsl(var(--soft-accent))',        /* #5E60E6 */
+					muted: 'hsl(var(--soft-muted))',          /* #5B5B66 */
+					dark: 'hsl(var(--soft-dark))',            /* #2A2B3B */
+					darker: 'hsl(var(--soft-darker))',        /* #1C1D33 */
+				},
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',
