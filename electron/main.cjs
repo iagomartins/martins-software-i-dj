@@ -1,8 +1,72 @@
 const { app, BrowserWindow, ipcMain, session, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const { spawn } = require('child_process');
 
 let mainWindow = null;
+let serverProcess = null;
+
+// Function to start the server
+function startServer() {
+  console.log('🚀 Starting DJ server...');
+  
+  // Path to server.js relative to the electron folder
+  const serverPath = path.join(__dirname, '../server.js');
+  
+  // Check if server.js exists
+  if (!fs.existsSync(serverPath)) {
+    console.error('❌ Server file not found:', serverPath);
+    return;
+  }
+  
+  // Start the server process
+  serverProcess = spawn('node', [serverPath], {
+    stdio: 'pipe',
+    cwd: path.join(__dirname, '..') // Set working directory to project root
+  });
+  
+  // Handle server output
+  serverProcess.stdout.on('data', (data) => {
+    console.log('📡 [Server]', data.toString().trim());
+  });
+  
+  serverProcess.stderr.on('data', (data) => {
+    console.error('❌ [Server Error]', data.toString().trim());
+  });
+  
+  // Handle server process exit
+  serverProcess.on('close', (code) => {
+    console.log(`📡 [Server] Process exited with code ${code}`);
+    serverProcess = null;
+  });
+  
+  serverProcess.on('error', (error) => {
+    console.error('❌ [Server] Failed to start:', error);
+    serverProcess = null;
+  });
+  
+  console.log('✅ Server process started with PID:', serverProcess.pid);
+}
+
+// Function to stop the server
+function stopServer() {
+  if (serverProcess) {
+    console.log('🛑 Stopping DJ server...');
+    
+    // Kill the server process
+    serverProcess.kill('SIGTERM');
+    
+    // Force kill after 5 seconds if it doesn't stop gracefully
+    setTimeout(() => {
+      if (serverProcess) {
+        console.log('⚠️ Force killing server process...');
+        serverProcess.kill('SIGKILL');
+      }
+    }, 5000);
+    
+    serverProcess = null;
+  }
+}
 
 function createWindow() {
   // Create the browser window
@@ -186,7 +250,14 @@ function createWindow() {
 // App event handlers
 app.whenReady().then(() => {
   console.log('🔧 DEBUG: Electron app is ready');
-  createWindow();
+  
+  // Start the DJ server first
+  startServer();
+  
+  // Wait a moment for server to start, then create window
+  setTimeout(() => {
+    createWindow();
+  }, 1000);
   
   // ALWAYS enable comprehensive debugging features
   console.log('🔧 DEBUG: Enabling comprehensive debugging...');
@@ -213,6 +284,25 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
+});
+
+// Clean up server when app quits
+app.on('before-quit', () => {
+  console.log('🛑 App quitting, cleaning up server...');
+  stopServer();
+});
+
+// Handle process termination signals
+process.on('SIGINT', () => {
+  console.log('🛑 Received SIGINT, cleaning up...');
+  stopServer();
+  app.quit();
+});
+
+process.on('SIGTERM', () => {
+  console.log('🛑 Received SIGTERM, cleaning up...');
+  stopServer();
+  app.quit();
 });
 
 app.on('activate', () => {

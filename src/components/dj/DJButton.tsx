@@ -11,6 +11,7 @@ interface DJButtonProps {
   variant?: "default" | "cue" | "play" | "sync";
   size?: "xs" | "sm" | "md" | "lg";
   disabled?: boolean;
+  className?: string;
 }
 
 export const DJButton = ({ 
@@ -23,7 +24,8 @@ export const DJButton = ({
   onMouseLeave,
   variant = "default",
   size = "md",
-  disabled = false
+  disabled = false,
+  className,
 }: DJButtonProps) => {
   return (
     <button
@@ -33,7 +35,7 @@ export const DJButton = ({
       onMouseUp={onMouseUp}
       onMouseLeave={onMouseLeave}
       disabled={disabled}
-      className={cn(
+      className={`${className} ${cn(
         "dj-button",
         active && "active",
         variant === "cue" && "cue",
@@ -43,7 +45,7 @@ export const DJButton = ({
         size === "sm" && "px-2 py-1 text-xs",
         size === "lg" && "px-6 py-3 text-base",
         disabled && "opacity-50 cursor-not-allowed"
-      )}
+      )}`}
     >
       {label}
     </button>

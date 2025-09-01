@@ -196,67 +196,39 @@ export const AudioWaveform = ({
     }
   }, [audioFile]);
 
-  // Optimized redraw with requestAnimationFrame
+  // IMPROVED: Optimized redraw with requestAnimationFrame and real-time updates
   useEffect(() => {
-    if (animationRef.current) {
-      cancelAnimationFrame(animationRef.current);
+    if (!isPlaying) {
+      // Single draw when not playing
+      drawWaveform();
+      return;
     }
+
+    // Continuous animation when playing
+    const animate = () => {
+      drawWaveform();
+      animationRef.current = requestAnimationFrame(animate);
+    };
     
-    animationRef.current = requestAnimationFrame(drawWaveform);
+    animationRef.current = requestAnimationFrame(animate);
     
     return () => {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [drawWaveform]);
+  }, [drawWaveform, isPlaying]);
 
+  // IMPROVED: Handle time updates from server instead of local audio
   useEffect(() => {
-    if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.play();
-        audioRef.current.addEventListener('timeupdate', updateTime);
-      } else {
-        audioRef.current.pause();
-        audioRef.current.removeEventListener('timeupdate', updateTime);
-      }
-    }
+    // Remove local audio time update handling since we're using server time
+    // The currentTime prop will be updated from the parent component
+  }, []);
 
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.removeEventListener('timeupdate', updateTime);
-      }
-    };
-  }, [isPlaying]);
-
+  // IMPROVED: Remove local audio element handling since we're using server
   useEffect(() => {
-    if (audioRef.current && audioFile) {
-      const url = URL.createObjectURL(audioFile);
-      audioRef.current.src = url;
-      return () => URL.revokeObjectURL(url);
-    }
-  }, [audioFile]);
-
-  useEffect(() => {
-    if (audioRef.current && audioFile) {
-      const handleLoadedMetadata = () => {
-        if (audioRef.current) {
-          const audioDuration = audioRef.current.duration;
-          if (!isNaN(audioDuration) && audioDuration > 0) {
-            onDurationLoad(audioDuration);
-          }
-        }
-      };
-
-      audioRef.current.addEventListener('loadedmetadata', handleLoadedMetadata);
-      
-      return () => {
-        if (audioRef.current) {
-          audioRef.current.removeEventListener('loadedmetadata', handleLoadedMetadata);
-        }
-      };
-    }
-  }, [audioFile, onDurationLoad]);
+    // Don't create local audio element - server handles playback
+  }, []);
 
   // Cleanup animation frame
   useEffect(() => {

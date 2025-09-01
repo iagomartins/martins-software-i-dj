@@ -7,6 +7,8 @@ import { PitchFader } from "./PitchFader";
 import { AudioWaveform } from "./AudioWaveform";
 import { useDJ } from "@/contexts/DJContext";
 import { useAudioEngine, AudioEffects, DeckAudioChain } from "@/hooks/useAudioEngine";
+import { useDeckBridge } from "@/hooks/useDeckBridge";
+
 
 interface DJDeckProps {
   deckNumber: 1 | 2;
@@ -27,7 +29,7 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
   } = useAudioEngine();
 
   // Deck state
-  const [isPlaying, setIsPlaying] = useState(false);
+  // const [isPlaying, setIsPlaying] = useState(false);
   const [isCued, setIsCued] = useState(false);
   const [isSynced, setIsSynced] = useState(false);
   const [effectsActive, setEffectsActive] = useState<AudioEffects>({
@@ -61,9 +63,9 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
   const [isHeadphoneActive, setIsHeadphoneActive] = useState(false);
   
   const audioRef = useRef<HTMLAudioElement>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const deckChainRef = useRef<DeckAudioChain | null>(null); // Fix: Use proper type
 
+  const deckBridge = useDeckBridge('ws://localhost:4001', deckNumber === 1 ? 'A' : 'B');
+  
   const toggleEffect = (effectType: keyof AudioEffects) => {
     const newEffects = { ...effectsActive, [effectType]: !effectsActive[effectType] };
     setEffectsActive(newEffects);
@@ -78,42 +80,34 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
   // Fix: Use isHeadphoneActive state instead of undefined activeHeadphoneDecks
   const isHeadphone = isHeadphoneActive;
 
-  // Audio handling functions
+  // Audio handling functions - IMPROVED to handle server auto-play
   const handleAudioLoad = async (file: File) => {
-    setAudioFile(file);
-    setCurrentTime(0);
-    setDuration(0);
-    setIsPlaying(false);
-    setCuePoint(0);
-    
-    // Initialize audio context
-    await initAudioContext();
-    
-    // Detect BPM
     try {
-      const arrayBuffer = await file.arrayBuffer();
-      const audioContext = new AudioContext();
-      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-      const detectedBPM = await detectBPM(audioBuffer);
-      setBaseBpm(detectedBPM);
-      setBpm(detectedBPM);
+      console.log(`[Deck ${deckNumber}] Loading audio file:`, file.name);
       
-      // Create deck audio chain
-      const deckChain = await createDeckChain(deckNumber, audioBuffer);
-      if (
-        deckChain &&
-        'reverbGain' in deckChain &&
-        'echoGain' in deckChain &&
-        'filterGain' in deckChain &&
-        'flangerGain' in deckChain
-      ) {
-        deckChainRef.current = deckChain as DeckAudioChain;
-        setDeckChain(deckNumber, deckChain as DeckAudioChain);
-      }
-
-      audioContext.close();
+      // Just upload the file directly - let the server handle conversion
+      const trackId = await deckBridge.uploadTrack(file);
+      console.log(`[Deck ${deckNumber}] Track uploaded, ID:`, trackId);
+      
+      // Load the track into the deck
+      await deckBridge.loadTrack(trackId);
+      console.log(`[Deck ${deckNumber}] Track loaded into deck`);
+      
+      // Set the local audio file state
+      setAudioFile(file);
+      console.log(`[Deck ${deckNumber}] Audio file state set:`, file.name);
+      
+      // IMPORTANT: The server auto-plays tracks, so we need to pause it immediately
+      // Wait a bit for the track to load, then pause it
+      setTimeout(() => {
+        if (deckBridge.connected && deckBridge.status) {
+          setCurrentTime(0);
+          setCuePoint(0);
+        }
+      }, 500); // Wait 500ms for track to load and start playing
+      
     } catch (error) {
-      console.warn('Could not detect BPM:', error);
+      console.error(`[Deck ${deckNumber}] Failed to load audio:`, error);
     }
   };
 
@@ -121,39 +115,65 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
     setCurrentTime(time);
   };
 
+  // IMPROVED: Handle play toggle with proper server sync and debugging
   const handlePlayToggle = () => {
-    if (!audioFile) return;
+    console.log(`[Deck ${deckNumber}] Play toggle clicked, current state:`, {
+      isPlaying: deckBridge.status?.paused === false,
+      bridgeConnected: deckBridge.connected,
+      bridgeStatus: deckBridge.status,
+      lastCommand: deckBridge.lastCommand,
+      commandStatus: deckBridge.commandStatus
+    });
+
+    if (!deckBridge.connected) {
+      console.error(`[Deck ${deckNumber}] Bridge not connected`);
+      return;
+    }
     
-    if (isPlaying) {
-      setIsPlaying(false);
-      if (audioRef.current) {
-        audioRef.current.pause();
+    // If no status available, just wait for it - server sends status automatically
+    if (!deckBridge.status) {
+      console.log(`[Deck ${deckNumber}] No status available yet, waiting for server...`);
+      return;
+    }
+    
+    if (deckBridge.status.paused) {
+      console.log(`[Deck ${deckNumber}] Sending play command`);
+      const success = deckBridge.play();
+      if (success) {
+        console.log(`[Deck ${deckNumber}] Play command sent successfully`);
+      } else {
+        console.error(`[Deck ${deckNumber}] Failed to send play command`);
       }
     } else {
-      setIsPlaying(true);
-      if (audioRef.current) {
-        audioRef.current.play();
+      console.log(`[Deck ${deckNumber}] Sending pause command`);
+      const success = deckBridge.pause();
+      if (success) {
+        console.log(`[Deck ${deckNumber}] Pause command sent successfully`);
+      } else {
+        console.error(`[Deck ${deckNumber}] Failed to send pause command`);
       }
     }
   };
 
+  // IMPROVED: Handle cue with server sync
   const handleCue = (pressed: boolean) => {
-    if (!audioFile || !audioRef.current) return;
+    if (!deckBridge.connected || !deckBridge.status) return;
     
     if (pressed) {
       // Store current position as cue point if not playing
-      if (!isPlaying) {
+      if (deckBridge.status?.paused === true) {
         setCuePoint(currentTime);
       }
       setIsCued(true);
       // Play from current position
-      audioRef.current.play();
+      deckBridge.play();
     } else {
       setIsCued(false);
       // If play button is not active, stop and return to cue point
-      if (!isPlaying) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = cuePoint;
+      if (deckBridge.status?.paused === false) {
+        deckBridge.pause();
+        // Seek to cue point
+        deckBridge.seekMs(cuePoint * 1000);
         setCurrentTime(cuePoint);
       }
     }
@@ -201,14 +221,99 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
     setDuration(audioDuration);
   };
 
+  // IMPROVED: Better bridge status handling with debugging
+  useEffect(() => {
+    if (deckBridge.connected && deckBridge.status) {
+      console.log(`[Deck ${deckNumber}] Bridge status update:`, deckBridge.status);
+      
+      setCurrentTime(deckBridge.status.posMs / 1000);
+      setDuration(deckBridge.status.durationMs / 1000);
+      
+      // Update BPM from server if available
+      if (deckBridge.status.bpm !== undefined) {
+        setBpm(deckBridge.status.bpm);
+      }
+    } else if (deckBridge.connected && !deckBridge.status) {
+      console.log(`[Deck ${deckNumber}] Connected but waiting for server status...`);
+      // Don't request status - server sends it automatically
+    }
+  }, [deckBridge.status, deckBridge.connected, deckNumber, baseBpm]);
+
+  // Add debugging for command status changes
+  useEffect(() => {
+    if (deckBridge.commandStatus !== 'idle') {
+      console.log(`[Deck ${deckNumber}] Command status:`, deckBridge.commandStatus, 'for command:', deckBridge.lastCommand);
+    }
+  }, [deckBridge.commandStatus, deckBridge.lastCommand, deckNumber]);
+
+  // Add debugging for connection changes
+  useEffect(() => {
+    console.log(`[Deck ${deckNumber}] Connection state changed:`, deckBridge.connected);
+    if (deckBridge.connected && !deckBridge.status) {
+      console.log(`[Deck ${deckNumber}] Connected, waiting for server status...`);
+    }
+  }, [deckBridge.connected, deckNumber]);
+
+  // Add real-time updates for smooth playback visualization
+  useEffect(() => {
+    if (!deckBridge.connected) return;
+
+    const interval = setInterval(() => {
+      if (deckBridge.status && !deckBridge.status.paused) {
+        // Update current time for smooth canvas animation
+        const newTime = deckBridge.status.posMs / 1000;
+        setCurrentTime(newTime);
+        
+        // Update BPM in real-time if pitch changes
+        if (deckBridge.status.bpm !== undefined) {
+          setBpm(deckBridge.status.bpm);
+        }
+      }
+    }, 50); // 20fps for smooth updates
+
+    return () => clearInterval(interval);
+  }, [deckBridge.connected, deckBridge.status, baseBpm]);
+
+  // Sync deck state when track is loaded - IMPROVED
+  useEffect(() => {
+    if (deckBridge.lastLoaded) {
+      console.log(`[Deck ${deckNumber}] Track loaded from bridge:`, deckBridge.lastLoaded);
+      setDuration(deckBridge.lastLoaded.durationMs / 1000);
+      setBpm(deckBridge.status?.bpm || 0);
+      // Reset play state when new track is loaded
+      setCurrentTime(0);
+      setCuePoint(0);
+    }
+  }, [deckBridge.lastLoaded, deckNumber, audioFile, deckBridge]);
+
+  // Add debugging for audioFile state changes
+  useEffect(() => {
+    console.log(`[Deck ${deckNumber}] Audio file state changed:`, audioFile?.name || 'null');
+  }, [audioFile, deckNumber]);
+
+  // Update scratch wheel to use bridge
+  const handleScratchStart = () => {
+    deckBridge.touchDown();
+  };
+
+  const handleScratchEnd = () => {
+    deckBridge.touchUp();
+  };
+
+  const handleScratch = (delta: number) => {
+    const angleDelta = (delta * 180) / Math.PI;
+    const dt = 0.016; // Assume 60fps
+    deckBridge.rotateTop(angleDelta, dt);
+  };
+
     return (
     <div className="bg-dj-console border border-border rounded-sm p-2 space-y-2 flex flex-col h-full">
       {/* Waveform Panel */}
       <AudioWaveform
         deckNumber={deckNumber}
         audioFile={audioFile}
-        isPlaying={isPlaying}
-        currentTime={currentTime}
+        isPlaying={deckBridge.status?.paused === false}
+        currentTime={deckBridge.status?.posMs / 1000}
         duration={duration}
         onTimeUpdate={handleTimeUpdate}
         onLoad={handleAudioLoad}
@@ -228,8 +333,29 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
                 {bpm.toFixed(2)} BPM
               </span>
               <span className="text-[10px] text-muted-foreground bg-dj-panel px-1 py-0.5 rounded-sm">
-                {isPlaying ? '▶ PLAY' : isCued ? '⏸ CUE' : '⏹ STOP'}
+                {deckBridge.status?.paused === false ? '▶ PLAY' : isCued ? '⏸ CUE' : '⏹ STOP'}
               </span>
+              {/* Add connection and status indicators */}
+              {!deckBridge.connected && (
+                <span className="text-[10px] bg-red-500/20 text-red-400 px-1 py-0.5 rounded-sm">
+                  🔌 DISCONNECTED
+                </span>
+              )}
+              {deckBridge.connected && !deckBridge.status && (
+                <span className="text-[10px] bg-yellow-500/20 text-yellow-400 px-1 py-0.5 rounded-sm">
+                  ⏳ WAITING FOR STATUS
+                </span>
+              )}
+              {deckBridge.commandStatus !== 'idle' && (
+                <span className={`text-[10px] px-1 py-0.5 rounded-sm ${
+                  deckBridge.commandStatus === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
+                  deckBridge.commandStatus === 'success' ? 'bg-green-500/20 text-green-400' :
+                  'bg-red-500/20 text-red-400'
+                }`}>
+                  {deckBridge.commandStatus === 'pending' ? '⏳' :
+                   deckBridge.commandStatus === 'success' ? '✓' : '✗'}
+                </span>
+              )}
             </>
           )}
         </div>
@@ -270,15 +396,10 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
           {/* Center - Scratch Wheel */}
           <div className="flex justify-center">
             <ScratchWheel 
-              isPlaying={isPlaying}
-              onScratch={(delta) => {
-                if (audioRef.current && duration > 0) {
-                  const timeChange = (delta * duration) / (Math.PI * 2) * 10; // Scale factor for sensitivity
-                  const newTime = Math.max(0, Math.min(duration, currentTime + timeChange));
-                  audioRef.current.currentTime = newTime;
-                  setCurrentTime(newTime);
-                }
-              }}
+              isPlaying={deckBridge.status?.paused === false}
+              onScratch={handleScratch}
+              onScratchStart={handleScratchStart}
+              onScratchEnd={handleScratchEnd}
             />
           </div>
 
@@ -319,10 +440,11 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
                 id={`deck${deckNumber}-play`}
                 label="PLAY"
                 variant="play"
-                active={isPlaying}
+                active={deckBridge.status?.paused === false}
                 onClick={handlePlayToggle}
-                disabled={!audioFile}
+                disabled={!audioFile || !deckBridge.connected}
                 size="sm"
+                className={deckBridge.commandStatus === 'pending' ? 'animate-pulse' : ''}
               />
             </div>
             <div className="grid grid-cols-2 gap-1">
@@ -389,7 +511,7 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
       <audio 
         ref={audioRef} 
         preload="metadata"
-        onEnded={() => setIsPlaying(false)}
+        onEnded={() => deckBridge.pause()}
       />
     </div>
   );

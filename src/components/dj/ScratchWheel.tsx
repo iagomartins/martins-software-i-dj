@@ -36,9 +36,11 @@ const VinylSVG = () => (
 interface ScratchWheelProps {
   onScratch?: (delta: number) => void;
   isPlaying?: boolean;
+  onScratchStart?: () => void;
+  onScratchEnd?: () => void;
 }
 
-export const ScratchWheel = ({ onScratch, isPlaying = false }: ScratchWheelProps) => {
+export const ScratchWheel = ({ onScratch, isPlaying = false, onScratchStart, onScratchEnd }: ScratchWheelProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [lastAngle, setLastAngle] = useState(0);
@@ -71,6 +73,7 @@ export const ScratchWheel = ({ onScratch, isPlaying = false }: ScratchWheelProps
     const angle = Math.atan2(e.clientY - centerY, e.clientX - centerX);
     setLastAngle(angle);
     e.preventDefault();
+    onScratchStart?.();
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
@@ -93,6 +96,7 @@ export const ScratchWheel = ({ onScratch, isPlaying = false }: ScratchWheelProps
 
   const handleMouseUp = () => {
     setIsDragging(false);
+    onScratchEnd?.();
   };
 
   return (
