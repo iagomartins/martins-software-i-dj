@@ -1,0 +1,3 @@
+C:/Users/Avell/Documents/martins-software-i-dj/native/build/CMakeFiles/juce_audio_processor.dir
+C:/Users/Avell/Documents/martins-software-i-dj/native/build/CMakeFiles/ALL_BUILD.dir
+C:/Users/Avell/Documents/martins-software-i-dj/native/build/CMakeFiles/ZERO_CHECK.dir

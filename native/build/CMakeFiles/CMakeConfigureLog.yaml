@@ -1,0 +1,1427 @@
+
+---
+events:
+  -
+    kind: "message-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineSystem.cmake:212 (message)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      The system is: Windows - 10.0.26100 - AMD64
+  -
+    kind: "find-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCompilerId.cmake:462 (find_file)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCompilerId.cmake:500 (CMAKE_DETERMINE_COMPILER_ID_WRITE)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCompilerId.cmake:8 (CMAKE_DETERMINE_COMPILER_ID_BUILD)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCCompiler.cmake:122 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    mode: "file"
+    variable: "src_in"
+    description: "Path to a file."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "CMakeCCompilerId.c.in"
+    candidate_directories:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/"
+    found: "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeCCompilerId.c.in"
+    search_context:
+      ENV{PATH}:
+        - "C:\\Users\\Avell\\Documents\\martins-software-i-dj\\native\\node_modules\\.bin"
+        - "C:\\Users\\Avell\\Documents\\martins-software-i-dj\\node_modules\\.bin"
+        - "C:\\Users\\Avell\\Documents\\node_modules\\.bin"
+        - "C:\\Users\\Avell\\node_modules\\.bin"
+        - "C:\\Users\\node_modules\\.bin"
+        - "C:\\node_modules\\.bin"
+        - "C:\\Users\\Avell\\AppData\\Local\\nvm\\v20.19.2\\node_modules\\npm\\node_modules\\@npmcli\\run-script\\lib\\node-gyp-bin"
+        - "C:\\Program Files\\Common Files\\Oracle\\Java\\javapath"
+        - "C:\\Program Files\\Microsoft\\jdk-17.0.16.8-hotspot\\bin"
+        - "C:\\Python313\\Scripts\\"
+        - "C:\\Python313\\"
+        - "C:\\WINDOWS\\system32"
+        - "C:\\WINDOWS"
+        - "C:\\WINDOWS\\System32\\Wbem"
+        - "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:\\WINDOWS\\System32\\OpenSSH\\"
+        - "C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common"
+        - "C:\\Program Files\\dotnet\\"
+        - "C:\\ProgramData\\chocolatey\\bin"
+        - "C:\\Program Files\\Docker\\Docker\\resources\\bin"
+        - "C:\\Users\\Avell\\AppData\\Local\\nvm"
+        - "C:\\nvm4w\\nodejs"
+        - "C:\\Program Files\\Git\\cmd"
+        - "C:\\Users\\Avell\\AppData\\Local\\Muse Hub\\lib"
+        - "C:\\Program Files\\OpenSSL-Win64\\bin"
+        - "C:\\Program Files (x86)\\QuickTime\\QTSystem\\"
+        - "C:\\Program Files\\CMake\\bin"
+        - "C:\\Users\\Avell\\AppData\\Local\\Microsoft\\WindowsApps"
+        - "C:\\Users\\Avell\\AppData\\Local\\Programs\\Microsoft VS Code\\bin"
+        - "C:\\Users\\Avell\\AppData\\Roaming\\npm"
+        - "C:\\Users\\Avell\\AppData\\Local\\nvm"
+        - "C:\\nvm4w\\nodejs"
+        - "C:\\Users\\Avell\\AppData\\Local\\Android\\Sdk\\platform-tools"
+        - "C:\\Users\\Avell\\AppData\\Local\\GitHubDesktop\\bin"
+        - "C:\\Program Files\\Java\\scripts"
+        - "C:\\Users\\Avell\\AppData\\Local\\Programs\\cursor\\resources\\app\\bin"
+  -
+    kind: "message-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCCompiler.cmake:122 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" succeeded.
+      Compiler:  
+      Build flags: 
+      Id flags:  
+      
+      The output was:
+      0
+      Vers├úo do MSBuild 17.14.19+164abd434 para .NET Framework
+      Compila├º├úo de 01/09/2025 04:39:24 iniciada.
+      
+      Projeto "C:\\Users\\Avell\\Documents\\martins-software-i-dj\\native\\build\\CMakeFiles\\4.1.1\\CompilerIdC\\CompilerIdC.vcxproj" no n├│ 1 (destinos padr├úo).
+      PrepareForBuild:
+        Criando o diret├│rio "Debug\\".
+        A sa├¡da estruturada est├í habilitada. A formata├º├úo do diagn├│stico do compilador refletir├í a hierarquia de erros. Consulte https://aka.ms/cpp/structured-output para obter mais detalhes.
+        Criando o diret├│rio "Debug\\CompilerIdC.tlog\\".
+      InitializeBuildStatus:
+        Criando "Debug\\CompilerIdC.tlog\\unsuccessfulbuild" porque "AlwaysCreate" foi especificado.
+        Tocando "Debug\\CompilerIdC.tlog\\unsuccessfulbuild".
+      ClCompile:
+        C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\HostX64\\x64\\CL.exe /c /nologo /W0 /WX- /diagnostics:column /Od /D _MBCS /Gm- /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"Debug\\\\" /Fd"Debug\\vc143.pdb" /external:W0 /Gd /TC /FC /errorReport:queue CMakeCCompilerId.c
+        CMakeCCompilerId.c
+      Link:
+        C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\HostX64\\x64\\link.exe /ERRORREPORT:QUEUE /OUT:".\\CompilerIdC.exe" /INCREMENTAL:NO /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /PDB:".\\CompilerIdC.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:".\\CompilerIdC.lib" /MACHINE:X64 Debug\\CMakeCCompilerId.obj
+        CompilerIdC.vcxproj -> C:\\Users\\Avell\\Documents\\martins-software-i-dj\\native\\build\\CMakeFiles\\4.1.1\\CompilerIdC\\CompilerIdC.exe
+      PostBuildEvent:
+        for %%i in (cl.exe) do @echo CMAKE_C_COMPILER=%%~$PATH:i
+        :VCEnd
+        CMAKE_C_COMPILER=C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\cl.exe
+      FinalizeBuildStatus:
+        Excluindo o arquivo "Debug\\CompilerIdC.tlog\\unsuccessfulbuild".
+        Tocando "Debug\\CompilerIdC.tlog\\CompilerIdC.lastbuildstate".
+      Projeto de compila├º├úo pronto "C:\\Users\\Avell\\Documents\\martins-software-i-dj\\native\\build\\CMakeFiles\\4.1.1\\CompilerIdC\\CompilerIdC.vcxproj" (destinos padr├úo).
+      
+      Compila├º├úo com ├¬xito.
+          0 Aviso(s)
+          0 Erro(s)
+      
+      Tempo Decorrido 00:00:01.22
+      
+      
+      Compilation of the C compiler identification source "CMakeCCompilerId.c" produced "CompilerIdC.exe"
+      
+      Compilation of the C compiler identification source "CMakeCCompilerId.c" produced "CompilerIdC.vcxproj"
+      
+      The C compiler identification is MSVC, found in:
+        C:/Users/Avell/Documents/martins-software-i-dj/native/build/CMakeFiles/4.1.1/CompilerIdC/CompilerIdC.exe
+      
+  -
+    kind: "find-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeFindBinUtils.cmake:37 (find_program)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeFindBinUtils.cmake:65 (__resolve_tool_path)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeFindBinUtils.cmake:103 (__resolve_linker_path)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCCompiler.cmake:200 (include)"
+      - "CMakeLists.txt:2 (project)"
+    mode: "program"
+    variable: "_CMAKE_TOOL_WITH_PATH"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "link"
+    candidate_directories:
+      - "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/"
+      - "C:/Users/Avell/Documents/martins-software-i-dj/native/node_modules/.bin/"
+      - "C:/Users/Avell/Documents/martins-software-i-dj/node_modules/.bin/"
+      - "C:/Users/Avell/Documents/node_modules/.bin/"
+      - "C:/Users/Avell/node_modules/.bin/"
+      - "C:/Users/node_modules/.bin/"
+      - "C:/node_modules/.bin/"
+      - "C:/Users/Avell/AppData/Local/nvm/v20.19.2/node_modules/npm/node_modules/@npmcli/run-script/lib/node-gyp-bin/"
+      - "C:/Program Files/Common Files/Oracle/Java/javapath/"
+      - "C:/Program Files/Microsoft/jdk-17.0.16.8-hotspot/bin/"
+      - "C:/Python313/Scripts/"
+      - "C:/Python313/"
+      - "C:/Windows/System32/"
+      - "C:/Windows/"
+      - "C:/Windows/System32/wbem/"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/"
+      - "C:/Windows/System32/OpenSSH/"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/"
+      - "C:/Program Files/dotnet/"
+      - "C:/ProgramData/chocolatey/bin/"
+      - "C:/Program Files/Docker/Docker/resources/bin/"
+      - "C:/Users/Avell/AppData/Local/nvm/"
+      - "C:/nvm4w/nodejs/"
+      - "C:/Program Files/Git/cmd/"
+      - "C:/Users/Avell/AppData/Local/Muse Hub/lib/"
+      - "C:/Program Files/OpenSSL-Win64/bin/"
+      - "C:/Program Files (x86)/QuickTime/QTSystem/"
+      - "C:/Program Files/CMake/bin/"
+      - "C:/Users/Avell/AppData/Local/Microsoft/WindowsApps/"
+      - "C:/Users/Avell/AppData/Local/Programs/Microsoft VS Code/bin/"
+      - "C:/Users/Avell/AppData/Roaming/npm/"
+      - "C:/Users/Avell/AppData/Local/Android/Sdk/platform-tools/"
+      - "C:/Users/Avell/AppData/Local/GitHubDesktop/bin/"
+      - "C:/Program Files/Java/scripts/"
+      - "C:/Users/Avell/AppData/Local/Programs/cursor/resources/app/bin/"
+    searched_directories:
+      - "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/link.com"
+    found: "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/link.exe"
+    search_context:
+      ENV{PATH}:
+        - "C:\\Users\\Avell\\Documents\\martins-software-i-dj\\native\\node_modules\\.bin"
+        - "C:\\Users\\Avell\\Documents\\martins-software-i-dj\\node_modules\\.bin"
+        - "C:\\Users\\Avell\\Documents\\node_modules\\.bin"
+        - "C:\\Users\\Avell\\node_modules\\.bin"
+        - "C:\\Users\\node_modules\\.bin"
+        - "C:\\node_modules\\.bin"
+        - "C:\\Users\\Avell\\AppData\\Local\\nvm\\v20.19.2\\node_modules\\npm\\node_modules\\@npmcli\\run-script\\lib\\node-gyp-bin"
+        - "C:\\Program Files\\Common Files\\Oracle\\Java\\javapath"
+        - "C:\\Program Files\\Microsoft\\jdk-17.0.16.8-hotspot\\bin"
+        - "C:\\Python313\\Scripts\\"
+        - "C:\\Python313\\"
+        - "C:\\WINDOWS\\system32"
+        - "C:\\WINDOWS"
+        - "C:\\WINDOWS\\System32\\Wbem"
+        - "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:\\WINDOWS\\System32\\OpenSSH\\"
+        - "C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common"
+        - "C:\\Program Files\\dotnet\\"
+        - "C:\\ProgramData\\chocolatey\\bin"
+        - "C:\\Program Files\\Docker\\Docker\\resources\\bin"
+        - "C:\\Users\\Avell\\AppData\\Local\\nvm"
+        - "C:\\nvm4w\\nodejs"
+        - "C:\\Program Files\\Git\\cmd"
+        - "C:\\Users\\Avell\\AppData\\Local\\Muse Hub\\lib"
+        - "C:\\Program Files\\OpenSSL-Win64\\bin"
+        - "C:\\Program Files (x86)\\QuickTime\\QTSystem\\"
+        - "C:\\Program Files\\CMake\\bin"
+        - "C:\\Users\\Avell\\AppData\\Local\\Microsoft\\WindowsApps"
+        - "C:\\Users\\Avell\\AppData\\Local\\Programs\\Microsoft VS Code\\bin"
+        - "C:\\Users\\Avell\\AppData\\Roaming\\npm"
+        - "C:\\Users\\Avell\\AppData\\Local\\nvm"
+        - "C:\\nvm4w\\nodejs"
+        - "C:\\Users\\Avell\\AppData\\Local\\Android\\Sdk\\platform-tools"
+        - "C:\\Users\\Avell\\AppData\\Local\\GitHubDesktop\\bin"
+        - "C:\\Program Files\\Java\\scripts"
+        - "C:\\Users\\Avell\\AppData\\Local\\Programs\\cursor\\resources\\app\\bin"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeFindBinUtils.cmake:37 (find_program)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeFindBinUtils.cmake:65 (__resolve_tool_path)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeFindBinUtils.cmake:104 (__resolve_linker_path)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCCompiler.cmake:200 (include)"
+      - "CMakeLists.txt:2 (project)"
+    mode: "program"
+    variable: "_CMAKE_TOOL_WITH_PATH"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "lld-link"
+    candidate_directories:
+      - "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/"
+      - "C:/Users/Avell/Documents/martins-software-i-dj/native/node_modules/.bin/"
+      - "C:/Users/Avell/Documents/martins-software-i-dj/node_modules/.bin/"
+      - "C:/Users/Avell/Documents/node_modules/.bin/"
+      - "C:/Users/Avell/node_modules/.bin/"
+      - "C:/Users/node_modules/.bin/"
+      - "C:/node_modules/.bin/"
+      - "C:/Users/Avell/AppData/Local/nvm/v20.19.2/node_modules/npm/node_modules/@npmcli/run-script/lib/node-gyp-bin/"
+      - "C:/Program Files/Common Files/Oracle/Java/javapath/"
+      - "C:/Program Files/Microsoft/jdk-17.0.16.8-hotspot/bin/"
+      - "C:/Python313/Scripts/"
+      - "C:/Python313/"
+      - "C:/Windows/System32/"
+      - "C:/Windows/"
+      - "C:/Windows/System32/wbem/"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/"
+      - "C:/Windows/System32/OpenSSH/"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/"
+      - "C:/Program Files/dotnet/"
+      - "C:/ProgramData/chocolatey/bin/"
+      - "C:/Program Files/Docker/Docker/resources/bin/"
+      - "C:/Users/Avell/AppData/Local/nvm/"
+      - "C:/nvm4w/nodejs/"
+      - "C:/Program Files/Git/cmd/"
+      - "C:/Users/Avell/AppData/Local/Muse Hub/lib/"
+      - "C:/Program Files/OpenSSL-Win64/bin/"
+      - "C:/Program Files (x86)/QuickTime/QTSystem/"
+      - "C:/Program Files/CMake/bin/"
+      - "C:/Users/Avell/AppData/Local/Microsoft/WindowsApps/"
+      - "C:/Users/Avell/AppData/Local/Programs/Microsoft VS Code/bin/"
+      - "C:/Users/Avell/AppData/Roaming/npm/"
+      - "C:/Users/Avell/AppData/Local/Android/Sdk/platform-tools/"
+      - "C:/Users/Avell/AppData/Local/GitHubDesktop/bin/"
+      - "C:/Program Files/Java/scripts/"
+      - "C:/Users/Avell/AppData/Local/Programs/cursor/resources/app/bin/"
+    searched_directories:
+      - "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/lld-link.com"
+      - "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/lld-link.exe"
+      - "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/lld-link"
+      - "C:/Users/Avell/Documents/martins-software-i-dj/native/node_modules/.bin/lld-link.com"
+      - "C:/Users/Avell/Documents/martins-software-i-dj/native/node_modules/.bin/lld-link.exe"
+      - "C:/Users/Avell/Documents/martins-software-i-dj/native/node_modules/.bin/lld-link"
+      - "C:/Users/Avell/Documents/martins-software-i-dj/node_modules/.bin/lld-link.com"
+      - "C:/Users/Avell/Documents/martins-software-i-dj/node_modules/.bin/lld-link.exe"
+      - "C:/Users/Avell/Documents/martins-software-i-dj/node_modules/.bin/lld-link"
+      - "C:/Users/Avell/Documents/node_modules/.bin/lld-link.com"
+      - "C:/Users/Avell/Documents/node_modules/.bin/lld-link.exe"
+      - "C:/Users/Avell/Documents/node_modules/.bin/lld-link"
+      - "C:/Users/Avell/node_modules/.bin/lld-link.com"
+      - "C:/Users/Avell/node_modules/.bin/lld-link.exe"
+      - "C:/Users/Avell/node_modules/.bin/lld-link"
+      - "C:/Users/node_modules/.bin/lld-link.com"
+      - "C:/Users/node_modules/.bin/lld-link.exe"
+      - "C:/Users/node_modules/.bin/lld-link"
+      - "C:/node_modules/.bin/lld-link.com"
+      - "C:/node_modules/.bin/lld-link.exe"
+      - "C:/node_modules/.bin/lld-link"
+      - "C:/Users/Avell/AppData/Local/nvm/v20.19.2/node_modules/npm/node_modules/@npmcli/run-script/lib/node-gyp-bin/lld-link.com"
+      - "C:/Users/Avell/AppData/Local/nvm/v20.19.2/node_modules/npm/node_modules/@npmcli/run-script/lib/node-gyp-bin/lld-link.exe"
+      - "C:/Users/Avell/AppData/Local/nvm/v20.19.2/node_modules/npm/node_modules/@npmcli/run-script/lib/node-gyp-bin/lld-link"
+      - "C:/Program Files/Common Files/Oracle/Java/javapath/lld-link.com"
+      - "C:/Program Files/Common Files/Oracle/Java/javapath/lld-link.exe"
+      - "C:/Program Files/Common Files/Oracle/Java/javapath/lld-link"
+      - "C:/Program Files/Microsoft/jdk-17.0.16.8-hotspot/bin/lld-link.com"
+      - "C:/Program Files/Microsoft/jdk-17.0.16.8-hotspot/bin/lld-link.exe"
+      - "C:/Program Files/Microsoft/jdk-17.0.16.8-hotspot/bin/lld-link"
+      - "C:/Python313/Scripts/lld-link.com"
+      - "C:/Python313/Scripts/lld-link.exe"
+      - "C:/Python313/Scripts/lld-link"
+      - "C:/Python313/lld-link.com"
+      - "C:/Python313/lld-link.exe"
+      - "C:/Python313/lld-link"
+      - "C:/Windows/System32/lld-link.com"
+      - "C:/Windows/System32/lld-link.exe"
+      - "C:/Windows/System32/lld-link"
+      - "C:/Windows/lld-link.com"
+      - "C:/Windows/lld-link.exe"
+      - "C:/Windows/lld-link"
+      - "C:/Windows/System32/wbem/lld-link.com"
+      - "C:/Windows/System32/wbem/lld-link.exe"
+      - "C:/Windows/System32/wbem/lld-link"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/lld-link.com"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/lld-link.exe"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/lld-link"
+      - "C:/Windows/System32/OpenSSH/lld-link.com"
+      - "C:/Windows/System32/OpenSSH/lld-link.exe"
+      - "C:/Windows/System32/OpenSSH/lld-link"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/lld-link.com"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/lld-link.exe"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/lld-link"
+      - "C:/Program Files/dotnet/lld-link.com"
+      - "C:/Program Files/dotnet/lld-link.exe"
+      - "C:/Program Files/dotnet/lld-link"
+      - "C:/ProgramData/chocolatey/bin/lld-link.com"
+      - "C:/ProgramData/chocolatey/bin/lld-link.exe"
+      - "C:/ProgramData/chocolatey/bin/lld-link"
+      - "C:/Program Files/Docker/Docker/resources/bin/lld-link.com"
+      - "C:/Program Files/Docker/Docker/resources/bin/lld-link.exe"
+      - "C:/Program Files/Docker/Docker/resources/bin/lld-link"
+      - "C:/Users/Avell/AppData/Local/nvm/lld-link.com"
+      - "C:/Users/Avell/AppData/Local/nvm/lld-link.exe"
+      - "C:/Users/Avell/AppData/Local/nvm/lld-link"
+      - "C:/nvm4w/nodejs/lld-link.com"
+      - "C:/nvm4w/nodejs/lld-link.exe"
+      - "C:/nvm4w/nodejs/lld-link"
+      - "C:/Program Files/Git/cmd/lld-link.com"
+      - "C:/Program Files/Git/cmd/lld-link.exe"
+      - "C:/Program Files/Git/cmd/lld-link"
+      - "C:/Users/Avell/AppData/Local/Muse Hub/lib/lld-link.com"
+      - "C:/Users/Avell/AppData/Local/Muse Hub/lib/lld-link.exe"
+      - "C:/Users/Avell/AppData/Local/Muse Hub/lib/lld-link"
+      - "C:/Program Files/OpenSSL-Win64/bin/lld-link.com"
+      - "C:/Program Files/OpenSSL-Win64/bin/lld-link.exe"
+      - "C:/Program Files/OpenSSL-Win64/bin/lld-link"
+      - "C:/Program Files (x86)/QuickTime/QTSystem/lld-link.com"
+      - "C:/Program Files (x86)/QuickTime/QTSystem/lld-link.exe"
+      - "C:/Program Files (x86)/QuickTime/QTSystem/lld-link"
+      - "C:/Program Files/CMake/bin/lld-link.com"
+      - "C:/Program Files/CMake/bin/lld-link.exe"
+      - "C:/Program Files/CMake/bin/lld-link"
+      - "C:/Users/Avell/AppData/Local/Microsoft/WindowsApps/lld-link.com"
+      - "C:/Users/Avell/AppData/Local/Microsoft/WindowsApps/lld-link.exe"
+      - "C:/Users/Avell/AppData/Local/Microsoft/WindowsApps/lld-link"
+      - "C:/Users/Avell/AppData/Local/Programs/Microsoft VS Code/bin/lld-link.com"
+      - "C:/Users/Avell/AppData/Local/Programs/Microsoft VS Code/bin/lld-link.exe"
+      - "C:/Users/Avell/AppData/Local/Programs/Microsoft VS Code/bin/lld-link"
+      - "C:/Users/Avell/AppData/Roaming/npm/lld-link.com"
+      - "C:/Users/Avell/AppData/Roaming/npm/lld-link.exe"
+      - "C:/Users/Avell/AppData/Roaming/npm/lld-link"
+      - "C:/Users/Avell/AppData/Local/Android/Sdk/platform-tools/lld-link.com"
+      - "C:/Users/Avell/AppData/Local/Android/Sdk/platform-tools/lld-link.exe"
+      - "C:/Users/Avell/AppData/Local/Android/Sdk/platform-tools/lld-link"
+      - "C:/Users/Avell/AppData/Local/GitHubDesktop/bin/lld-link.com"
+      - "C:/Users/Avell/AppData/Local/GitHubDesktop/bin/lld-link.exe"
+      - "C:/Users/Avell/AppData/Local/GitHubDesktop/bin/lld-link"
+      - "C:/Program Files/Java/scripts/lld-link.com"
+      - "C:/Program Files/Java/scripts/lld-link.exe"
+      - "C:/Program Files/Java/scripts/lld-link"
+      - "C:/Users/Avell/AppData/Local/Programs/cursor/resources/app/bin/lld-link.com"
+      - "C:/Users/Avell/AppData/Local/Programs/cursor/resources/app/bin/lld-link.exe"
+      - "C:/Users/Avell/AppData/Local/Programs/cursor/resources/app/bin/lld-link"
+    found: false
+    search_context:
+      ENV{PATH}:
+        - "C:\\Users\\Avell\\Documents\\martins-software-i-dj\\native\\node_modules\\.bin"
+        - "C:\\Users\\Avell\\Documents\\martins-software-i-dj\\node_modules\\.bin"
+        - "C:\\Users\\Avell\\Documents\\node_modules\\.bin"
+        - "C:\\Users\\Avell\\node_modules\\.bin"
+        - "C:\\Users\\node_modules\\.bin"
+        - "C:\\node_modules\\.bin"
+        - "C:\\Users\\Avell\\AppData\\Local\\nvm\\v20.19.2\\node_modules\\npm\\node_modules\\@npmcli\\run-script\\lib\\node-gyp-bin"
+        - "C:\\Program Files\\Common Files\\Oracle\\Java\\javapath"
+        - "C:\\Program Files\\Microsoft\\jdk-17.0.16.8-hotspot\\bin"
+        - "C:\\Python313\\Scripts\\"
+        - "C:\\Python313\\"
+        - "C:\\WINDOWS\\system32"
+        - "C:\\WINDOWS"
+        - "C:\\WINDOWS\\System32\\Wbem"
+        - "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:\\WINDOWS\\System32\\OpenSSH\\"
+        - "C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common"
+        - "C:\\Program Files\\dotnet\\"
+        - "C:\\ProgramData\\chocolatey\\bin"
+        - "C:\\Program Files\\Docker\\Docker\\resources\\bin"
+        - "C:\\Users\\Avell\\AppData\\Local\\nvm"
+        - "C:\\nvm4w\\nodejs"
+        - "C:\\Program Files\\Git\\cmd"
+        - "C:\\Users\\Avell\\AppData\\Local\\Muse Hub\\lib"
+        - "C:\\Program Files\\OpenSSL-Win64\\bin"
+        - "C:\\Program Files (x86)\\QuickTime\\QTSystem\\"
+        - "C:\\Program Files\\CMake\\bin"
+        - "C:\\Users\\Avell\\AppData\\Local\\Microsoft\\WindowsApps"
+        - "C:\\Users\\Avell\\AppData\\Local\\Programs\\Microsoft VS Code\\bin"
+        - "C:\\Users\\Avell\\AppData\\Roaming\\npm"
+        - "C:\\Users\\Avell\\AppData\\Local\\nvm"
+        - "C:\\nvm4w\\nodejs"
+        - "C:\\Users\\Avell\\AppData\\Local\\Android\\Sdk\\platform-tools"
+        - "C:\\Users\\Avell\\AppData\\Local\\GitHubDesktop\\bin"
+        - "C:\\Program Files\\Java\\scripts"
+        - "C:\\Users\\Avell\\AppData\\Local\\Programs\\cursor\\resources\\app\\bin"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeFindBinUtils.cmake:238 (find_program)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCCompiler.cmake:200 (include)"
+      - "CMakeLists.txt:2 (project)"
+    mode: "program"
+    variable: "CMAKE_LINKER"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "link"
+    candidate_directories:
+      - "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/"
+      - "C:/Users/Avell/Documents/martins-software-i-dj/native/node_modules/.bin/"
+      - "C:/Users/Avell/Documents/martins-software-i-dj/node_modules/.bin/"
+      - "C:/Users/Avell/Documents/node_modules/.bin/"
+      - "C:/Users/Avell/node_modules/.bin/"
+      - "C:/Users/node_modules/.bin/"
+      - "C:/node_modules/.bin/"
+      - "C:/Users/Avell/AppData/Local/nvm/v20.19.2/node_modules/npm/node_modules/@npmcli/run-script/lib/node-gyp-bin/"
+      - "C:/Program Files/Common Files/Oracle/Java/javapath/"
+      - "C:/Program Files/Microsoft/jdk-17.0.16.8-hotspot/bin/"
+      - "C:/Python313/Scripts/"
+      - "C:/Python313/"
+      - "C:/Windows/System32/"
+      - "C:/Windows/"
+      - "C:/Windows/System32/wbem/"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/"
+      - "C:/Windows/System32/OpenSSH/"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/"
+      - "C:/Program Files/dotnet/"
+      - "C:/ProgramData/chocolatey/bin/"
+      - "C:/Program Files/Docker/Docker/resources/bin/"
+      - "C:/Users/Avell/AppData/Local/nvm/"
+      - "C:/nvm4w/nodejs/"
+      - "C:/Program Files/Git/cmd/"
+      - "C:/Users/Avell/AppData/Local/Muse Hub/lib/"
+      - "C:/Program Files/OpenSSL-Win64/bin/"
+      - "C:/Program Files (x86)/QuickTime/QTSystem/"
+      - "C:/Program Files/CMake/bin/"
+      - "C:/Users/Avell/AppData/Local/Microsoft/WindowsApps/"
+      - "C:/Users/Avell/AppData/Local/Programs/Microsoft VS Code/bin/"
+      - "C:/Users/Avell/AppData/Roaming/npm/"
+      - "C:/Users/Avell/AppData/Local/Android/Sdk/platform-tools/"
+      - "C:/Users/Avell/AppData/Local/GitHubDesktop/bin/"
+      - "C:/Program Files/Java/scripts/"
+      - "C:/Users/Avell/AppData/Local/Programs/cursor/resources/app/bin/"
+    searched_directories:
+      - "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/link.com"
+    found: "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/link.exe"
+    search_context:
+      ENV{PATH}:
+        - "C:\\Users\\Avell\\Documents\\martins-software-i-dj\\native\\node_modules\\.bin"
+        - "C:\\Users\\Avell\\Documents\\martins-software-i-dj\\node_modules\\.bin"
+        - "C:\\Users\\Avell\\Documents\\node_modules\\.bin"
+        - "C:\\Users\\Avell\\node_modules\\.bin"
+        - "C:\\Users\\node_modules\\.bin"
+        - "C:\\node_modules\\.bin"
+        - "C:\\Users\\Avell\\AppData\\Local\\nvm\\v20.19.2\\node_modules\\npm\\node_modules\\@npmcli\\run-script\\lib\\node-gyp-bin"
+        - "C:\\Program Files\\Common Files\\Oracle\\Java\\javapath"
+        - "C:\\Program Files\\Microsoft\\jdk-17.0.16.8-hotspot\\bin"
+        - "C:\\Python313\\Scripts\\"
+        - "C:\\Python313\\"
+        - "C:\\WINDOWS\\system32"
+        - "C:\\WINDOWS"
+        - "C:\\WINDOWS\\System32\\Wbem"
+        - "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:\\WINDOWS\\System32\\OpenSSH\\"
+        - "C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common"
+        - "C:\\Program Files\\dotnet\\"
+        - "C:\\ProgramData\\chocolatey\\bin"
+        - "C:\\Program Files\\Docker\\Docker\\resources\\bin"
+        - "C:\\Users\\Avell\\AppData\\Local\\nvm"
+        - "C:\\nvm4w\\nodejs"
+        - "C:\\Program Files\\Git\\cmd"
+        - "C:\\Users\\Avell\\AppData\\Local\\Muse Hub\\lib"
+        - "C:\\Program Files\\OpenSSL-Win64\\bin"
+        - "C:\\Program Files (x86)\\QuickTime\\QTSystem\\"
+        - "C:\\Program Files\\CMake\\bin"
+        - "C:\\Users\\Avell\\AppData\\Local\\Microsoft\\WindowsApps"
+        - "C:\\Users\\Avell\\AppData\\Local\\Programs\\Microsoft VS Code\\bin"
+        - "C:\\Users\\Avell\\AppData\\Roaming\\npm"
+        - "C:\\Users\\Avell\\AppData\\Local\\nvm"
+        - "C:\\nvm4w\\nodejs"
+        - "C:\\Users\\Avell\\AppData\\Local\\Android\\Sdk\\platform-tools"
+        - "C:\\Users\\Avell\\AppData\\Local\\GitHubDesktop\\bin"
+        - "C:\\Program Files\\Java\\scripts"
+        - "C:\\Users\\Avell\\AppData\\Local\\Programs\\cursor\\resources\\app\\bin"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeFindBinUtils.cmake:238 (find_program)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCCompiler.cmake:200 (include)"
+      - "CMakeLists.txt:2 (project)"
+    mode: "program"
+    variable: "CMAKE_MT"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "mt"
+    candidate_directories:
+      - "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/"
+      - "C:/Users/Avell/Documents/martins-software-i-dj/native/node_modules/.bin/"
+      - "C:/Users/Avell/Documents/martins-software-i-dj/node_modules/.bin/"
+      - "C:/Users/Avell/Documents/node_modules/.bin/"
+      - "C:/Users/Avell/node_modules/.bin/"
+      - "C:/Users/node_modules/.bin/"
+      - "C:/node_modules/.bin/"
+      - "C:/Users/Avell/AppData/Local/nvm/v20.19.2/node_modules/npm/node_modules/@npmcli/run-script/lib/node-gyp-bin/"
+      - "C:/Program Files/Common Files/Oracle/Java/javapath/"
+      - "C:/Program Files/Microsoft/jdk-17.0.16.8-hotspot/bin/"
+      - "C:/Python313/Scripts/"
+      - "C:/Python313/"
+      - "C:/Windows/System32/"
+      - "C:/Windows/"
+      - "C:/Windows/System32/wbem/"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/"
+      - "C:/Windows/System32/OpenSSH/"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/"
+      - "C:/Program Files/dotnet/"
+      - "C:/ProgramData/chocolatey/bin/"
+      - "C:/Program Files/Docker/Docker/resources/bin/"
+      - "C:/Users/Avell/AppData/Local/nvm/"
+      - "C:/nvm4w/nodejs/"
+      - "C:/Program Files/Git/cmd/"
+      - "C:/Users/Avell/AppData/Local/Muse Hub/lib/"
+      - "C:/Program Files/OpenSSL-Win64/bin/"
+      - "C:/Program Files (x86)/QuickTime/QTSystem/"
+      - "C:/Program Files/CMake/bin/"
+      - "C:/Users/Avell/AppData/Local/Microsoft/WindowsApps/"
+      - "C:/Users/Avell/AppData/Local/Programs/Microsoft VS Code/bin/"
+      - "C:/Users/Avell/AppData/Roaming/npm/"
+      - "C:/Users/Avell/AppData/Local/Android/Sdk/platform-tools/"
+      - "C:/Users/Avell/AppData/Local/GitHubDesktop/bin/"
+      - "C:/Program Files/Java/scripts/"
+      - "C:/Users/Avell/AppData/Local/Programs/cursor/resources/app/bin/"
+    searched_directories:
+      - "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/mt.com"
+      - "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/mt.exe"
+      - "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/mt"
+      - "C:/Users/Avell/Documents/martins-software-i-dj/native/node_modules/.bin/mt.com"
+      - "C:/Users/Avell/Documents/martins-software-i-dj/native/node_modules/.bin/mt.exe"
+      - "C:/Users/Avell/Documents/martins-software-i-dj/native/node_modules/.bin/mt"
+      - "C:/Users/Avell/Documents/martins-software-i-dj/node_modules/.bin/mt.com"
+      - "C:/Users/Avell/Documents/martins-software-i-dj/node_modules/.bin/mt.exe"
+      - "C:/Users/Avell/Documents/martins-software-i-dj/node_modules/.bin/mt"
+      - "C:/Users/Avell/Documents/node_modules/.bin/mt.com"
+      - "C:/Users/Avell/Documents/node_modules/.bin/mt.exe"
+      - "C:/Users/Avell/Documents/node_modules/.bin/mt"
+      - "C:/Users/Avell/node_modules/.bin/mt.com"
+      - "C:/Users/Avell/node_modules/.bin/mt.exe"
+      - "C:/Users/Avell/node_modules/.bin/mt"
+      - "C:/Users/node_modules/.bin/mt.com"
+      - "C:/Users/node_modules/.bin/mt.exe"
+      - "C:/Users/node_modules/.bin/mt"
+      - "C:/node_modules/.bin/mt.com"
+      - "C:/node_modules/.bin/mt.exe"
+      - "C:/node_modules/.bin/mt"
+      - "C:/Users/Avell/AppData/Local/nvm/v20.19.2/node_modules/npm/node_modules/@npmcli/run-script/lib/node-gyp-bin/mt.com"
+      - "C:/Users/Avell/AppData/Local/nvm/v20.19.2/node_modules/npm/node_modules/@npmcli/run-script/lib/node-gyp-bin/mt.exe"
+      - "C:/Users/Avell/AppData/Local/nvm/v20.19.2/node_modules/npm/node_modules/@npmcli/run-script/lib/node-gyp-bin/mt"
+      - "C:/Program Files/Common Files/Oracle/Java/javapath/mt.com"
+      - "C:/Program Files/Common Files/Oracle/Java/javapath/mt.exe"
+      - "C:/Program Files/Common Files/Oracle/Java/javapath/mt"
+      - "C:/Program Files/Microsoft/jdk-17.0.16.8-hotspot/bin/mt.com"
+      - "C:/Program Files/Microsoft/jdk-17.0.16.8-hotspot/bin/mt.exe"
+      - "C:/Program Files/Microsoft/jdk-17.0.16.8-hotspot/bin/mt"
+      - "C:/Python313/Scripts/mt.com"
+      - "C:/Python313/Scripts/mt.exe"
+      - "C:/Python313/Scripts/mt"
+      - "C:/Python313/mt.com"
+      - "C:/Python313/mt.exe"
+      - "C:/Python313/mt"
+      - "C:/Windows/System32/mt.com"
+      - "C:/Windows/System32/mt.exe"
+      - "C:/Windows/System32/mt"
+      - "C:/Windows/mt.com"
+      - "C:/Windows/mt.exe"
+      - "C:/Windows/mt"
+      - "C:/Windows/System32/wbem/mt.com"
+      - "C:/Windows/System32/wbem/mt.exe"
+      - "C:/Windows/System32/wbem/mt"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/mt.com"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/mt.exe"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/mt"
+      - "C:/Windows/System32/OpenSSH/mt.com"
+      - "C:/Windows/System32/OpenSSH/mt.exe"
+      - "C:/Windows/System32/OpenSSH/mt"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/mt.com"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/mt.exe"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/mt"
+      - "C:/Program Files/dotnet/mt.com"
+      - "C:/Program Files/dotnet/mt.exe"
+      - "C:/Program Files/dotnet/mt"
+      - "C:/ProgramData/chocolatey/bin/mt.com"
+      - "C:/ProgramData/chocolatey/bin/mt.exe"
+      - "C:/ProgramData/chocolatey/bin/mt"
+      - "C:/Program Files/Docker/Docker/resources/bin/mt.com"
+      - "C:/Program Files/Docker/Docker/resources/bin/mt.exe"
+      - "C:/Program Files/Docker/Docker/resources/bin/mt"
+      - "C:/Users/Avell/AppData/Local/nvm/mt.com"
+      - "C:/Users/Avell/AppData/Local/nvm/mt.exe"
+      - "C:/Users/Avell/AppData/Local/nvm/mt"
+      - "C:/nvm4w/nodejs/mt.com"
+      - "C:/nvm4w/nodejs/mt.exe"
+      - "C:/nvm4w/nodejs/mt"
+      - "C:/Program Files/Git/cmd/mt.com"
+      - "C:/Program Files/Git/cmd/mt.exe"
+      - "C:/Program Files/Git/cmd/mt"
+      - "C:/Users/Avell/AppData/Local/Muse Hub/lib/mt.com"
+      - "C:/Users/Avell/AppData/Local/Muse Hub/lib/mt.exe"
+      - "C:/Users/Avell/AppData/Local/Muse Hub/lib/mt"
+      - "C:/Program Files/OpenSSL-Win64/bin/mt.com"
+      - "C:/Program Files/OpenSSL-Win64/bin/mt.exe"
+      - "C:/Program Files/OpenSSL-Win64/bin/mt"
+      - "C:/Program Files (x86)/QuickTime/QTSystem/mt.com"
+      - "C:/Program Files (x86)/QuickTime/QTSystem/mt.exe"
+      - "C:/Program Files (x86)/QuickTime/QTSystem/mt"
+      - "C:/Program Files/CMake/bin/mt.com"
+      - "C:/Program Files/CMake/bin/mt.exe"
+      - "C:/Program Files/CMake/bin/mt"
+      - "C:/Users/Avell/AppData/Local/Microsoft/WindowsApps/mt.com"
+      - "C:/Users/Avell/AppData/Local/Microsoft/WindowsApps/mt.exe"
+      - "C:/Users/Avell/AppData/Local/Microsoft/WindowsApps/mt"
+      - "C:/Users/Avell/AppData/Local/Programs/Microsoft VS Code/bin/mt.com"
+      - "C:/Users/Avell/AppData/Local/Programs/Microsoft VS Code/bin/mt.exe"
+      - "C:/Users/Avell/AppData/Local/Programs/Microsoft VS Code/bin/mt"
+      - "C:/Users/Avell/AppData/Roaming/npm/mt.com"
+      - "C:/Users/Avell/AppData/Roaming/npm/mt.exe"
+      - "C:/Users/Avell/AppData/Roaming/npm/mt"
+      - "C:/Users/Avell/AppData/Local/Android/Sdk/platform-tools/mt.com"
+      - "C:/Users/Avell/AppData/Local/Android/Sdk/platform-tools/mt.exe"
+      - "C:/Users/Avell/AppData/Local/Android/Sdk/platform-tools/mt"
+      - "C:/Users/Avell/AppData/Local/GitHubDesktop/bin/mt.com"
+      - "C:/Users/Avell/AppData/Local/GitHubDesktop/bin/mt.exe"
+      - "C:/Users/Avell/AppData/Local/GitHubDesktop/bin/mt"
+      - "C:/Program Files/Java/scripts/mt.com"
+      - "C:/Program Files/Java/scripts/mt.exe"
+      - "C:/Program Files/Java/scripts/mt"
+      - "C:/Users/Avell/AppData/Local/Programs/cursor/resources/app/bin/mt.com"
+      - "C:/Users/Avell/AppData/Local/Programs/cursor/resources/app/bin/mt.exe"
+      - "C:/Users/Avell/AppData/Local/Programs/cursor/resources/app/bin/mt"
+    found: false
+    search_context:
+      ENV{PATH}:
+        - "C:\\Users\\Avell\\Documents\\martins-software-i-dj\\native\\node_modules\\.bin"
+        - "C:\\Users\\Avell\\Documents\\martins-software-i-dj\\node_modules\\.bin"
+        - "C:\\Users\\Avell\\Documents\\node_modules\\.bin"
+        - "C:\\Users\\Avell\\node_modules\\.bin"
+        - "C:\\Users\\node_modules\\.bin"
+        - "C:\\node_modules\\.bin"
+        - "C:\\Users\\Avell\\AppData\\Local\\nvm\\v20.19.2\\node_modules\\npm\\node_modules\\@npmcli\\run-script\\lib\\node-gyp-bin"
+        - "C:\\Program Files\\Common Files\\Oracle\\Java\\javapath"
+        - "C:\\Program Files\\Microsoft\\jdk-17.0.16.8-hotspot\\bin"
+        - "C:\\Python313\\Scripts\\"
+        - "C:\\Python313\\"
+        - "C:\\WINDOWS\\system32"
+        - "C:\\WINDOWS"
+        - "C:\\WINDOWS\\System32\\Wbem"
+        - "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:\\WINDOWS\\System32\\OpenSSH\\"
+        - "C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common"
+        - "C:\\Program Files\\dotnet\\"
+        - "C:\\ProgramData\\chocolatey\\bin"
+        - "C:\\Program Files\\Docker\\Docker\\resources\\bin"
+        - "C:\\Users\\Avell\\AppData\\Local\\nvm"
+        - "C:\\nvm4w\\nodejs"
+        - "C:\\Program Files\\Git\\cmd"
+        - "C:\\Users\\Avell\\AppData\\Local\\Muse Hub\\lib"
+        - "C:\\Program Files\\OpenSSL-Win64\\bin"
+        - "C:\\Program Files (x86)\\QuickTime\\QTSystem\\"
+        - "C:\\Program Files\\CMake\\bin"
+        - "C:\\Users\\Avell\\AppData\\Local\\Microsoft\\WindowsApps"
+        - "C:\\Users\\Avell\\AppData\\Local\\Programs\\Microsoft VS Code\\bin"
+        - "C:\\Users\\Avell\\AppData\\Roaming\\npm"
+        - "C:\\Users\\Avell\\AppData\\Local\\nvm"
+        - "C:\\nvm4w\\nodejs"
+        - "C:\\Users\\Avell\\AppData\\Local\\Android\\Sdk\\platform-tools"
+        - "C:\\Users\\Avell\\AppData\\Local\\GitHubDesktop\\bin"
+        - "C:\\Program Files\\Java\\scripts"
+        - "C:\\Users\\Avell\\AppData\\Local\\Programs\\cursor\\resources\\app\\bin"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeFindBinUtils.cmake:238 (find_program)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCCompiler.cmake:200 (include)"
+      - "CMakeLists.txt:2 (project)"
+    mode: "program"
+    variable: "CMAKE_AR"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "lib"
+    candidate_directories:
+      - "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/"
+      - "C:/Users/Avell/Documents/martins-software-i-dj/native/node_modules/.bin/"
+      - "C:/Users/Avell/Documents/martins-software-i-dj/node_modules/.bin/"
+      - "C:/Users/Avell/Documents/node_modules/.bin/"
+      - "C:/Users/Avell/node_modules/.bin/"
+      - "C:/Users/node_modules/.bin/"
+      - "C:/node_modules/.bin/"
+      - "C:/Users/Avell/AppData/Local/nvm/v20.19.2/node_modules/npm/node_modules/@npmcli/run-script/lib/node-gyp-bin/"
+      - "C:/Program Files/Common Files/Oracle/Java/javapath/"
+      - "C:/Program Files/Microsoft/jdk-17.0.16.8-hotspot/bin/"
+      - "C:/Python313/Scripts/"
+      - "C:/Python313/"
+      - "C:/Windows/System32/"
+      - "C:/Windows/"
+      - "C:/Windows/System32/wbem/"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/"
+      - "C:/Windows/System32/OpenSSH/"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/"
+      - "C:/Program Files/dotnet/"
+      - "C:/ProgramData/chocolatey/bin/"
+      - "C:/Program Files/Docker/Docker/resources/bin/"
+      - "C:/Users/Avell/AppData/Local/nvm/"
+      - "C:/nvm4w/nodejs/"
+      - "C:/Program Files/Git/cmd/"
+      - "C:/Users/Avell/AppData/Local/Muse Hub/lib/"
+      - "C:/Program Files/OpenSSL-Win64/bin/"
+      - "C:/Program Files (x86)/QuickTime/QTSystem/"
+      - "C:/Program Files/CMake/bin/"
+      - "C:/Users/Avell/AppData/Local/Microsoft/WindowsApps/"
+      - "C:/Users/Avell/AppData/Local/Programs/Microsoft VS Code/bin/"
+      - "C:/Users/Avell/AppData/Roaming/npm/"
+      - "C:/Users/Avell/AppData/Local/Android/Sdk/platform-tools/"
+      - "C:/Users/Avell/AppData/Local/GitHubDesktop/bin/"
+      - "C:/Program Files/Java/scripts/"
+      - "C:/Users/Avell/AppData/Local/Programs/cursor/resources/app/bin/"
+    searched_directories:
+      - "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/lib.com"
+    found: "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/lib.exe"
+    search_context:
+      ENV{PATH}:
+        - "C:\\Users\\Avell\\Documents\\martins-software-i-dj\\native\\node_modules\\.bin"
+        - "C:\\Users\\Avell\\Documents\\martins-software-i-dj\\node_modules\\.bin"
+        - "C:\\Users\\Avell\\Documents\\node_modules\\.bin"
+        - "C:\\Users\\Avell\\node_modules\\.bin"
+        - "C:\\Users\\node_modules\\.bin"
+        - "C:\\node_modules\\.bin"
+        - "C:\\Users\\Avell\\AppData\\Local\\nvm\\v20.19.2\\node_modules\\npm\\node_modules\\@npmcli\\run-script\\lib\\node-gyp-bin"
+        - "C:\\Program Files\\Common Files\\Oracle\\Java\\javapath"
+        - "C:\\Program Files\\Microsoft\\jdk-17.0.16.8-hotspot\\bin"
+        - "C:\\Python313\\Scripts\\"
+        - "C:\\Python313\\"
+        - "C:\\WINDOWS\\system32"
+        - "C:\\WINDOWS"
+        - "C:\\WINDOWS\\System32\\Wbem"
+        - "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:\\WINDOWS\\System32\\OpenSSH\\"
+        - "C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common"
+        - "C:\\Program Files\\dotnet\\"
+        - "C:\\ProgramData\\chocolatey\\bin"
+        - "C:\\Program Files\\Docker\\Docker\\resources\\bin"
+        - "C:\\Users\\Avell\\AppData\\Local\\nvm"
+        - "C:\\nvm4w\\nodejs"
+        - "C:\\Program Files\\Git\\cmd"
+        - "C:\\Users\\Avell\\AppData\\Local\\Muse Hub\\lib"
+        - "C:\\Program Files\\OpenSSL-Win64\\bin"
+        - "C:\\Program Files (x86)\\QuickTime\\QTSystem\\"
+        - "C:\\Program Files\\CMake\\bin"
+        - "C:\\Users\\Avell\\AppData\\Local\\Microsoft\\WindowsApps"
+        - "C:\\Users\\Avell\\AppData\\Local\\Programs\\Microsoft VS Code\\bin"
+        - "C:\\Users\\Avell\\AppData\\Roaming\\npm"
+        - "C:\\Users\\Avell\\AppData\\Local\\nvm"
+        - "C:\\nvm4w\\nodejs"
+        - "C:\\Users\\Avell\\AppData\\Local\\Android\\Sdk\\platform-tools"
+        - "C:\\Users\\Avell\\AppData\\Local\\GitHubDesktop\\bin"
+        - "C:\\Program Files\\Java\\scripts"
+        - "C:\\Users\\Avell\\AppData\\Local\\Programs\\cursor\\resources\\app\\bin"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCompilerId.cmake:462 (find_file)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCompilerId.cmake:500 (CMAKE_DETERMINE_COMPILER_ID_WRITE)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCompilerId.cmake:8 (CMAKE_DETERMINE_COMPILER_ID_BUILD)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCXXCompiler.cmake:125 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    mode: "file"
+    variable: "src_in"
+    description: "Path to a file."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "CMakeCXXCompilerId.cpp.in"
+    candidate_directories:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/"
+    found: "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeCXXCompilerId.cpp.in"
+    search_context:
+      ENV{PATH}:
+        - "C:\\Users\\Avell\\Documents\\martins-software-i-dj\\native\\node_modules\\.bin"
+        - "C:\\Users\\Avell\\Documents\\martins-software-i-dj\\node_modules\\.bin"
+        - "C:\\Users\\Avell\\Documents\\node_modules\\.bin"
+        - "C:\\Users\\Avell\\node_modules\\.bin"
+        - "C:\\Users\\node_modules\\.bin"
+        - "C:\\node_modules\\.bin"
+        - "C:\\Users\\Avell\\AppData\\Local\\nvm\\v20.19.2\\node_modules\\npm\\node_modules\\@npmcli\\run-script\\lib\\node-gyp-bin"
+        - "C:\\Program Files\\Common Files\\Oracle\\Java\\javapath"
+        - "C:\\Program Files\\Microsoft\\jdk-17.0.16.8-hotspot\\bin"
+        - "C:\\Python313\\Scripts\\"
+        - "C:\\Python313\\"
+        - "C:\\WINDOWS\\system32"
+        - "C:\\WINDOWS"
+        - "C:\\WINDOWS\\System32\\Wbem"
+        - "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:\\WINDOWS\\System32\\OpenSSH\\"
+        - "C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common"
+        - "C:\\Program Files\\dotnet\\"
+        - "C:\\ProgramData\\chocolatey\\bin"
+        - "C:\\Program Files\\Docker\\Docker\\resources\\bin"
+        - "C:\\Users\\Avell\\AppData\\Local\\nvm"
+        - "C:\\nvm4w\\nodejs"
+        - "C:\\Program Files\\Git\\cmd"
+        - "C:\\Users\\Avell\\AppData\\Local\\Muse Hub\\lib"
+        - "C:\\Program Files\\OpenSSL-Win64\\bin"
+        - "C:\\Program Files (x86)\\QuickTime\\QTSystem\\"
+        - "C:\\Program Files\\CMake\\bin"
+        - "C:\\Users\\Avell\\AppData\\Local\\Microsoft\\WindowsApps"
+        - "C:\\Users\\Avell\\AppData\\Local\\Programs\\Microsoft VS Code\\bin"
+        - "C:\\Users\\Avell\\AppData\\Roaming\\npm"
+        - "C:\\Users\\Avell\\AppData\\Local\\nvm"
+        - "C:\\nvm4w\\nodejs"
+        - "C:\\Users\\Avell\\AppData\\Local\\Android\\Sdk\\platform-tools"
+        - "C:\\Users\\Avell\\AppData\\Local\\GitHubDesktop\\bin"
+        - "C:\\Program Files\\Java\\scripts"
+        - "C:\\Users\\Avell\\AppData\\Local\\Programs\\cursor\\resources\\app\\bin"
+  -
+    kind: "message-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCXXCompiler.cmake:125 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" succeeded.
+      Compiler:  
+      Build flags: 
+      Id flags:  
+      
+      The output was:
+      0
+      Vers├úo do MSBuild 17.14.19+164abd434 para .NET Framework
+      Compila├º├úo de 01/09/2025 04:39:25 iniciada.
+      
+      Projeto "C:\\Users\\Avell\\Documents\\martins-software-i-dj\\native\\build\\CMakeFiles\\4.1.1\\CompilerIdCXX\\CompilerIdCXX.vcxproj" no n├│ 1 (destinos padr├úo).
+      PrepareForBuild:
+        Criando o diret├│rio "Debug\\".
+        A sa├¡da estruturada est├í habilitada. A formata├º├úo do diagn├│stico do compilador refletir├í a hierarquia de erros. Consulte https://aka.ms/cpp/structured-output para obter mais detalhes.
+        Criando o diret├│rio "Debug\\CompilerIdCXX.tlog\\".
+      InitializeBuildStatus:
+        Criando "Debug\\CompilerIdCXX.tlog\\unsuccessfulbuild" porque "AlwaysCreate" foi especificado.
+        Tocando "Debug\\CompilerIdCXX.tlog\\unsuccessfulbuild".
+      ClCompile:
+        C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\HostX64\\x64\\CL.exe /c /nologo /W0 /WX- /diagnostics:column /Od /D _MBCS /Gm- /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"Debug\\\\" /Fd"Debug\\vc143.pdb" /external:W0 /Gd /TP /FC /errorReport:queue CMakeCXXCompilerId.cpp
+        CMakeCXXCompilerId.cpp
+      Link:
+        C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\HostX64\\x64\\link.exe /ERRORREPORT:QUEUE /OUT:".\\CompilerIdCXX.exe" /INCREMENTAL:NO /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /PDB:".\\CompilerIdCXX.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:".\\CompilerIdCXX.lib" /MACHINE:X64 Debug\\CMakeCXXCompilerId.obj
+        CompilerIdCXX.vcxproj -> C:\\Users\\Avell\\Documents\\martins-software-i-dj\\native\\build\\CMakeFiles\\4.1.1\\CompilerIdCXX\\CompilerIdCXX.exe
+      PostBuildEvent:
+        for %%i in (cl.exe) do @echo CMAKE_CXX_COMPILER=%%~$PATH:i
+        :VCEnd
+        CMAKE_CXX_COMPILER=C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\cl.exe
+      FinalizeBuildStatus:
+        Excluindo o arquivo "Debug\\CompilerIdCXX.tlog\\unsuccessfulbuild".
+        Tocando "Debug\\CompilerIdCXX.tlog\\CompilerIdCXX.lastbuildstate".
+      Projeto de compila├º├úo pronto "C:\\Users\\Avell\\Documents\\martins-software-i-dj\\native\\build\\CMakeFiles\\4.1.1\\CompilerIdCXX\\CompilerIdCXX.vcxproj" (destinos padr├úo).
+      
+      Compila├º├úo com ├¬xito.
+          0 Aviso(s)
+          0 Erro(s)
+      
+      Tempo Decorrido 00:00:00.77
+      
+      
+      Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "CompilerIdCXX.exe"
+      
+      Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "CompilerIdCXX.vcxproj"
+      
+      The CXX compiler identification is MSVC, found in:
+        C:/Users/Avell/Documents/martins-software-i-dj/native/build/CMakeFiles/4.1.1/CompilerIdCXX/CompilerIdCXX.exe
+      
+  -
+    kind: "find-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeFindBinUtils.cmake:37 (find_program)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeFindBinUtils.cmake:65 (__resolve_tool_path)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeFindBinUtils.cmake:104 (__resolve_linker_path)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCXXCompiler.cmake:206 (include)"
+      - "CMakeLists.txt:2 (project)"
+    mode: "program"
+    variable: "_CMAKE_TOOL_WITH_PATH"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "lld-link"
+    candidate_directories:
+      - "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/"
+      - "C:/Users/Avell/Documents/martins-software-i-dj/native/node_modules/.bin/"
+      - "C:/Users/Avell/Documents/martins-software-i-dj/node_modules/.bin/"
+      - "C:/Users/Avell/Documents/node_modules/.bin/"
+      - "C:/Users/Avell/node_modules/.bin/"
+      - "C:/Users/node_modules/.bin/"
+      - "C:/node_modules/.bin/"
+      - "C:/Users/Avell/AppData/Local/nvm/v20.19.2/node_modules/npm/node_modules/@npmcli/run-script/lib/node-gyp-bin/"
+      - "C:/Program Files/Common Files/Oracle/Java/javapath/"
+      - "C:/Program Files/Microsoft/jdk-17.0.16.8-hotspot/bin/"
+      - "C:/Python313/Scripts/"
+      - "C:/Python313/"
+      - "C:/Windows/System32/"
+      - "C:/Windows/"
+      - "C:/Windows/System32/wbem/"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/"
+      - "C:/Windows/System32/OpenSSH/"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/"
+      - "C:/Program Files/dotnet/"
+      - "C:/ProgramData/chocolatey/bin/"
+      - "C:/Program Files/Docker/Docker/resources/bin/"
+      - "C:/Users/Avell/AppData/Local/nvm/"
+      - "C:/nvm4w/nodejs/"
+      - "C:/Program Files/Git/cmd/"
+      - "C:/Users/Avell/AppData/Local/Muse Hub/lib/"
+      - "C:/Program Files/OpenSSL-Win64/bin/"
+      - "C:/Program Files (x86)/QuickTime/QTSystem/"
+      - "C:/Program Files/CMake/bin/"
+      - "C:/Users/Avell/AppData/Local/Microsoft/WindowsApps/"
+      - "C:/Users/Avell/AppData/Local/Programs/Microsoft VS Code/bin/"
+      - "C:/Users/Avell/AppData/Roaming/npm/"
+      - "C:/Users/Avell/AppData/Local/Android/Sdk/platform-tools/"
+      - "C:/Users/Avell/AppData/Local/GitHubDesktop/bin/"
+      - "C:/Program Files/Java/scripts/"
+      - "C:/Users/Avell/AppData/Local/Programs/cursor/resources/app/bin/"
+    searched_directories:
+      - "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/lld-link.com"
+      - "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/lld-link.exe"
+      - "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/lld-link"
+      - "C:/Users/Avell/Documents/martins-software-i-dj/native/node_modules/.bin/lld-link.com"
+      - "C:/Users/Avell/Documents/martins-software-i-dj/native/node_modules/.bin/lld-link.exe"
+      - "C:/Users/Avell/Documents/martins-software-i-dj/native/node_modules/.bin/lld-link"
+      - "C:/Users/Avell/Documents/martins-software-i-dj/node_modules/.bin/lld-link.com"
+      - "C:/Users/Avell/Documents/martins-software-i-dj/node_modules/.bin/lld-link.exe"
+      - "C:/Users/Avell/Documents/martins-software-i-dj/node_modules/.bin/lld-link"
+      - "C:/Users/Avell/Documents/node_modules/.bin/lld-link.com"
+      - "C:/Users/Avell/Documents/node_modules/.bin/lld-link.exe"
+      - "C:/Users/Avell/Documents/node_modules/.bin/lld-link"
+      - "C:/Users/Avell/node_modules/.bin/lld-link.com"
+      - "C:/Users/Avell/node_modules/.bin/lld-link.exe"
+      - "C:/Users/Avell/node_modules/.bin/lld-link"
+      - "C:/Users/node_modules/.bin/lld-link.com"
+      - "C:/Users/node_modules/.bin/lld-link.exe"
+      - "C:/Users/node_modules/.bin/lld-link"
+      - "C:/node_modules/.bin/lld-link.com"
+      - "C:/node_modules/.bin/lld-link.exe"
+      - "C:/node_modules/.bin/lld-link"
+      - "C:/Users/Avell/AppData/Local/nvm/v20.19.2/node_modules/npm/node_modules/@npmcli/run-script/lib/node-gyp-bin/lld-link.com"
+      - "C:/Users/Avell/AppData/Local/nvm/v20.19.2/node_modules/npm/node_modules/@npmcli/run-script/lib/node-gyp-bin/lld-link.exe"
+      - "C:/Users/Avell/AppData/Local/nvm/v20.19.2/node_modules/npm/node_modules/@npmcli/run-script/lib/node-gyp-bin/lld-link"
+      - "C:/Program Files/Common Files/Oracle/Java/javapath/lld-link.com"
+      - "C:/Program Files/Common Files/Oracle/Java/javapath/lld-link.exe"
+      - "C:/Program Files/Common Files/Oracle/Java/javapath/lld-link"
+      - "C:/Program Files/Microsoft/jdk-17.0.16.8-hotspot/bin/lld-link.com"
+      - "C:/Program Files/Microsoft/jdk-17.0.16.8-hotspot/bin/lld-link.exe"
+      - "C:/Program Files/Microsoft/jdk-17.0.16.8-hotspot/bin/lld-link"
+      - "C:/Python313/Scripts/lld-link.com"
+      - "C:/Python313/Scripts/lld-link.exe"
+      - "C:/Python313/Scripts/lld-link"
+      - "C:/Python313/lld-link.com"
+      - "C:/Python313/lld-link.exe"
+      - "C:/Python313/lld-link"
+      - "C:/Windows/System32/lld-link.com"
+      - "C:/Windows/System32/lld-link.exe"
+      - "C:/Windows/System32/lld-link"
+      - "C:/Windows/lld-link.com"
+      - "C:/Windows/lld-link.exe"
+      - "C:/Windows/lld-link"
+      - "C:/Windows/System32/wbem/lld-link.com"
+      - "C:/Windows/System32/wbem/lld-link.exe"
+      - "C:/Windows/System32/wbem/lld-link"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/lld-link.com"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/lld-link.exe"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/lld-link"
+      - "C:/Windows/System32/OpenSSH/lld-link.com"
+      - "C:/Windows/System32/OpenSSH/lld-link.exe"
+      - "C:/Windows/System32/OpenSSH/lld-link"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/lld-link.com"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/lld-link.exe"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/lld-link"
+      - "C:/Program Files/dotnet/lld-link.com"
+      - "C:/Program Files/dotnet/lld-link.exe"
+      - "C:/Program Files/dotnet/lld-link"
+      - "C:/ProgramData/chocolatey/bin/lld-link.com"
+      - "C:/ProgramData/chocolatey/bin/lld-link.exe"
+      - "C:/ProgramData/chocolatey/bin/lld-link"
+      - "C:/Program Files/Docker/Docker/resources/bin/lld-link.com"
+      - "C:/Program Files/Docker/Docker/resources/bin/lld-link.exe"
+      - "C:/Program Files/Docker/Docker/resources/bin/lld-link"
+      - "C:/Users/Avell/AppData/Local/nvm/lld-link.com"
+      - "C:/Users/Avell/AppData/Local/nvm/lld-link.exe"
+      - "C:/Users/Avell/AppData/Local/nvm/lld-link"
+      - "C:/nvm4w/nodejs/lld-link.com"
+      - "C:/nvm4w/nodejs/lld-link.exe"
+      - "C:/nvm4w/nodejs/lld-link"
+      - "C:/Program Files/Git/cmd/lld-link.com"
+      - "C:/Program Files/Git/cmd/lld-link.exe"
+      - "C:/Program Files/Git/cmd/lld-link"
+      - "C:/Users/Avell/AppData/Local/Muse Hub/lib/lld-link.com"
+      - "C:/Users/Avell/AppData/Local/Muse Hub/lib/lld-link.exe"
+      - "C:/Users/Avell/AppData/Local/Muse Hub/lib/lld-link"
+      - "C:/Program Files/OpenSSL-Win64/bin/lld-link.com"
+      - "C:/Program Files/OpenSSL-Win64/bin/lld-link.exe"
+      - "C:/Program Files/OpenSSL-Win64/bin/lld-link"
+      - "C:/Program Files (x86)/QuickTime/QTSystem/lld-link.com"
+      - "C:/Program Files (x86)/QuickTime/QTSystem/lld-link.exe"
+      - "C:/Program Files (x86)/QuickTime/QTSystem/lld-link"
+      - "C:/Program Files/CMake/bin/lld-link.com"
+      - "C:/Program Files/CMake/bin/lld-link.exe"
+      - "C:/Program Files/CMake/bin/lld-link"
+      - "C:/Users/Avell/AppData/Local/Microsoft/WindowsApps/lld-link.com"
+      - "C:/Users/Avell/AppData/Local/Microsoft/WindowsApps/lld-link.exe"
+      - "C:/Users/Avell/AppData/Local/Microsoft/WindowsApps/lld-link"
+      - "C:/Users/Avell/AppData/Local/Programs/Microsoft VS Code/bin/lld-link.com"
+      - "C:/Users/Avell/AppData/Local/Programs/Microsoft VS Code/bin/lld-link.exe"
+      - "C:/Users/Avell/AppData/Local/Programs/Microsoft VS Code/bin/lld-link"
+      - "C:/Users/Avell/AppData/Roaming/npm/lld-link.com"
+      - "C:/Users/Avell/AppData/Roaming/npm/lld-link.exe"
+      - "C:/Users/Avell/AppData/Roaming/npm/lld-link"
+      - "C:/Users/Avell/AppData/Local/Android/Sdk/platform-tools/lld-link.com"
+      - "C:/Users/Avell/AppData/Local/Android/Sdk/platform-tools/lld-link.exe"
+      - "C:/Users/Avell/AppData/Local/Android/Sdk/platform-tools/lld-link"
+      - "C:/Users/Avell/AppData/Local/GitHubDesktop/bin/lld-link.com"
+      - "C:/Users/Avell/AppData/Local/GitHubDesktop/bin/lld-link.exe"
+      - "C:/Users/Avell/AppData/Local/GitHubDesktop/bin/lld-link"
+      - "C:/Program Files/Java/scripts/lld-link.com"
+      - "C:/Program Files/Java/scripts/lld-link.exe"
+      - "C:/Program Files/Java/scripts/lld-link"
+      - "C:/Users/Avell/AppData/Local/Programs/cursor/resources/app/bin/lld-link.com"
+      - "C:/Users/Avell/AppData/Local/Programs/cursor/resources/app/bin/lld-link.exe"
+      - "C:/Users/Avell/AppData/Local/Programs/cursor/resources/app/bin/lld-link"
+    found: false
+    search_context:
+      ENV{PATH}:
+        - "C:\\Users\\Avell\\Documents\\martins-software-i-dj\\native\\node_modules\\.bin"
+        - "C:\\Users\\Avell\\Documents\\martins-software-i-dj\\node_modules\\.bin"
+        - "C:\\Users\\Avell\\Documents\\node_modules\\.bin"
+        - "C:\\Users\\Avell\\node_modules\\.bin"
+        - "C:\\Users\\node_modules\\.bin"
+        - "C:\\node_modules\\.bin"
+        - "C:\\Users\\Avell\\AppData\\Local\\nvm\\v20.19.2\\node_modules\\npm\\node_modules\\@npmcli\\run-script\\lib\\node-gyp-bin"
+        - "C:\\Program Files\\Common Files\\Oracle\\Java\\javapath"
+        - "C:\\Program Files\\Microsoft\\jdk-17.0.16.8-hotspot\\bin"
+        - "C:\\Python313\\Scripts\\"
+        - "C:\\Python313\\"
+        - "C:\\WINDOWS\\system32"
+        - "C:\\WINDOWS"
+        - "C:\\WINDOWS\\System32\\Wbem"
+        - "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:\\WINDOWS\\System32\\OpenSSH\\"
+        - "C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common"
+        - "C:\\Program Files\\dotnet\\"
+        - "C:\\ProgramData\\chocolatey\\bin"
+        - "C:\\Program Files\\Docker\\Docker\\resources\\bin"
+        - "C:\\Users\\Avell\\AppData\\Local\\nvm"
+        - "C:\\nvm4w\\nodejs"
+        - "C:\\Program Files\\Git\\cmd"
+        - "C:\\Users\\Avell\\AppData\\Local\\Muse Hub\\lib"
+        - "C:\\Program Files\\OpenSSL-Win64\\bin"
+        - "C:\\Program Files (x86)\\QuickTime\\QTSystem\\"
+        - "C:\\Program Files\\CMake\\bin"
+        - "C:\\Users\\Avell\\AppData\\Local\\Microsoft\\WindowsApps"
+        - "C:\\Users\\Avell\\AppData\\Local\\Programs\\Microsoft VS Code\\bin"
+        - "C:\\Users\\Avell\\AppData\\Roaming\\npm"
+        - "C:\\Users\\Avell\\AppData\\Local\\nvm"
+        - "C:\\nvm4w\\nodejs"
+        - "C:\\Users\\Avell\\AppData\\Local\\Android\\Sdk\\platform-tools"
+        - "C:\\Users\\Avell\\AppData\\Local\\GitHubDesktop\\bin"
+        - "C:\\Program Files\\Java\\scripts"
+        - "C:\\Users\\Avell\\AppData\\Local\\Programs\\cursor\\resources\\app\\bin"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineRCCompiler.cmake:40 (find_program)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/Platform/Windows-MSVC.cmake:574 (enable_language)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/Platform/Windows-MSVC.cmake:547 (__windows_compiler_msvc_enable_rc)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/Platform/Windows-MSVC-C.cmake:5 (__windows_compiler_msvc)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeCInformation.cmake:48 (include)"
+      - "CMakeLists.txt:2 (project)"
+    mode: "program"
+    variable: "CMAKE_RC_COMPILER"
+    description: "RC compiler"
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "rc"
+    candidate_directories:
+      - "C:/Users/Avell/Documents/martins-software-i-dj/native/node_modules/.bin/"
+      - "C:/Users/Avell/Documents/martins-software-i-dj/node_modules/.bin/"
+      - "C:/Users/Avell/Documents/node_modules/.bin/"
+      - "C:/Users/Avell/node_modules/.bin/"
+      - "C:/Users/node_modules/.bin/"
+      - "C:/node_modules/.bin/"
+      - "C:/Users/Avell/AppData/Local/nvm/v20.19.2/node_modules/npm/node_modules/@npmcli/run-script/lib/node-gyp-bin/"
+      - "C:/Program Files/Common Files/Oracle/Java/javapath/"
+      - "C:/Program Files/Microsoft/jdk-17.0.16.8-hotspot/bin/"
+      - "C:/Python313/Scripts/"
+      - "C:/Python313/"
+      - "C:/Windows/System32/"
+      - "C:/Windows/"
+      - "C:/Windows/System32/wbem/"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/"
+      - "C:/Windows/System32/OpenSSH/"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/"
+      - "C:/Program Files/dotnet/"
+      - "C:/ProgramData/chocolatey/bin/"
+      - "C:/Program Files/Docker/Docker/resources/bin/"
+      - "C:/Users/Avell/AppData/Local/nvm/"
+      - "C:/nvm4w/nodejs/"
+      - "C:/Program Files/Git/cmd/"
+      - "C:/Users/Avell/AppData/Local/Muse Hub/lib/"
+      - "C:/Program Files/OpenSSL-Win64/bin/"
+      - "C:/Program Files (x86)/QuickTime/QTSystem/"
+      - "C:/Program Files/CMake/bin/"
+      - "C:/Users/Avell/AppData/Local/Microsoft/WindowsApps/"
+      - "C:/Users/Avell/AppData/Local/Programs/Microsoft VS Code/bin/"
+      - "C:/Users/Avell/AppData/Roaming/npm/"
+      - "C:/Users/Avell/AppData/Local/Android/Sdk/platform-tools/"
+      - "C:/Users/Avell/AppData/Local/GitHubDesktop/bin/"
+      - "C:/Program Files/Java/scripts/"
+      - "C:/Users/Avell/AppData/Local/Programs/cursor/resources/app/bin/"
+      - "C:/Program Files/bin/"
+      - "C:/Program Files/sbin/"
+      - "C:/Program Files/"
+      - "C:/Program Files (x86)/bin/"
+      - "C:/Program Files (x86)/sbin/"
+      - "C:/Program Files (x86)/"
+      - "C:/Program Files/CMake/bin/"
+      - "C:/Program Files/CMake/sbin/"
+      - "C:/Program Files/CMake/"
+      - "C:/Program Files/juce_audio_processor/bin/"
+      - "C:/Program Files/juce_audio_processor/sbin/"
+      - "C:/Program Files/juce_audio_processor/"
+    searched_directories:
+      - "C:/Users/Avell/Documents/martins-software-i-dj/native/node_modules/.bin/rc.com"
+      - "C:/Users/Avell/Documents/martins-software-i-dj/native/node_modules/.bin/rc.exe"
+    found: "C:/Users/Avell/Documents/martins-software-i-dj/native/node_modules/.bin/rc"
+    search_context:
+      ENV{PATH}:
+        - "C:\\Users\\Avell\\Documents\\martins-software-i-dj\\native\\node_modules\\.bin"
+        - "C:\\Users\\Avell\\Documents\\martins-software-i-dj\\node_modules\\.bin"
+        - "C:\\Users\\Avell\\Documents\\node_modules\\.bin"
+        - "C:\\Users\\Avell\\node_modules\\.bin"
+        - "C:\\Users\\node_modules\\.bin"
+        - "C:\\node_modules\\.bin"
+        - "C:\\Users\\Avell\\AppData\\Local\\nvm\\v20.19.2\\node_modules\\npm\\node_modules\\@npmcli\\run-script\\lib\\node-gyp-bin"
+        - "C:\\Program Files\\Common Files\\Oracle\\Java\\javapath"
+        - "C:\\Program Files\\Microsoft\\jdk-17.0.16.8-hotspot\\bin"
+        - "C:\\Python313\\Scripts\\"
+        - "C:\\Python313\\"
+        - "C:\\WINDOWS\\system32"
+        - "C:\\WINDOWS"
+        - "C:\\WINDOWS\\System32\\Wbem"
+        - "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:\\WINDOWS\\System32\\OpenSSH\\"
+        - "C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common"
+        - "C:\\Program Files\\dotnet\\"
+        - "C:\\ProgramData\\chocolatey\\bin"
+        - "C:\\Program Files\\Docker\\Docker\\resources\\bin"
+        - "C:\\Users\\Avell\\AppData\\Local\\nvm"
+        - "C:\\nvm4w\\nodejs"
+        - "C:\\Program Files\\Git\\cmd"
+        - "C:\\Users\\Avell\\AppData\\Local\\Muse Hub\\lib"
+        - "C:\\Program Files\\OpenSSL-Win64\\bin"
+        - "C:\\Program Files (x86)\\QuickTime\\QTSystem\\"
+        - "C:\\Program Files\\CMake\\bin"
+        - "C:\\Users\\Avell\\AppData\\Local\\Microsoft\\WindowsApps"
+        - "C:\\Users\\Avell\\AppData\\Local\\Programs\\Microsoft VS Code\\bin"
+        - "C:\\Users\\Avell\\AppData\\Roaming\\npm"
+        - "C:\\Users\\Avell\\AppData\\Local\\nvm"
+        - "C:\\nvm4w\\nodejs"
+        - "C:\\Users\\Avell\\AppData\\Local\\Android\\Sdk\\platform-tools"
+        - "C:\\Users\\Avell\\AppData\\Local\\GitHubDesktop\\bin"
+        - "C:\\Program Files\\Java\\scripts"
+        - "C:\\Users\\Avell\\AppData\\Local\\Programs\\cursor\\resources\\app\\bin"
+      CMAKE_INSTALL_PREFIX: "C:/Program Files/juce_audio_processor"
+      CMAKE_SYSTEM_PREFIX_PATH:
+        - "C:/Program Files"
+        - "C:/Program Files (x86)"
+        - "C:/Program Files/CMake"
+        - "C:/Program Files/juce_audio_processor"
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCompilerABI.cmake:83 (try_compile)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:2 (project)"
+    checks:
+      - "Detecting C compiler ABI info"
+    directories:
+      source: "C:/Users/Avell/Documents/martins-software-i-dj/native/build/CMakeFiles/CMakeScratch/TryCompile-9l21xl"
+      binary: "C:/Users/Avell/Documents/martins-software-i-dj/native/build/CMakeFiles/CMakeScratch/TryCompile-9l21xl"
+    cmakeVariables:
+      CMAKE_C_FLAGS: "/DWIN32 /D_WINDOWS"
+      CMAKE_C_FLAGS_DEBUG: "/Zi /Ob0 /Od /RTC1"
+      CMAKE_EXE_LINKER_FLAGS: "/machine:x64"
+      CMAKE_MSVC_RUNTIME_LIBRARY: "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+    buildResult:
+      variable: "CMAKE_C_ABI_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: 'C:/Users/Avell/Documents/martins-software-i-dj/native/build/CMakeFiles/CMakeScratch/TryCompile-9l21xl'
+        
+        Run Build Command(s): "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/MSBuild/Current/Bin/amd64/MSBuild.exe" cmTC_d795c.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=17.0 /v:n
+        Vers├úo do MSBuild 17.14.19+164abd434 para .NET Framework
+        Compila├º├úo de 01/09/2025 04:39:27 iniciada.
+        
+        Projeto "C:\\Users\\Avell\\Documents\\martins-software-i-dj\\native\\build\\CMakeFiles\\CMakeScratch\\TryCompile-9l21xl\\cmTC_d795c.vcxproj" no n├│ 1 (destinos padr├úo).
+        PrepareForBuild:
+          Criando o diret├│rio "cmTC_d795c.dir\\Debug\\".
+          A sa├¡da estruturada est├í habilitada. A formata├º├úo do diagn├│stico do compilador refletir├í a hierarquia de erros. Consulte https://aka.ms/cpp/structured-output para obter mais detalhes.
+          Criando o diret├│rio "C:\\Users\\Avell\\Documents\\martins-software-i-dj\\native\\build\\CMakeFiles\\CMakeScratch\\TryCompile-9l21xl\\Debug\\".
+          Criando o diret├│rio "cmTC_d795c.dir\\Debug\\cmTC_d795c.tlog\\".
+        InitializeBuildStatus:
+          Criando "cmTC_d795c.dir\\Debug\\cmTC_d795c.tlog\\unsuccessfulbuild" porque "AlwaysCreate" foi especificado.
+          Tocando "cmTC_d795c.dir\\Debug\\cmTC_d795c.tlog\\unsuccessfulbuild".
+        ClCompile:
+          C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\HostX64\\x64\\CL.exe /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\\"Debug\\"" /RTC1 /MTd /GS /fp:precise /Fo"cmTC_d795c.dir\\Debug\\\\" /Fd"cmTC_d795c.dir\\Debug\\vc143.pdb" /external:W1 /Gd /TC /errorReport:queue "C:\\Program Files\\CMake\\share\\cmake-4.1\\Modules\\CMakeCCompilerABI.c"
+          Microsoft (R) C/C++ Optimizing Compiler Vers├úo 19.44.35215 para x64
+          Copyright (C) Microsoft Corporation. Todos os direitos reservados.
+          cl /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\\"Debug\\"" /RTC1 /MTd /GS /fp:precise /Fo"cmTC_d795c.dir\\Debug\\\\" /Fd"cmTC_d795c.dir\\Debug\\vc143.pdb" /external:W1 /Gd /TC /errorReport:queue "C:\\Program Files\\CMake\\share\\cmake-4.1\\Modules\\CMakeCCompilerABI.c"
+          CMakeCCompilerABI.c
+        Link:
+          C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\HostX64\\x64\\link.exe /OUT:"C:\\Users\\Avell\\Documents\\martins-software-i-dj\\native\\build\\CMakeFiles\\CMakeScratch\\TryCompile-9l21xl\\Debug\\cmTC_d795c.exe" /INCREMENTAL /ILK:"cmTC_d795c.dir\\Debug\\cmTC_d795c.ilk" /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:/Users/Avell/Documents/martins-software-i-dj/native/build/CMakeFiles/CMakeScratch/TryCompile-9l21xl/Debug/cmTC_d795c.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /IMPLIB:"C:/Users/Avell/Documents/martins-software-i-dj/native/build/CMakeFiles/CMakeScratch/TryCompile-9l21xl/Debug/cmTC_d795c.lib" /MACHINE:X64  /machine:x64 cmTC_d795c.dir\\Debug\\CMakeCCompilerABI.obj
+          cmTC_d795c.vcxproj -> C:\\Users\\Avell\\Documents\\martins-software-i-dj\\native\\build\\CMakeFiles\\CMakeScratch\\TryCompile-9l21xl\\Debug\\cmTC_d795c.exe
+        FinalizeBuildStatus:
+          Excluindo o arquivo "cmTC_d795c.dir\\Debug\\cmTC_d795c.tlog\\unsuccessfulbuild".
+          Tocando "cmTC_d795c.dir\\Debug\\cmTC_d795c.tlog\\cmTC_d795c.lastbuildstate".
+        Projeto de compila├º├úo pronto "C:\\Users\\Avell\\Documents\\martins-software-i-dj\\native\\build\\CMakeFiles\\CMakeScratch\\TryCompile-9l21xl\\cmTC_d795c.vcxproj" (destinos padr├úo).
+        
+        Compila├º├úo com ├¬xito.
+            0 Aviso(s)
+            0 Erro(s)
+        
+        Tempo Decorrido 00:00:01.02
+        
+      exitCode: 0
+  -
+    kind: "message-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCompilerABI.cmake:253 (message)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Parsed C implicit link information:
+        link line regex: [^( *|.*[/\\])(ld[0-9]*(|\\.[a-rt-z][a-z]*|\\.s[a-np-z][a-z]*|\\.so[a-z]+)|link\\.exe|lld-link(\\.exe)?|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\\]+-)?ld|collect2)[^/\\]*( |$)]
+        linker tool regex: [^[ 	]*(->|")?[ 	]*(([^"]*[/\\])?(ld[0-9]*(|\\.[a-rt-z][a-z]*|\\.s[a-np-z][a-z]*|\\.so[a-z]+)|link\\.exe|lld-link(\\.exe)?))("|,| |$)]
+        linker tool for 'C': C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/HostX64/x64/link.exe
+        implicit libs: []
+        implicit objs: []
+        implicit dirs: []
+        implicit fwks: []
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/Internal/CMakeDetermineLinkerId.cmake:36 (message)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCompilerABI.cmake:299 (cmake_determine_linker_id)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Running the C compiler's linker: "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/HostX64/x64/link.exe" "-v"
+      Microsoft (R) Incremental Linker Version 14.44.35215.0
+      Copyright (C) Microsoft Corporation.  All rights reserved.
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCompilerABI.cmake:83 (try_compile)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:2 (project)"
+    checks:
+      - "Detecting CXX compiler ABI info"
+    directories:
+      source: "C:/Users/Avell/Documents/martins-software-i-dj/native/build/CMakeFiles/CMakeScratch/TryCompile-zwxwzs"
+      binary: "C:/Users/Avell/Documents/martins-software-i-dj/native/build/CMakeFiles/CMakeScratch/TryCompile-zwxwzs"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "/DWIN32 /D_WINDOWS /GR /EHsc"
+      CMAKE_CXX_FLAGS_DEBUG: "/Zi /Ob0 /Od /RTC1"
+      CMAKE_CXX_SCAN_FOR_MODULES: "OFF"
+      CMAKE_EXE_LINKER_FLAGS: "/machine:x64"
+      CMAKE_MSVC_RUNTIME_LIBRARY: "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+    buildResult:
+      variable: "CMAKE_CXX_ABI_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: 'C:/Users/Avell/Documents/martins-software-i-dj/native/build/CMakeFiles/CMakeScratch/TryCompile-zwxwzs'
+        
+        Run Build Command(s): "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/MSBuild/Current/Bin/amd64/MSBuild.exe" cmTC_81cd7.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=17.0 /v:n
+        Vers├úo do MSBuild 17.14.19+164abd434 para .NET Framework
+        Compila├º├úo de 01/09/2025 04:39:29 iniciada.
+        
+        Projeto "C:\\Users\\Avell\\Documents\\martins-software-i-dj\\native\\build\\CMakeFiles\\CMakeScratch\\TryCompile-zwxwzs\\cmTC_81cd7.vcxproj" no n├│ 1 (destinos padr├úo).
+        PrepareForBuild:
+          Criando o diret├│rio "cmTC_81cd7.dir\\Debug\\".
+          A sa├¡da estruturada est├í habilitada. A formata├º├úo do diagn├│stico do compilador refletir├í a hierarquia de erros. Consulte https://aka.ms/cpp/structured-output para obter mais detalhes.
+          Criando o diret├│rio "C:\\Users\\Avell\\Documents\\martins-software-i-dj\\native\\build\\CMakeFiles\\CMakeScratch\\TryCompile-zwxwzs\\Debug\\".
+          Criando o diret├│rio "cmTC_81cd7.dir\\Debug\\cmTC_81cd7.tlog\\".
+        InitializeBuildStatus:
+          Criando "cmTC_81cd7.dir\\Debug\\cmTC_81cd7.tlog\\unsuccessfulbuild" porque "AlwaysCreate" foi especificado.
+          Tocando "cmTC_81cd7.dir\\Debug\\cmTC_81cd7.tlog\\unsuccessfulbuild".
+        ClCompile:
+          C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\HostX64\\x64\\CL.exe /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\\"Debug\\"" /EHsc /RTC1 /MTd /GS /fp:precise /GR /Fo"cmTC_81cd7.dir\\Debug\\\\" /Fd"cmTC_81cd7.dir\\Debug\\vc143.pdb" /external:W1 /Gd /TP /errorReport:queue "C:\\Program Files\\CMake\\share\\cmake-4.1\\Modules\\CMakeCXXCompilerABI.cpp"
+          Microsoft (R) C/C++ Optimizing Compiler Vers├úo 19.44.35215 para x64
+          Copyright (C) Microsoft Corporation. Todos os direitos reservados.
+          cl /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\\"Debug\\"" /EHsc /RTC1 /MTd /GS /fp:precise /GR /Fo"cmTC_81cd7.dir\\Debug\\\\" /Fd"cmTC_81cd7.dir\\Debug\\vc143.pdb" /external:W1 /Gd /TP /errorReport:queue "C:\\Program Files\\CMake\\share\\cmake-4.1\\Modules\\CMakeCXXCompilerABI.cpp"
+          CMakeCXXCompilerABI.cpp
+        Link:
+          C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\HostX64\\x64\\link.exe /OUT:"C:\\Users\\Avell\\Documents\\martins-software-i-dj\\native\\build\\CMakeFiles\\CMakeScratch\\TryCompile-zwxwzs\\Debug\\cmTC_81cd7.exe" /INCREMENTAL /ILK:"cmTC_81cd7.dir\\Debug\\cmTC_81cd7.ilk" /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:/Users/Avell/Documents/martins-software-i-dj/native/build/CMakeFiles/CMakeScratch/TryCompile-zwxwzs/Debug/cmTC_81cd7.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /IMPLIB:"C:/Users/Avell/Documents/martins-software-i-dj/native/build/CMakeFiles/CMakeScratch/TryCompile-zwxwzs/Debug/cmTC_81cd7.lib" /MACHINE:X64  /machine:x64 cmTC_81cd7.dir\\Debug\\CMakeCXXCompilerABI.obj
+          cmTC_81cd7.vcxproj -> C:\\Users\\Avell\\Documents\\martins-software-i-dj\\native\\build\\CMakeFiles\\CMakeScratch\\TryCompile-zwxwzs\\Debug\\cmTC_81cd7.exe
+        FinalizeBuildStatus:
+          Excluindo o arquivo "cmTC_81cd7.dir\\Debug\\cmTC_81cd7.tlog\\unsuccessfulbuild".
+          Tocando "cmTC_81cd7.dir\\Debug\\cmTC_81cd7.tlog\\cmTC_81cd7.lastbuildstate".
+        Projeto de compila├º├úo pronto "C:\\Users\\Avell\\Documents\\martins-software-i-dj\\native\\build\\CMakeFiles\\CMakeScratch\\TryCompile-zwxwzs\\cmTC_81cd7.vcxproj" (destinos padr├úo).
+        
+        Compila├º├úo com ├¬xito.
+            0 Aviso(s)
+            0 Erro(s)
+        
+        Tempo Decorrido 00:00:00.75
+        
+      exitCode: 0
+  -
+    kind: "message-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCompilerABI.cmake:253 (message)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Parsed CXX implicit link information:
+        link line regex: [^( *|.*[/\\])(ld[0-9]*(|\\.[a-rt-z][a-z]*|\\.s[a-np-z][a-z]*|\\.so[a-z]+)|link\\.exe|lld-link(\\.exe)?|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\\]+-)?ld|collect2)[^/\\]*( |$)]
+        linker tool regex: [^[ 	]*(->|")?[ 	]*(([^"]*[/\\])?(ld[0-9]*(|\\.[a-rt-z][a-z]*|\\.s[a-np-z][a-z]*|\\.so[a-z]+)|link\\.exe|lld-link(\\.exe)?))("|,| |$)]
+        linker tool for 'CXX': C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/HostX64/x64/link.exe
+        implicit libs: []
+        implicit objs: []
+        implicit dirs: []
+        implicit fwks: []
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/Internal/CMakeDetermineLinkerId.cmake:36 (message)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCompilerABI.cmake:299 (cmake_determine_linker_id)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Running the CXX compiler's linker: "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/HostX64/x64/link.exe" "-v"
+      Microsoft (R) Incremental Linker Version 14.44.35215.0
+      Copyright (C) Microsoft Corporation.  All rights reserved.
+...

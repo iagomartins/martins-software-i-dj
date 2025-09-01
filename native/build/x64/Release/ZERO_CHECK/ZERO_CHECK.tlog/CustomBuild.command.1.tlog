@@ -1,0 +1,10 @@
+^C:\USERS\AVELL\DOCUMENTS\MARTINS-SOFTWARE-I-DJ\NATIVE\BUILD\CMAKEFILES\09F81D44C6CD180BEC2F22FAE8E6C8F7\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/Avell/Documents/martins-software-i-dj/native -BC:/Users/Avell/Documents/martins-software-i-dj/native/build --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file C:/Users/Avell/Documents/martins-software-i-dj/native/build/juce_audio_processor.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
