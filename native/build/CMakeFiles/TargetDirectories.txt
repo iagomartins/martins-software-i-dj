@@ -1,3 +1,9 @@
 C:/Users/Avell/Documents/martins-software-i-dj/native/build/CMakeFiles/juce_audio_processor.dir
+C:/Users/Avell/Documents/martins-software-i-dj/native/build/CMakeFiles/INSTALL.dir
 C:/Users/Avell/Documents/martins-software-i-dj/native/build/CMakeFiles/ALL_BUILD.dir
 C:/Users/Avell/Documents/martins-software-i-dj/native/build/CMakeFiles/ZERO_CHECK.dir
+C:/Users/Avell/Documents/martins-software-i-dj/native/build/juce/CMakeFiles/INSTALL.dir
+C:/Users/Avell/Documents/martins-software-i-dj/native/build/juce/CMakeFiles/ALL_BUILD.dir
+C:/Users/Avell/Documents/martins-software-i-dj/native/build/juce/modules/CMakeFiles/INSTALL.dir
+C:/Users/Avell/Documents/martins-software-i-dj/native/build/juce/extras/Build/CMakeFiles/INSTALL.dir
+C:/Users/Avell/Documents/martins-software-i-dj/native/build/juce/extras/Build/juceaide/CMakeFiles/INSTALL.dir

@@ -1,6 +1,17 @@
 #pragma once
 
-#include <JuceHeader.h>
+#include <juce_core/juce_core.h>
+#include <juce_events/juce_events.h>
+#include <juce_graphics/juce_graphics.h>
+#include <juce_data_structures/juce_data_structures.h>
+#include <juce_audio_basics/juce_audio_basics.h>
+#include <juce_audio_devices/juce_audio_devices.h>
+#include <juce_audio_formats/juce_audio_formats.h>
+#include <juce_audio_processors/juce_audio_processors.h>
+#include <juce_audio_utils/juce_audio_utils.h>
+#include <juce_dsp/juce_dsp.h>
+#include <juce_analytics/juce_analytics.h>
+
 #include <napi.h>
 
 class JUCEAudioProcessor : public juce::AudioProcessor
@@ -23,6 +34,10 @@ public:
     void getStateInformation(juce::MemoryBlock& destData) override;
     void setStateInformation(const void* data, int sizeInBytes) override;
 
+    // Required abstract methods
+    juce::AudioProcessorEditor* createEditor() override;
+    bool hasEditor() const override;
+
     // AudioProcessorGraph overrides
     void prepareToPlay(double sampleRate, int samplesPerBlock) override;
     void releaseResources() override;
@@ -39,11 +54,14 @@ public:
     void setVolume(float volume);
 
 private:
-    // Audio effects
-    juce::dsp::PitchShifter pitchShifter;
-    juce::dsp::Chorus flanger;
+    // Audio effects - using proper JUCE classes
+    juce::dsp::Chorus<float> flanger;
     juce::dsp::StateVariableTPTFilter<float> filter;
     juce::dsp::Gain<float> volumeGain;
+    
+    // Simple pitch shifting using gain and delay
+    juce::dsp::DelayLine<float> pitchDelay;
+    juce::dsp::Gain<float> pitchGain;
     
     // Jog wheel state
     float jogWheelPosition = 0.0f;

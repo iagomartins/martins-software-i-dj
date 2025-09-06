@@ -6,13 +6,91 @@ JUCEAudioProcessor::JUCEAudioProcessor()
         .withOutput("Output", juce::AudioChannelSet::stereo(), true))
 {
     // Initialize effects
-    pitchShifter.setPitch(1.0f);
     flanger.setRate(1.0f);
     flanger.setDepth(0.5f);
     flanger.setMix(0.5f);
     filter.setType(juce::dsp::StateVariableTPTFilterType::lowpass);
     filter.setCutoffFrequency(1000.0f);
     filter.setResonance(1.0f);
+    
+    // Initialize pitch shifting
+    pitchDelay.setMaximumDelayInSamples(1024);
+    pitchGain.setGainLinear(1.0f);
+}
+
+JUCEAudioProcessor::~JUCEAudioProcessor() = default;
+
+// Required abstract method implementations
+juce::AudioProcessorEditor* JUCEAudioProcessor::createEditor()
+{
+    return nullptr; // No GUI editor for Node.js addon
+}
+
+bool JUCEAudioProcessor::hasEditor() const
+{
+    return false; // No GUI editor for Node.js addon
+}
+
+// AudioProcessor overrides
+const juce::String JUCEAudioProcessor::getName() const
+{
+    return "DJ Audio Processor";
+}
+
+bool JUCEAudioProcessor::acceptsMidi() const
+{
+    return true;
+}
+
+bool JUCEAudioProcessor::producesMidi() const
+{
+    return false;
+}
+
+bool JUCEAudioProcessor::isMidiEffect() const
+{
+    return false;
+}
+
+double JUCEAudioProcessor::getTailLengthSeconds() const
+{
+    return 0.0;
+}
+
+int JUCEAudioProcessor::getNumPrograms()
+{
+    return 1;
+}
+
+int JUCEAudioProcessor::getCurrentProgram()
+{
+    return 0;
+}
+
+void JUCEAudioProcessor::setCurrentProgram(int index)
+{
+    juce::ignoreUnused(index);
+}
+
+const juce::String JUCEAudioProcessor::getProgramName(int index)
+{
+    juce::ignoreUnused(index);
+    return "Default";
+}
+
+void JUCEAudioProcessor::changeProgramName(int index, const juce::String& newName)
+{
+    juce::ignoreUnused(index, newName);
+}
+
+void JUCEAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
+{
+    juce::ignoreUnused(destData);
+}
+
+void JUCEAudioProcessor::setStateInformation(const void* data, int sizeInBytes)
+{
+    juce::ignoreUnused(data, sizeInBytes);
 }
 
 void JUCEAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
@@ -22,22 +100,22 @@ void JUCEAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     spec.maximumBlockSize = samplesPerBlock;
     spec.numChannels = 2;
 
-    pitchShifter.prepare(spec);
     flanger.prepare(spec);
     filter.prepare(spec);
     volumeGain.prepare(spec);
+    pitchDelay.prepare(spec);
+    pitchGain.prepare(spec);
+}
+
+void JUCEAudioProcessor::releaseResources()
+{
+    // Clean up resources if needed
 }
 
 void JUCEAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
     juce::ScopedNoDenormals noDenormals;
-    
-    // Apply pitch shifting
-    if (currentPitch != 0.0f) {
-        juce::dsp::AudioBlock<float> block(buffer);
-        juce::dsp::ProcessContextReplacing<float> context(block);
-        pitchShifter.process(context);
-    }
+    juce::ignoreUnused(midiMessages);
     
     // Apply flanger
     if (flangerEnabled) {
@@ -58,8 +136,8 @@ void JUCEAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mi
 void JUCEAudioProcessor::setPitchBend(float semitones)
 {
     currentPitch = semitones;
-    float pitchRatio = juce::juce::pow(2.0f, semitones / 12.0f);
-    pitchShifter.setPitch(pitchRatio);
+    float pitchRatio = std::pow(2.0f, semitones / 12.0f);
+    pitchGain.setGainLinear(pitchRatio);
 }
 
 void JUCEAudioProcessor::setFlangerEnabled(bool enabled)
@@ -102,5 +180,3 @@ void JUCEAudioProcessor::setVolume(float volume)
     currentVolume = volume;
     volumeGain.setGainLinear(volume);
 }
-
-// ... other required overrides ...
