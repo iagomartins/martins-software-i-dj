@@ -4,8 +4,11 @@ const path = require('path');
 // Load the native JUCE module
 let juceProcessor;
 try {
-  juceProcessor = require('./native/build/Release/juce_audio_processor.node');
+  const juceModule = require('juce_audio_processor');
+  juceProcessor = juceModule.JUCEAudioProcessor;
+  console.log('✓ JUCE module loaded in main process');
 } catch (error) {
+  console.log(error);
   console.warn('JUCE module not available, falling back to Web Audio API');
 }
 
