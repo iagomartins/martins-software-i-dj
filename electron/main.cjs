@@ -2,10 +2,10 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 
 // Load the native JUCE module
-let juceProcessor;
+const JUCEAudioProcessor = require('juce-audio-processor');
+const juceProcessor = false;
 try {
-  const juceModule = require('juce_audio_processor');
-  juceProcessor = juceModule.JUCEAudioProcessor;
+  const juceProcessor = new JUCEAudioProcessor();
   console.log('✓ JUCE module loaded in main process');
 } catch (error) {
   console.log(error);

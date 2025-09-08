@@ -13,7 +13,7 @@
     "build": "vite build",
     "electron:dev": "electron .\"",
     "electron:start": "electron .",
-    "electron:build": "npm run build && electron ."
+    "electron:build": "npm run build && start-electron.bat"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -52,7 +52,7 @@
     "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.6.0",
     "input-otp": "^1.4.2",
-    "juce-audio-processor": "^1.0.0",
+    "juce-audio-processor": "^1.0.13",
     "lucide-react": "^0.462.0",
     "next-themes": "^0.3.0",
     "react": "^18.3.1",
