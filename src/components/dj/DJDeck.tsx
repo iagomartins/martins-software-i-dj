@@ -136,6 +136,12 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
     setIsPlaying(false);
     setCuePoint(0);
 
+    // Set the audio source
+    if (audioRef.current) {
+      audioRef.current.src = URL.createObjectURL(file);
+      audioRef.current.load();
+    }
+
     // Initialize audio context
     await initAudioContext();
 
