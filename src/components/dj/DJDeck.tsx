@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { DJKnob } from "./DJKnob";
 import { DJButton } from "./DJButton";
 import { DJFader } from "./DJFader";
@@ -6,7 +6,11 @@ import { ScratchWheel } from "./ScratchWheel";
 import { PitchFader } from "./PitchFader";
 import { AudioWaveform } from "./AudioWaveform";
 import { useDJ } from "@/contexts/DJContext";
-import { useAudioEngine, AudioEffects, DeckAudioChain } from "@/hooks/useAudioEngine";
+import {
+  useAudioEngine,
+  AudioEffects,
+  DeckAudioChain,
+} from "@/hooks/useAudioEngine";
 
 interface DJDeckProps {
   deckNumber: 1 | 2;
@@ -15,15 +19,15 @@ interface DJDeckProps {
 
 function DJDeck({ deckNumber, deckState }: DJDeckProps) {
   const { state, dispatch } = useDJ();
-  const { 
-    initAudioContext, 
-    detectBPM, 
-    updateEQ, 
-    updateVolume, 
-    updatePitch, 
-    updateEffects, 
+  const {
+    initAudioContext,
+    detectBPM,
+    updateEQ,
+    updateVolume,
+    updatePitch,
+    updateEffects,
     setDeckChain,
-    createDeckChain 
+    createDeckChain,
   } = useAudioEngine();
 
   // Deck state
@@ -34,10 +38,10 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
     flanger: false,
     filter: false,
     echo: false,
-    reverb: false
+    reverb: false,
   });
-  
-    // Control values
+
+  // Control values
   const [lowEQ, setLowEQ] = useState(0);
   const [midEQ, setMidEQ] = useState(0);
   const [highEQ, setHighEQ] = useState(0);
@@ -59,20 +63,66 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
   const [baseBpm, setBaseBpm] = useState(120);
   const [cuePoint, setCuePoint] = useState(0);
   const [isHeadphoneActive, setIsHeadphoneActive] = useState(false);
-  
+
   const audioRef = useRef<HTMLAudioElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const deckChainRef = useRef<DeckAudioChain | null>(null); // Fix: Use proper type
 
-  const toggleEffect = (effectType: keyof AudioEffects) => {
-    const newEffects = { ...effectsActive, [effectType]: !effectsActive[effectType] };
+  const toggleEffect = async (effectType: keyof AudioEffects) => {
+    const newEffects = {
+      ...effectsActive,
+      [effectType]: !effectsActive[effectType],
+    };
     setEffectsActive(newEffects);
+
+    // Call Electron API for JUCE processing
+    if (window.electronAPI?.audio?.setFlanger && effectType === "flanger") {
+      try {
+        console.log(
+          `🎵 [React] Calling setFlanger - Deck: ${deckNumber}, Enabled: ${newEffects.flanger}`
+        );
+        const result = await window.electronAPI.audio.setFlanger(
+          deckNumber,
+          newEffects.flanger,
+          0.5,
+          0.3
+        );
+        console.log(`✓ [React] setFlanger result:`, result);
+      } catch (error) {
+        console.error(`✗ [React] setFlanger error:`, error);
+      }
+    }
+
+    if (window.electronAPI?.audio?.setFilter && effectType === "filter") {
+      try {
+        console.log(
+          ` [React] Calling setFilter - Deck: ${deckNumber}, Enabled: ${newEffects.filter}`
+        );
+        const result = await window.electronAPI.audio.setFilter(
+          deckNumber,
+          1000,
+          0.5
+        );
+        console.log(`✓ [React] setFilter result:`, result);
+      } catch (error) {
+        console.error(`✗ [React] setFilter error:`, error);
+      }
+    }
+
+    // Fallback to Web Audio API
     updateEffects(deckNumber, newEffects);
+
+    // Log the effect change
+    console.log(
+      `�� [Effects] ${effectType} ${
+        newEffects[effectType] ? "enabled" : "disabled"
+      } on deck ${deckNumber}`
+    );
   };
 
   const handleHeadphoneToggle = () => {
     setIsHeadphoneActive(!isHeadphoneActive);
-    dispatch({ type: 'TOGGLE_HEADPHONE_DECK', payload: deckNumber });
+    dispatch({ type: "TOGGLE_HEADPHONE_DECK", payload: deckNumber });
   };
 
   // Fix: Use isHeadphoneActive state instead of undefined activeHeadphoneDecks
@@ -85,10 +135,10 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
     setDuration(0);
     setIsPlaying(false);
     setCuePoint(0);
-    
+
     // Initialize audio context
     await initAudioContext();
-    
+
     // Detect BPM
     try {
       const arrayBuffer = await file.arrayBuffer();
@@ -97,15 +147,15 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
       const detectedBPM = await detectBPM(audioBuffer);
       setBaseBpm(detectedBPM);
       setBpm(detectedBPM);
-      
+
       // Create deck audio chain
       const deckChain = await createDeckChain(deckNumber, audioBuffer);
       if (
         deckChain &&
-        'reverbGain' in deckChain &&
-        'echoGain' in deckChain &&
-        'filterGain' in deckChain &&
-        'flangerGain' in deckChain
+        "reverbGain" in deckChain &&
+        "echoGain" in deckChain &&
+        "filterGain" in deckChain &&
+        "flangerGain" in deckChain
       ) {
         deckChainRef.current = deckChain as DeckAudioChain;
         setDeckChain(deckNumber, deckChain as DeckAudioChain);
@@ -113,7 +163,7 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
 
       audioContext.close();
     } catch (error) {
-      console.warn('Could not detect BPM:', error);
+      console.warn("Could not detect BPM:", error);
     }
   };
 
@@ -123,7 +173,7 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
 
   const handlePlayToggle = () => {
     if (!audioFile) return;
-    
+
     if (isPlaying) {
       setIsPlaying(false);
       if (audioRef.current) {
@@ -139,7 +189,7 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
 
   const handleCue = (pressed: boolean) => {
     if (!audioFile || !audioRef.current) return;
-    
+
     if (pressed) {
       // Store current position as cue point if not playing
       if (!isPlaying) {
@@ -165,10 +215,13 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
       const handleLoadedMetadata = () => {
         setDuration(audioRef.current?.duration || 0);
       };
-      
-      audioRef.current.addEventListener('loadedmetadata', handleLoadedMetadata);
+
+      audioRef.current.addEventListener("loadedmetadata", handleLoadedMetadata);
       return () => {
-        audioRef.current?.removeEventListener('loadedmetadata', handleLoadedMetadata);
+        audioRef.current?.removeEventListener(
+          "loadedmetadata",
+          handleLoadedMetadata
+        );
       };
     }
   }, [audioFile]);
@@ -182,7 +235,7 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
   useEffect(() => {
     const newBpm = baseBpm * Math.pow(2, pitch);
     setBpm(Number(newBpm.toFixed(2)));
-    
+
     // Update pitch in audio engine
     updatePitch(deckNumber, pitch);
   }, [pitch, baseBpm, deckNumber, updatePitch]);
@@ -192,16 +245,82 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
     updateEQ(deckNumber, { low: lowEQ, mid: midEQ, high: highEQ });
   }, [lowEQ, midEQ, highEQ, deckNumber, updateEQ]);
 
+  // Update audio playback rate when pitch changes
+  useEffect(() => {
+    if (audioRef.current && isPlaying) {
+      const playbackRate = Math.pow(2, pitch);
+      audioRef.current.playbackRate = playbackRate;
+      console.log(
+        `🎵 [Audio] Playback rate set to: ${playbackRate.toFixed(3)}`
+      );
+    }
+  }, [pitch, isPlaying]);
+
+  // Update audio volume when volume changes
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume;
+      console.log(`🎵 [Audio] Volume set to: ${(volume * 100).toFixed(1)}%`);
+    }
+  }, [volume]);
+
+  // Update audio time when jog wheel is used
+  const handleJogWheel = useCallback(
+    (delta: number) => {
+      if (audioRef.current && duration > 0) {
+        const timeChange = ((delta * duration) / (Math.PI * 2)) * 10; // Scale factor for sensitivity
+        const newTime = Math.max(
+          0,
+          Math.min(duration, currentTime + timeChange)
+        );
+        audioRef.current.currentTime = newTime;
+        setCurrentTime(newTime);
+        console.log(
+          `🎵 [Audio] Jog wheel: ${delta.toFixed(3)}, Time: ${newTime.toFixed(
+            2
+          )}s`
+        );
+      }
+    },
+    [currentTime, duration]
+  );
+
   // Initialize audio context
   useEffect(() => {
     initAudioContext();
   }, [initAudioContext]);
 
+  useEffect(() => {
+    console.log("🔍 [Debug] Checking Electron API availability...");
+    console.log("window.electronAPI:", window.electronAPI);
+    console.log("window.electronAPI?.audio:", window.electronAPI?.audio);
+    console.log(
+      "Available audio methods:",
+      window.electronAPI?.audio ? Object.keys(window.electronAPI.audio) : "none"
+    );
+  }, []);
+
   const handleDurationLoad = (audioDuration: number) => {
     setDuration(audioDuration);
   };
 
-    return (
+  // Add this useEffect to handle time updates
+  useEffect(() => {
+    if (audioRef.current) {
+      const handleTimeUpdate = () => {
+        if (audioRef.current) {
+          setCurrentTime(audioRef.current.currentTime);
+        }
+      };
+
+      audioRef.current.addEventListener("timeupdate", handleTimeUpdate);
+      return () => {
+        audioRef.current?.removeEventListener("timeupdate", handleTimeUpdate);
+      };
+    }
+  }, []);
+
+  return (
     <div className="bg-dj-console border border-border rounded-sm p-2 space-y-2 flex flex-col h-full">
       {/* Waveform Panel */}
       <AudioWaveform
@@ -228,7 +347,7 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
                 {bpm.toFixed(2)} BPM
               </span>
               <span className="text-[10px] text-muted-foreground bg-dj-panel px-1 py-0.5 rounded-sm">
-                {isPlaying ? '▶ PLAY' : isCued ? '⏸ CUE' : '⏹ STOP'}
+                {isPlaying ? "▶ PLAY" : isCued ? "⏸ CUE" : "⏹ STOP"}
               </span>
             </>
           )}
@@ -241,7 +360,9 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
         <div className="grid grid-cols-3 gap-2">
           {/* EQ Section */}
           <div className="bg-dj-panel rounded-sm p-2">
-            <h3 className="text-[10px] font-bold text-dj-panel-foreground mb-1 text-center">EQ</h3>
+            <h3 className="text-[10px] font-bold text-dj-panel-foreground mb-1 text-center">
+              EQ
+            </h3>
             <div className="flex gap-1">
               <DJKnob
                 label="HIGH"
@@ -269,41 +390,33 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
 
           {/* Center - Scratch Wheel */}
           <div className="flex justify-center">
-            <ScratchWheel 
-              isPlaying={isPlaying}
-              onScratch={(delta) => {
-                if (audioRef.current && duration > 0) {
-                  const timeChange = (delta * duration) / (Math.PI * 2) * 10; // Scale factor for sensitivity
-                  const newTime = Math.max(0, Math.min(duration, currentTime + timeChange));
-                  audioRef.current.currentTime = newTime;
-                  setCurrentTime(newTime);
-                }
-              }}
-            />
+            <ScratchWheel isPlaying={isPlaying} onScratch={handleJogWheel} />
           </div>
 
-                     {/* Right Side - Pitch and Volume */}
-           <div className="flex gap-2 justify-center">
-             <PitchFader
-               value={pitch}
-               onChange={setPitch}
-               deckNumber={deckNumber}
-               onDoubleClick={resetPitch}
-             />
-             <DJFader
-               label="VOLUME"
-               value={volume}
-               onChange={setVolume}
-               onDoubleClick={resetVolume}
-             />
-           </div>
+          {/* Right Side - Pitch and Volume */}
+          <div className="flex gap-2 justify-center">
+            <PitchFader
+              value={pitch}
+              onChange={setPitch}
+              deckNumber={deckNumber}
+              onDoubleClick={resetPitch}
+            />
+            <DJFader
+              label="VOLUME"
+              value={volume}
+              onChange={setVolume}
+              onDoubleClick={resetVolume}
+            />
+          </div>
         </div>
 
         {/* Bottom Row - Main Controls and Effects */}
         <div className="grid grid-cols-2 gap-2">
           {/* Main Controls */}
           <div className="bg-dj-panel rounded-sm p-2 space-y-1">
-          <h3 className="text-[10px] font-bold text-dj-panel-foreground mb-1 text-center">CONTROLS</h3>
+            <h3 className="text-[10px] font-bold text-dj-panel-foreground mb-1 text-center">
+              CONTROLS
+            </h3>
             <div className="grid grid-cols-2 gap-1">
               <DJButton
                 id={`deck${deckNumber}-cue`}
@@ -346,14 +459,16 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
 
           {/* Effects Section */}
           <div className="bg-dj-panel rounded-sm p-2">
-            <h3 className="text-[10px] font-bold text-dj-panel-foreground mb-1 text-center">EFFECTS</h3>
+            <h3 className="text-[10px] font-bold text-dj-panel-foreground mb-1 text-center">
+              EFFECTS
+            </h3>
             <div className="grid grid-cols-2 gap-1">
               <DJButton
                 key="flanger"
                 id={`deck${deckNumber}-fx1`}
                 label="FX1"
                 active={effectsActive.flanger}
-                onClick={() => toggleEffect('flanger')}
+                onClick={() => toggleEffect("flanger")}
                 size="xs"
               />
               <DJButton
@@ -361,7 +476,7 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
                 id={`deck${deckNumber}-fx2`}
                 label="FX2"
                 active={effectsActive.filter}
-                onClick={() => toggleEffect('filter')}
+                onClick={() => toggleEffect("filter")}
                 size="xs"
               />
               <DJButton
@@ -369,7 +484,7 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
                 id={`deck${deckNumber}-fx3`}
                 label="FX3"
                 active={effectsActive.echo}
-                onClick={() => toggleEffect('echo')}
+                onClick={() => toggleEffect("echo")}
                 size="xs"
               />
               <DJButton
@@ -377,31 +492,37 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
                 id={`deck${deckNumber}-fx4`}
                 label="FX4"
                 active={effectsActive.reverb}
-                onClick={() => toggleEffect('reverb')}
+                onClick={() => toggleEffect("reverb")}
                 size="xs"
               />
             </div>
           </div>
         </div>
       </div>
-      
+
       {/* Hidden audio element for playback control */}
-      <audio 
-        ref={audioRef} 
+      <audio
+        ref={audioRef}
         preload="metadata"
         onEnded={() => setIsPlaying(false)}
+        onTimeUpdate={() => {
+          if (audioRef.current) {
+            setCurrentTime(audioRef.current.currentTime);
+          }
+        }}
+        src={audioFile ? URL.createObjectURL(audioFile) : undefined}
       />
     </div>
   );
-};
+}
 
 // Helper function to format time
 const formatTime = (seconds: number): string => {
-  if (!seconds || isNaN(seconds)) return '0:00';
-  
+  if (!seconds || isNaN(seconds)) return "0:00";
+
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
 };
 
 export { DJDeck };
