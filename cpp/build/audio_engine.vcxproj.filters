@@ -14,6 +14,11 @@
     <CustomBuild Include="C:\Users\Avell\Documents\martins-software-i-dj\cpp\CMakeLists.txt" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="C:\Users\Avell\Documents\martins-software-i-dj\cpp\audio_engine.def">
+      <Filter>Source Files</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
     <Filter Include="Header Files">
       <UniqueIdentifier>{377BC8C9-8057-3DF2-BD51-DE28F34ABF36}</UniqueIdentifier>
     </Filter>
