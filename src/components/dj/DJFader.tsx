@@ -9,13 +9,13 @@ interface DJFaderProps {
   onDoubleClick?: () => void;
 }
 
-export const DJFader = ({ 
-  label, 
-  value, 
-  onChange, 
-  min = 0, 
+export const DJFader = ({
+  label,
+  value,
+  onChange,
+  min = 0,
   max = 1,
-  onDoubleClick
+  onDoubleClick,
 }: DJFaderProps) => {
   const [isDragging, setIsDragging] = useState(false);
 
@@ -26,12 +26,12 @@ export const DJFader = ({
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging) return;
-    
+
     const rect = e.currentTarget.getBoundingClientRect();
     const y = e.clientY - rect.top;
-    const percentage = 1 - (y / rect.height);
+    const percentage = 1 - y / rect.height;
     const newValue = min + percentage * (max - min);
-    
+
     onChange(Math.max(min, Math.min(max, newValue)));
   };
 
@@ -56,9 +56,11 @@ export const DJFader = ({
       >
         <div
           className="dj-fader-handle"
-          style={{ 
+          style={{
             bottom: `${position}%`,
-            boxShadow: isDragging ? `0 0 15px hsl(var(--neon-cyan))` : undefined
+            boxShadow: isDragging
+              ? `0 0 15px hsl(var(--neon-cyan))`
+              : undefined,
           }}
         />
       </div>

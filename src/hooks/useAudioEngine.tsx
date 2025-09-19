@@ -97,7 +97,22 @@ export const useAudioEngine = () => {
 
   // Check if we're in Electron with C++ audio engine
   const isElectronWithCpp = useCallback(() => {
-    return typeof window !== "undefined" && window.electronAPI?.audio;
+    console.log("�� DEBUGGING electronAPI:");
+    console.log("- typeof window:", typeof window);
+    console.log("- window.electronAPI:", window.electronAPI);
+    console.log("- window.electronAPI?.audio:", window.electronAPI?.audio);
+
+    if (window.electronAPI?.audio) {
+      console.log(
+        "- Available audio methods:",
+        Object.keys(window.electronAPI.audio)
+      );
+    }
+
+    const result = typeof window !== "undefined" && window.electronAPI?.audio;
+    console.log("- isElectronWithCpp result:", result);
+
+    return result;
   }, []);
 
   const initAudioContext = useCallback(async () => {
@@ -422,14 +437,22 @@ export const useAudioEngine = () => {
 
   const updateVolume = useCallback(
     (deckNumber: 1 | 2, volume: number) => {
+      console.log(
+        `🔍 updateVolume called: deck=${deckNumber}, volume=${volume}`
+      );
+      console.log(` isElectronWithCpp():`, isElectronWithCpp());
+
       // Use C++ audio engine if available
       if (isElectronWithCpp()) {
         try {
+          console.log(` Calling C++ setDeckVolume...`);
           window.electronAPI!.audio.setDeckVolume(deckNumber, volume);
-          console.log(`C++ volume updated for deck ${deckNumber}:`, volume);
+          console.log(`✅ C++ volume updated for deck ${deckNumber}:`, volume);
         } catch (error) {
-          console.error("Failed to update C++ volume:", error);
+          console.error("❌ Failed to update C++ volume:", error);
         }
+      } else {
+        console.log("⚠️ Using Web Audio fallback");
       }
 
       // Fallback to Web Audio API
