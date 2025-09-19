@@ -1,0 +1,15 @@
+EXPORTS
+AudioEngine_New
+AudioEngine_Delete
+AudioEngine_Initialize
+AudioEngine_Shutdown
+AudioEngine_SetDeckPlaying
+AudioEngine_SetDeckVolume
+AudioEngine_SetDeckPitch
+AudioEngine_SetDeckPosition
+AudioEngine_SetDeckFile
+AudioEngine_SetEffect
+AudioEngine_SetEQ
+AudioEngine_SetCrossfader
+AudioEngine_SetMasterVolume
+AudioEngine_SetHeadphoneVolume

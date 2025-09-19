@@ -1,0 +1,10 @@
+^C:\USERS\AVELL\DOCUMENTS\MARTINS-SOFTWARE-I-DJ\CPP\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/Avell/Documents/martins-software-i-dj/cpp -BC:/Users/Avell/Documents/martins-software-i-dj/cpp/build --check-stamp-file C:/Users/Avell/Documents/martins-software-i-dj/cpp/build/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

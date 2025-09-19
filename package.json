@@ -11,9 +11,10 @@
     "preview": "vite preview",
     "electron": "electron .",
     "build": "vite build",
-    "electron:dev": "electron .\"",
+    "electron:dev": "npm run electron .",
     "electron:start": "electron .",
-    "electron:build": "npm run build && electron ."
+    "electron:build": "npm run build && electron .",
+    "build:all": "npm run build && npm run build:audio"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -52,8 +53,10 @@
     "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.6.0",
     "input-otp": "^1.4.2",
+    "koffi": "^2.14.1",
     "lucide-react": "^0.462.0",
     "next-themes": "^0.3.0",
+    "node-gyp": "^11.4.2",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",
