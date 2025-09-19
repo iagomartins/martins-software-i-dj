@@ -22,7 +22,6 @@ export const AudioWaveform = ({
   onDurationLoad,
 }: AudioWaveformProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const audioRef = useRef<HTMLAudioElement>(null);
   const animationRef = useRef<number>();
   const [waveformData, setWaveformData] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -36,7 +35,7 @@ export const AudioWaveform = ({
     }
   };
 
-  // Generate waveform data from audio file
+  // Generate waveform data from audio file (for visualization only)
   const generateWaveform = async (file: File) => {
     setIsLoading(true);
     try {
@@ -52,15 +51,21 @@ export const AudioWaveform = ({
       const waveform: number[] = [];
 
       for (let i = 0; i < samples; i++) {
-        const start = blockSize * i;
+        const start = i * blockSize;
+        const end = Math.min(start + blockSize, channelData.length);
         let sum = 0;
-        for (let j = 0; j < blockSize; j++) {
-          sum += Math.abs(channelData[start + j]);
+        let count = 0;
+
+        for (let j = start; j < end; j++) {
+          sum += Math.abs(channelData[j]);
+          count++;
         }
-        waveform.push(sum / blockSize);
+
+        waveform.push(count > 0 ? sum / count : 0);
       }
 
       setWaveformData(waveform);
+      onDurationLoad(audioBuffer.duration);
       audioContext.close();
     } catch (error) {
       console.error("Error generating waveform:", error);
@@ -69,7 +74,7 @@ export const AudioWaveform = ({
     }
   };
 
-  // Optimized draw function with proper canvas scaling
+  // Draw waveform
   const drawWaveform = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas || waveformData.length === 0) return;
@@ -77,24 +82,10 @@ export const AudioWaveform = ({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Get actual display size
-    const rect = canvas.getBoundingClientRect();
-    const displayWidth = rect.width;
-    const displayHeight = rect.height;
+    const { width, height } = canvasSizeRef.current;
 
-    // Set canvas internal size to match display size (fixes scaling issues)
-    if (canvas.width !== displayWidth || canvas.height !== displayHeight) {
-      canvas.width = displayWidth;
-      canvas.height = displayHeight;
-      canvasSizeRef.current = { width: displayWidth, height: displayHeight };
-    }
-
-    const { width, height } = canvas;
+    // Clear canvas
     ctx.clearRect(0, 0, width, height);
-
-    // Enable image smoothing for better quality
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = "high";
 
     // Draw waveform with better performance
     const barWidth = width / waveformData.length;
@@ -104,92 +95,52 @@ export const AudioWaveform = ({
     // Batch draw operations for better performance
     ctx.save();
 
-    // Draw unplayed bars first (background)
-    ctx.fillStyle = "hsl(var(--soft-darker))";
-    waveformData.forEach((amplitude, index) => {
-      const barHeight = (amplitude / maxAmplitude) * height * 0.6;
-      const x = index * barWidth;
+    // Draw background
+    ctx.fillStyle = "#1a1a1a";
+    ctx.fillRect(0, 0, width, height);
+
+    // Draw waveform bars
+    ctx.fillStyle = "#333";
+    for (let i = 0; i < waveformData.length; i++) {
+      const barHeight = (waveformData[i] / maxAmplitude) * height * 0.8;
+      const x = i * barWidth;
       const y = (height - barHeight) / 2;
 
-      if (x >= progressX) {
-        ctx.fillRect(x, y, Math.max(1, barWidth - 1), barHeight);
-      }
-    });
+      ctx.fillRect(x, y, barWidth - 1, barHeight);
+    }
 
-    // Draw played bars (foreground)
-    ctx.fillStyle = "#DEDEDE";
-    waveformData.forEach((amplitude, index) => {
-      const barHeight = (amplitude / maxAmplitude) * height * 0.6;
-      const x = index * barWidth;
-      const y = (height - barHeight) / 2;
+    // Draw progress overlay
+    if (progressX > 0) {
+      ctx.fillStyle = "rgba(0, 255, 255, 0.3)";
+      ctx.fillRect(0, 0, progressX, height);
+    }
 
-      if (x < progressX) {
-        ctx.fillRect(x, y, Math.max(1, barWidth - 1), barHeight);
-      }
-    });
+    // Draw progress line
+    if (progressX > 0) {
+      ctx.strokeStyle = "#00ffff";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(progressX, 0);
+      ctx.lineTo(progressX, height);
+      ctx.stroke();
+    }
 
     ctx.restore();
-
-    // Draw progress line with better precision
-    if (duration > 0) {
-      ctx.save();
-      ctx.strokeStyle = "#3C3C3C";
-      ctx.lineWidth = 2;
-      ctx.lineCap = "round";
-
-      // Anti-aliased line
-      ctx.beginPath();
-      ctx.moveTo(progressX + 0.5, 0);
-      ctx.lineTo(progressX + 0.5, height);
-      ctx.stroke();
-
-      // Progress indicator circle
-      ctx.fillStyle = "#6C6C91";
-      ctx.beginPath();
-      ctx.arc(progressX, height / 2, 4, 0, 2 * Math.PI);
-      ctx.fill();
-
-      ctx.restore();
-    }
   }, [waveformData, currentTime, duration]);
 
-  // Update audio time
-  const updateTime = () => {
-    if (audioRef.current) {
-      const time = audioRef.current.currentTime;
-      onTimeUpdate(time);
-    }
-  };
-
-  // High-precision click handling with proper coordinate mapping
+  // Handle canvas click for seeking
   const handleCanvasClick = useCallback(
     (event: React.MouseEvent<HTMLCanvasElement>) => {
-      if (!duration) return;
-
       const canvas = canvasRef.current;
-      if (!canvas) return;
+      if (!canvas || duration <= 0) return;
 
-      // Get precise click coordinates relative to canvas
       const rect = canvas.getBoundingClientRect();
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
-
-      const x = (event.clientX - rect.left) * scaleX;
-      const y = (event.clientY - rect.top) * scaleY;
-
-      // Ensure click is within canvas bounds
-      if (x < 0 || x > canvas.width || y < 0 || y > canvas.height) return;
-
-      // Calculate precise seek time
-      const seekTime = (x / canvas.width) * duration;
-
-      // Clamp seek time to valid range
+      const x = event.clientX - rect.left;
+      const seekTime = (x / rect.width) * duration;
       const clampedTime = Math.max(0, Math.min(seekTime, duration));
 
-      if (audioRef.current) {
-        audioRef.current.currentTime = clampedTime;
-        onTimeUpdate(clampedTime);
-      }
+      // Notify parent component about the seek
+      onTimeUpdate(clampedTime);
     },
     [duration, onTimeUpdate]
   );
@@ -201,7 +152,6 @@ export const AudioWaveform = ({
     }
   }, [audioFile]);
 
-  // Optimized redraw with requestAnimationFrame
   useEffect(() => {
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current);
@@ -216,146 +166,93 @@ export const AudioWaveform = ({
     };
   }, [drawWaveform]);
 
+  // Resize canvas
   useEffect(() => {
-    if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.play();
-        audioRef.current.addEventListener("timeupdate", updateTime);
-      } else {
-        audioRef.current.pause();
-        audioRef.current.removeEventListener("timeupdate", updateTime);
-      }
-    }
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.removeEventListener("timeupdate", updateTime);
+    const resizeCanvas = () => {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+
+      canvasSizeRef.current = { width: rect.width, height: rect.height };
+
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.scale(dpr, dpr);
       }
+
+      drawWaveform();
     };
-  }, [isPlaying]);
 
-  useEffect(() => {
-    if (audioRef.current && audioFile) {
-      const url = URL.createObjectURL(audioFile);
-      audioRef.current.src = url;
-      return () => URL.revokeObjectURL(url);
-    }
-  }, [audioFile]);
+    resizeCanvas();
+    window.addEventListener("resize", resizeCanvas);
 
-  useEffect(() => {
-    if (audioRef.current && audioFile) {
-      const handleLoadedMetadata = () => {
-        if (audioRef.current) {
-          const audioDuration = audioRef.current.duration;
-          if (!isNaN(audioDuration) && audioDuration > 0) {
-            onDurationLoad(audioDuration);
-          }
-        }
-      };
+    return () => window.removeEventListener("resize", resizeCanvas);
+  }, [drawWaveform]);
 
-      audioRef.current.addEventListener("loadedmetadata", handleLoadedMetadata);
+  // Helper function to format time
+  const formatTime = (seconds: number): string => {
+    if (!seconds || isNaN(seconds)) return "0:00";
 
-      return () => {
-        if (audioRef.current) {
-          audioRef.current.removeEventListener(
-            "loadedmetadata",
-            handleLoadedMetadata
-          );
-        }
-      };
-    }
-  }, [audioFile, onDurationLoad]);
-
-  // Cleanup animation frame
-  useEffect(() => {
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, []);
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
 
   return (
-    <div className="waveform-panel bg-dj-panel rounded-sm p-2 space-y-1">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <h3 className="text-[10px] font-bold text-dj-panel-foreground">
-            DECK {deckNumber} WAVEFORM
-          </h3>
-          {audioFile && (
-            <span className="text-[10px] text-neon-cyan/80 truncate max-w-[100px]">
-              {audioFile.name.replace(/\.[^/.]+$/, "")}
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-1">
-          <input
-            type="file"
-            accept="audio/*"
-            onChange={handleFileChange}
-            className="hidden"
-            id={`audio-file-${deckNumber}`}
+    <div className="bg-dj-panel rounded-sm p-2 space-y-2">
+      {/* File input */}
+      <div className="flex items-center gap-2">
+        <input
+          type="file"
+          accept="audio/*"
+          onChange={handleFileChange}
+          className="hidden"
+          id={`file-input-${deckNumber}`}
+        />
+        <label
+          htmlFor={`file-input-${deckNumber}`}
+          className="px-3 py-1 bg-dj-button text-dj-button-foreground rounded-sm text-xs font-medium cursor-pointer hover:bg-dj-button/80 transition-colors"
+        >
+          {audioFile ? "Change Track" : "Load Track"}
+        </label>
+
+        {isLoading && (
+          <span className="text-xs text-muted-foreground">Loading...</span>
+        )}
+      </div>
+
+      {/* Waveform canvas */}
+      <div className="relative">
+        <canvas
+          ref={canvasRef}
+          onClick={handleCanvasClick}
+          className="w-full h-16 bg-dj-panel border border-border rounded-sm cursor-pointer"
+          style={{ imageRendering: "pixelated" }}
+        />
+
+        {/* Progress bar overlay */}
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-dj-panel rounded-b-sm overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-r from-neon-cyan to-neon-magenta transition-all duration-100 ease-out"
+            style={{
+              width: duration > 0 ? `${(currentTime / duration) * 100}%` : "0%",
+            }}
           />
-          <label
-            htmlFor={`audio-file-${deckNumber}`}
-            className="px-2 py-1 bg-neon-cyan/20 text-neon-cyan border border-neon-cyan/30 rounded-sm text-[10px] font-medium cursor-pointer hover:bg-neon-cyan/30 transition-colors"
-          >
-            LOAD
-          </label>
         </div>
       </div>
 
-      {isLoading && (
-        <div className="flex items-center justify-center h-12 text-neon-cyan">
-          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-neon-cyan"></div>
-          <span className="ml-1 text-[10px]">Loading...</span>
-        </div>
-      )}
-
-      {!isLoading && waveformData.length === 0 && (
-        <div className="flex items-center justify-center h-12 text-muted-foreground border-2 border-dashed border-border rounded-sm">
-          <span className="text-[10px]">No audio loaded</span>
-        </div>
-      )}
-
-      {waveformData.length > 0 && (
-        <>
-          {/* Progress bar above canvas */}
-          <div className="w-full h-1 rounded-sm overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-neon-cyan to-neon-magenta transition-all duration-100 ease-out"
-              style={{
-                width:
-                  duration > 0 ? `${(currentTime / duration) * 100}%` : "0%",
-              }}
-            />
-          </div>
-
-          <canvas
-            ref={canvasRef}
-            className="w-full h-12 rounded-sm cursor-pointer border border-border/50 hover:border-neon-cyan/50 transition-colors"
-            onClick={handleCanvasClick}
-          />
-
-          <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-            <span className="text-neon-cyan font-medium">
-              {formatTime(currentTime)}
-            </span>
-            <span>{formatTime(duration)}</span>
-          </div>
-        </>
-      )}
-
-      <audio ref={audioRef} preload="metadata" />
+      {/* Time display */}
+      <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+        <span className="text-neon-cyan font-medium">
+          {formatTime(currentTime)}
+        </span>
+        <span>{formatTime(duration)}</span>
+      </div>
     </div>
   );
-};
-
-// Helper function to format time
-const formatTime = (seconds: number): string => {
-  if (!seconds || isNaN(seconds)) return "0:00";
-
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${mins}:${secs.toString().padStart(2, "0")}`;
 };

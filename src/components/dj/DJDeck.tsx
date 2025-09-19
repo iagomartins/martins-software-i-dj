@@ -127,6 +127,14 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
 
   const handleTimeUpdate = (time: number) => {
     setCurrentTime(time);
+    // Update C++ audio engine position
+    if (typeof window !== "undefined" && window.electronAPI?.audio) {
+      try {
+        window.electronAPI.audio.setDeckPosition(deckNumber, time);
+      } catch (error) {
+        console.error("Failed to update C++ deck position:", error);
+      }
+    }
   };
 
   const handlePlayToggle = () => {
@@ -222,7 +230,7 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
 
   return (
     <div className="bg-dj-console border border-border rounded-sm p-2 space-y-2 flex flex-col h-full">
-      {/* Waveform Panel */}
+      {/* Waveform Panel - Now purely visual */}
       <AudioWaveform
         deckNumber={deckNumber}
         audioFile={audioFile}
@@ -418,6 +426,11 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
         ref={audioRef}
         preload="metadata"
         onEnded={() => setIsPlaying(false)}
+        onTimeUpdate={() => {
+          if (audioRef.current) {
+            handleTimeUpdate(audioRef.current.currentTime);
+          }
+        }}
       />
     </div>
   );
