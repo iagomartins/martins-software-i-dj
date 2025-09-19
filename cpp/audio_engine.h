@@ -5,6 +5,8 @@
 #include <vector>
 #include <string>
 #include <mutex>
+#include <fstream>
+#include <algorithm>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -14,6 +16,18 @@
 #endif
 
 #include <portaudio.h>
+
+// Audio file structure for loaded audio data
+struct AudioFile {
+    std::vector<float> leftChannel;
+    std::vector<float> rightChannel;
+    int sampleRate;
+    int channels;
+    float duration;
+    bool loaded;
+    
+    AudioFile() : sampleRate(44100), channels(2), duration(0.0f), loaded(false) {}
+};
 
 // C-compatible exports for Koffi
 extern "C" {
@@ -66,7 +80,7 @@ struct AudioState {
     std::atomic<bool> deck2_echo{false};
     std::atomic<bool> deck2_reverb{false};
     
-    // File paths (add these missing members)
+    // File paths
     char deck1_file[256]{0};
     char deck2_file[256]{0};
     
@@ -75,7 +89,7 @@ struct AudioState {
     std::atomic<float> master_volume{0.8f};
     std::atomic<float> headphone_volume{0.8f};
     
-    // EQ controls (fix the naming to match what the code expects)
+    // EQ controls
     std::atomic<float> deck1_low_eq{0.0f};
     std::atomic<float> deck1_mid_eq{0.0f};
     std::atomic<float> deck1_high_eq{0.0f};
@@ -117,6 +131,10 @@ private:
     void audioThread();
     void processAudio();
     
+    // Audio file loading
+    bool loadWavFile(const std::string& filepath, AudioFile& audioFile);
+    bool loadAudioFile(const std::string& filepath, AudioFile& audioFile);
+    
     AudioState* shared_state_;
     void* shared_memory_;
     size_t shared_memory_size_;
@@ -129,4 +147,15 @@ private:
     int sample_rate_;
     int buffer_size_;
     PaStream* audio_stream_;
+    
+    // Audio files for each deck
+    AudioFile deck1_audio_;
+    AudioFile deck2_audio_;
+    
+    // Playback positions (in samples)
+    std::atomic<size_t> deck1_position_{0};
+    std::atomic<size_t> deck2_position_{0};
+    
+    // Mutex for thread safety
+    std::mutex audio_mutex_;
 };

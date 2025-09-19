@@ -87,6 +87,8 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
   const isHeadphone = isHeadphoneActive;
 
   // Audio handling functions
+  const [tempFilePath, setTempFilePath] = useState<string | null>(null);
+
   const handleAudioLoad = async (file: File) => {
     setAudioFile(file);
     setCurrentTime(0);
@@ -96,6 +98,43 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
 
     // Initialize audio context
     await initAudioContext();
+
+    // Load file into C++ audio engine if available
+    if (
+      typeof window !== "undefined" &&
+      window.electronAPI?.audio &&
+      window.electronAPI?.fs
+    ) {
+      try {
+        // Save file to temporary location and get path
+        const arrayBuffer = await file.arrayBuffer();
+        const fileName = file.name;
+
+        // Create a temporary file path
+        const tempPath = `C:/temp/${Date.now()}_${fileName}`;
+
+        console.log(`⚠️ Saving file to temp location: ${tempPath}`);
+
+        // Save file to temp location
+        const result = await window.electronAPI.fs.writeFile(
+          tempPath,
+          arrayBuffer
+        );
+
+        if (result.success) {
+          console.log(`✅ File saved successfully: ${result.path}`);
+          setTempFilePath(tempPath); // Store for cleanup
+          await window.electronAPI.audio.setDeckFile(deckNumber, tempPath);
+          console.log(
+            `✅ File loaded into C++ audio engine for deck ${deckNumber}`
+          );
+        } else {
+          console.error(`❌ Failed to save file: ${result.error}`);
+        }
+      } catch (error) {
+        console.error("Failed to load file into C++ audio engine:", error);
+      }
+    }
 
     // Detect BPM
     try {
@@ -229,6 +268,16 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
   const handleDurationLoad = (audioDuration: number) => {
     setDuration(audioDuration);
   };
+
+  // Add cleanup effect
+  useEffect(() => {
+    return () => {
+      // Cleanup temp file when component unmounts
+      if (tempFilePath && window.electronAPI?.fs) {
+        window.electronAPI.fs.unlink(tempFilePath).catch(console.error);
+      }
+    };
+  }, [tempFilePath]);
 
   return (
     <div className="bg-dj-console border border-border rounded-sm p-2 space-y-2 flex flex-col h-full">
