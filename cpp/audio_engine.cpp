@@ -2,13 +2,20 @@
 #include <iostream>
 #include <cstring>
 #include <chrono>
+#include <portaudio.h>
+
+// Add M_PI definition for Windows
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 AudioEngine::AudioEngine() 
     : shared_state_(nullptr)
     , shared_memory_(nullptr)
     , shared_memory_size_(sizeof(AudioState))
     , sample_rate_(44100)
-    , buffer_size_(512) {
+    , buffer_size_(512)
+    , audio_stream_(nullptr) {
 }
 
 AudioEngine::~AudioEngine() {
@@ -16,7 +23,44 @@ AudioEngine::~AudioEngine() {
 }
 
 bool AudioEngine::initialize() {
-    // Create shared memory
+    // Initialize PortAudio
+    PaError err = Pa_Initialize();
+    if (err != paNoError) {
+        std::cerr << "PortAudio initialization failed: " << Pa_GetErrorText(err) << std::endl;
+        return false;
+    }
+    
+    // List available audio devices
+    int numDevices = Pa_GetDeviceCount();
+    std::cout << "Available audio devices:" << std::endl;
+    
+    int asioDevice = -1;
+    int defaultOutputDevice = Pa_GetDefaultOutputDevice();
+    
+    for (int i = 0; i < numDevices; i++) {
+        const PaDeviceInfo* deviceInfo = Pa_GetDeviceInfo(i);
+        std::cout << "Device " << i << ": " << deviceInfo->name;
+        std::cout << " (Host API: " << Pa_GetHostApiInfo(deviceInfo->hostApi)->name << ")";
+        std::cout << " (Max outputs: " << deviceInfo->maxOutputChannels << ")" << std::endl;
+        
+        // Look for ASIO devices
+        if (deviceInfo->maxOutputChannels > 0 && 
+            strstr(Pa_GetHostApiInfo(deviceInfo->hostApi)->name, "ASIO") != nullptr) {
+            asioDevice = i;
+            std::cout << "  ^ ASIO device found!" << std::endl;
+        }
+    }
+    
+    // Choose device (prefer ASIO, fallback to default)
+    PaDeviceIndex outputDevice = (asioDevice != -1) ? asioDevice : defaultOutputDevice;
+    
+    if (asioDevice != -1) {
+        std::cout << "Using ASIO device: " << Pa_GetDeviceInfo(outputDevice)->name << std::endl;
+    } else {
+        std::cout << "Using default device: " << Pa_GetDeviceInfo(outputDevice)->name << std::endl;
+    }
+    
+    // Create shared memory (existing code)
 #ifdef _WIN32
     HANDLE hMapFile = CreateFileMappingA(
         INVALID_HANDLE_VALUE,
@@ -29,12 +73,14 @@ bool AudioEngine::initialize() {
     
     if (hMapFile == NULL) {
         std::cerr << "Failed to create shared memory" << std::endl;
+        Pa_Terminate();
         return false;
     }
     
     shared_memory_ = MapViewOfFile(hMapFile, FILE_MAP_ALL_ACCESS, 0, 0, shared_memory_size_);
     if (shared_memory_ == NULL) {
         CloseHandle(hMapFile);
+        Pa_Terminate();
         return false;
     }
 #else
@@ -57,7 +103,50 @@ bool AudioEngine::initialize() {
     close(fd);
 #endif
     
+    // Initialize shared state
     shared_state_ = static_cast<AudioState*>(shared_memory_);
+    memset(shared_state_, 0, sizeof(AudioState));
+    
+    // Set up audio stream with specific device
+    PaStreamParameters outputParams;
+    outputParams.device = outputDevice;
+    outputParams.channelCount = 2;  // Stereo
+    outputParams.sampleFormat = paFloat32;
+    outputParams.suggestedLatency = Pa_GetDeviceInfo(outputDevice)->defaultLowOutputLatency;
+    outputParams.hostApiSpecificStreamInfo = nullptr;
+    
+    err = Pa_OpenStream(
+        &audio_stream_,
+        nullptr,        // No input
+        &outputParams,  // Output parameters
+        sample_rate_,
+        buffer_size_,
+        paClipOff,      // Don't clip
+        audioCallback,
+        this
+    );
+    
+    if (err != paNoError) {
+        std::cerr << "Failed to open audio stream: " << Pa_GetErrorText(err) << std::endl;
+        Pa_Terminate();
+        return false;
+    }
+    
+    // Start audio stream
+    err = Pa_StartStream(audio_stream_);
+    if (err != paNoError) {
+        std::cerr << "Failed to start audio stream: " << Pa_GetErrorText(err) << std::endl;
+        Pa_CloseStream(audio_stream_);
+        Pa_Terminate();
+        return false;
+    }
+    
+    // Check if stream is actually running
+    if (Pa_IsStreamActive(audio_stream_)) {
+        std::cout << "✅ Audio stream is ACTIVE and running!" << std::endl;
+    } else {
+        std::cerr << "❌ Audio stream is NOT active!" << std::endl;
+    }
     
     // Initialize audio buffer
     audio_buffer_.resize(buffer_size_ * 2); // Stereo
@@ -76,6 +165,14 @@ void AudioEngine::shutdown() {
     if (audio_thread_.joinable()) {
         audio_thread_.join();
     }
+
+    if (audio_stream_) {
+        Pa_StopStream(audio_stream_);
+        Pa_CloseStream(audio_stream_);
+        audio_stream_ = nullptr;
+    }
+    
+    Pa_Terminate();
     
     if (shared_memory_) {
 #ifdef _WIN32
@@ -88,10 +185,22 @@ void AudioEngine::shutdown() {
 }
 
 void AudioEngine::setDeckPlaying(int deck, bool playing) {
-    if (deck == 1) {
-        shared_state_->deck1_playing = playing;
-    } else if (deck == 2) {
-        shared_state_->deck2_playing = playing;
+    if (!shared_state_) {
+        std::cerr << "❌ setDeckPlaying: shared_state_ is null!" << std::endl;
+        return;
+    }
+    
+    std::cout << " C++ setDeckPlaying called: deck=" << deck << ", playing=" << playing << std::endl;
+    
+    if (deck >= 1 && deck <= 2) {
+        shared_state_->deck_playing[deck - 1].store(playing);
+        std::cout << "✅ C++ deck " << deck << " playing state set to: " << playing << std::endl;
+        
+        // Verify the value was set
+        bool actualValue = shared_state_->deck_playing[deck - 1].load();
+        std::cout << " Verified deck " << deck << " playing state: " << actualValue << std::endl;
+    } else {
+        std::cerr << "❌ Invalid deck number: " << deck << std::endl;
     }
 }
 
@@ -183,14 +292,69 @@ void AudioEngine::audioThread() {
 void AudioEngine::processAudio() {
     // This is where you'd implement actual audio processing
     // For now, just update positions using proper atomic operations
-    if (shared_state_->deck1_playing) {
+    if (shared_state_->deck_playing[0].load()) { // Changed from deck1_playing to deck_playing[0]
         float current_pos = shared_state_->deck1_position.load();
         shared_state_->deck1_position.store(current_pos + 0.01f); // Simulate playback
     }
-    if (shared_state_->deck2_playing) {
+    if (shared_state_->deck_playing[1].load()) { // Changed from deck2_playing to deck_playing[1]
         float current_pos = shared_state_->deck2_position.load();
         shared_state_->deck2_position.store(current_pos + 0.01f);
     }
+}
+
+// Add audio callback function
+int AudioEngine::audioCallback(const void* inputBuffer, void* outputBuffer,
+                              unsigned long framesPerBuffer,
+                              const PaStreamCallbackTimeInfo* timeInfo,
+                              PaStreamCallbackFlags statusFlags,
+                              void* userData) {
+    AudioEngine* engine = static_cast<AudioEngine*>(userData);
+    float* out = static_cast<float*>(outputBuffer);
+    
+    // Clear output buffer
+    memset(out, 0, framesPerBuffer * 2 * sizeof(float));
+    
+    // Check if any deck is playing
+    bool deck1Playing = false;
+    bool deck2Playing = false;
+    
+    if (engine->shared_state_) {
+        deck1Playing = engine->shared_state_->deck_playing[0].load();
+        deck2Playing = engine->shared_state_->deck_playing[1].load();
+    }
+    
+    if (deck1Playing || deck2Playing) {
+        // Generate test tones
+        static float phase1 = 0.0f;
+        static float phase2 = 0.0f;
+        
+        float frequency1 = 440.0f;  // A4
+        float frequency2 = 554.37f; // C#5
+        float sampleRate = 44100.0f;
+        float volume = 0.3f;
+        
+        for (unsigned long i = 0; i < framesPerBuffer; i++) {
+            float leftSample = 0.0f;
+            float rightSample = 0.0f;
+            
+            if (deck1Playing) {
+                leftSample += volume * sinf(phase1);
+                phase1 += 2.0f * M_PI * frequency1 / sampleRate;
+                if (phase1 > 2.0f * M_PI) phase1 -= 2.0f * M_PI;
+            }
+            
+            if (deck2Playing) {
+                rightSample += volume * sinf(phase2);
+                phase2 += 2.0f * M_PI * frequency2 / sampleRate;
+                if (phase2 > 2.0f * M_PI) phase2 -= 2.0f * M_PI;
+            }
+            
+            out[i * 2] = leftSample;     // Left channel
+            out[i * 2 + 1] = rightSample; // Right channel
+        }
+    }
+    
+    return paContinue;
 }
 
 // C-compatible exports

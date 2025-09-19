@@ -142,16 +142,18 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
 
     if (isPlaying) {
       setIsPlaying(false);
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
+      // Remove this - C++ engine handles playback
+      // if (audioRef.current) {
+      //   audioRef.current.pause();
+      // }
       // Update C++ audio engine
       setDeckPlaying(deckNumber, false);
     } else {
       setIsPlaying(true);
-      if (audioRef.current) {
-        audioRef.current.play();
-      }
+      // Remove this - C++ engine handles playback
+      // if (audioRef.current) {
+      //   audioRef.current.play();
+      // }
       // Update C++ audio engine
       setDeckPlaying(deckNumber, true);
     }

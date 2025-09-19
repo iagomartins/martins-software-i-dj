@@ -13,6 +13,8 @@
 #include <fcntl.h>
 #endif
 
+#include <portaudio.h>
+
 // C-compatible exports for Koffi
 extern "C" {
     // Create and destroy
@@ -41,8 +43,10 @@ extern "C" {
 }
 
 struct AudioState {
+    // Deck playing states (array format)
+    std::atomic<bool> deck_playing[2]{false, false};
+    
     // Deck 1
-    std::atomic<bool> deck1_playing{false};
     std::atomic<float> deck1_volume{0.8f};
     std::atomic<float> deck1_pitch{0.0f};
     std::atomic<float> deck1_position{0.0f};
@@ -53,7 +57,6 @@ struct AudioState {
     std::atomic<bool> deck1_reverb{false};
     
     // Deck 2
-    std::atomic<bool> deck2_playing{false};
     std::atomic<float> deck2_volume{0.8f};
     std::atomic<float> deck2_pitch{0.0f};
     std::atomic<float> deck2_position{0.0f};
@@ -63,16 +66,16 @@ struct AudioState {
     std::atomic<bool> deck2_echo{false};
     std::atomic<bool> deck2_reverb{false};
     
-    // Master controls
-    std::atomic<float> crossfader{0.5f};
-    std::atomic<float> master_volume{1.0f};
-    std::atomic<float> headphone_volume{1.0f};
-    
-    // File paths (fixed size for shared memory)
+    // File paths (add these missing members)
     char deck1_file[256]{0};
     char deck2_file[256]{0};
     
-    // EQ controls
+    // Master controls
+    std::atomic<float> crossfader{0.5f};
+    std::atomic<float> master_volume{0.8f};
+    std::atomic<float> headphone_volume{0.8f};
+    
+    // EQ controls (fix the naming to match what the code expects)
     std::atomic<float> deck1_low_eq{0.0f};
     std::atomic<float> deck1_mid_eq{0.0f};
     std::atomic<float> deck1_high_eq{0.0f};
@@ -105,6 +108,12 @@ public:
     AudioState* getState() { return shared_state_; }
     
 private:
+    static int audioCallback(const void* inputBuffer, void* outputBuffer,
+                           unsigned long framesPerBuffer,
+                           const PaStreamCallbackTimeInfo* timeInfo,
+                           PaStreamCallbackFlags statusFlags,
+                           void* userData);
+    
     void audioThread();
     void processAudio();
     
@@ -119,4 +128,5 @@ private:
     std::vector<float> audio_buffer_;
     int sample_rate_;
     int buffer_size_;
+    PaStream* audio_stream_;
 };
