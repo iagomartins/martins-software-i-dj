@@ -120,6 +120,7 @@ public:
     
     // Getters
     AudioState* getState() { return shared_state_; }
+    float getDeckPosition(int deck);
     
 private:
     static int audioCallback(const void* inputBuffer, void* outputBuffer,

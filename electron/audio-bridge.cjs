@@ -1,11 +1,14 @@
 const koffi = require("koffi");
-const path = require("path");
 const fs = require("fs");
+const path = require("path");
 
 class AudioBridge {
   constructor() {
     this.audioEngine = null;
     this.isInitialized = false;
+    this.functions = null;
+
+    // Fix the DLL path - it should be in the dist folder
     this.dllPath = path.join(
       __dirname,
       "..",
@@ -14,16 +17,31 @@ class AudioBridge {
       "Release",
       "audio_engine.dll"
     );
+
+    console.log(" Looking for DLL at:", this.dllPath);
+    console.log("🔍 DLL exists:", fs.existsSync(this.dllPath));
   }
 
   async initialize() {
     try {
       // Check if DLL exists
       if (!fs.existsSync(this.dllPath)) {
-        console.log("⚠ Audio Engine DLL not found, using mock mode");
+        console.log("⚠ Audio Engine DLL not found at:", this.dllPath);
+        console.log("⚠ Available files in dist folder:");
+
+        const distPath = path.join(__dirname, "..", "dist");
+        if (fs.existsSync(distPath)) {
+          const files = fs.readdirSync(distPath);
+          console.log("📁 Files in dist:", files);
+        } else {
+          console.log("❌ Dist folder does not exist");
+        }
+
         this.isInitialized = true;
         return true;
       }
+
+      console.log("✅ Found DLL at:", this.dllPath);
 
       // Load the DLL using Koffi
       const lib = koffi.load(this.dllPath);
@@ -191,9 +209,8 @@ class AudioBridge {
   }
 
   shutdown() {
-    if (this.isInitialized && this.functions && this.audioEngine) {
+    if (this.isInitialized && this.functions) {
       this.functions.shutdown(this.audioEngine);
-      this.audioEngine = null;
     }
   }
 }

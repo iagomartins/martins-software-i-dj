@@ -1,2 +1,0 @@
-C:/Users/Avell/Documents/martins-software-i-dj/cpp/build/audio_engine.dir/Debug/audio_engine.obj
-C:/Users/Avell/Documents/martins-software-i-dj/cpp/audio_engine.def

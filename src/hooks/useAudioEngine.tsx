@@ -140,12 +140,23 @@ export const useAudioEngine = () => {
     return result;
   }, []);
 
+  // Fix the Electron detection
   const initAudioContext = useCallback(async () => {
     try {
-      // Check if we're in Electron
-      const isElectron = window.require && window.require("electron");
+      console.log("�� Initializing audio context...");
+      console.log("🔧 Environment check:");
+      console.log("  - navigator.mediaDevices:", !!navigator.mediaDevices);
+      console.log("  - window.require:", !!window.require);
+      console.log("  - window.electronAPI:", !!window.electronAPI);
+      console.log("  - User agent:", navigator.userAgent);
+
+      // Check if we're in Electron - use electronAPI instead of window.require
+      const isElectron = !!window.electronAPI;
+      console.log("🔧 Is Electron:", isElectron);
 
       if (isElectron) {
+        console.log("🔧 Running in Electron environment");
+
         // In Electron, we don't need to request permissions through IPC
         // Just initialize the audio context
         if (!audioContextRef.current) {
@@ -193,15 +204,24 @@ export const useAudioEngine = () => {
           console.log("Electron audio context initialized successfully");
         }
 
-        // Update the device detection part
         // Get available audio devices directly (in renderer process)
         if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
           try {
             console.log("🔍 Attempting to enumerate audio devices...");
+            console.log("🔍 MediaDevices available:", !!navigator.mediaDevices);
+            console.log(
+              "🔍 enumerateDevices available:",
+              !!navigator.mediaDevices.enumerateDevices
+            );
 
             // First try to get devices without requesting permission
             let devices = await navigator.mediaDevices.enumerateDevices();
             console.log("📱 Initial devices found:", devices.length);
+            console.log("�� Initial devices:", devices);
+
+            // Check if we have any devices with labels
+            const devicesWithLabels = devices.filter((device) => device.label);
+            console.log(" Devices with labels:", devicesWithLabels.length);
 
             // If we don't have labels, try requesting permission
             if (devices.some((device) => !device.label)) {
@@ -209,14 +229,25 @@ export const useAudioEngine = () => {
                 "🔐 Requesting audio permission for device labels..."
               );
               try {
-                await navigator.mediaDevices.getUserMedia({ audio: true });
+                const stream = await navigator.mediaDevices.getUserMedia({
+                  audio: true,
+                });
+                console.log("✅ Permission granted, stream:", stream);
+
+                // Stop the stream immediately as we only needed it for permission
+                stream.getTracks().forEach((track) => track.stop());
+
+                // Now enumerate devices again
                 devices = await navigator.mediaDevices.enumerateDevices();
                 console.log(" Devices after permission:", devices.length);
+                console.log(" Devices after permission:", devices);
               } catch (permError) {
-                console.warn(
-                  "⚠️ Permission denied, using devices without labels:",
-                  permError
-                );
+                console.error("❌ Permission denied:", permError);
+                console.error("❌ Permission error details:", {
+                  name: permError.name,
+                  message: permError.message,
+                  constraint: permError.constraint,
+                });
               }
             }
 
@@ -233,6 +264,7 @@ export const useAudioEngine = () => {
                 kind: d.kind,
                 label: d.label || "Unknown Device",
                 deviceId: d.deviceId,
+                groupId: d.groupId,
               }))
             );
 
@@ -248,35 +280,25 @@ export const useAudioEngine = () => {
             );
           } catch (error) {
             console.error("❌ Could not enumerate audio devices:", error);
-
-            // Create fallback devices
-            const fallbackDevices = [
-              {
-                kind: "audiooutput",
-                label: "Default Output",
-                deviceId: "default",
-                groupId: "default-group",
-              },
-              {
-                kind: "audioinput",
-                label: "Default Input",
-                deviceId: "default",
-                groupId: "default-group",
-              },
-            ];
-
-            dispatch({
-              type: "SET_CONNECTED_DEVICES",
-              payload: devicesRef.current,
+            console.error("❌ Error details:", {
+              name: error.name,
+              message: error.message,
+              stack: error.stack,
             });
 
-            console.log(" Using fallback devices:", fallbackDevices.length);
+            // Don't use fallback devices, just log the error
+            console.log("❌ No devices available due to error");
           }
         } else {
           console.warn("❌ MediaDevices API not available");
+          console.log("❌ navigator.mediaDevices:", navigator.mediaDevices);
+          console.log(
+            "❌ navigator.mediaDevices.enumerateDevices:",
+            navigator.mediaDevices?.enumerateDevices
+          );
         }
       } else {
-        console.log("No devices found");
+        console.log(" Running in web browser environment");
       }
     } catch (error) {
       console.error("Failed to initialize audio context:", error);

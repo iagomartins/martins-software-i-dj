@@ -11,6 +11,7 @@ function createWindow() {
   console.log("🔧 Preload path:", preloadPath);
   console.log("🔧 Preload exists:", require("fs").existsSync(preloadPath));
 
+  // Make sure your main process allows device access
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
@@ -18,6 +19,9 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       preload: preloadPath,
+      // Add these permissions
+      webSecurity: false, // For development only
+      allowRunningInsecureContent: true, // For development only
     },
   });
 

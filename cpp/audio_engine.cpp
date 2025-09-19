@@ -4,11 +4,26 @@
 #include <chrono>
 #include <portaudio.h>
 #include <fstream>
+#include <algorithm>
 
 // Add M_PI definition for Windows
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
+
+// Add a function to send logs to renderer (we'll implement this in the bridge)
+extern "C" {
+    // This will be called from the audio bridge
+    void (*logCallback)(const char* message) = nullptr;
+}
+
+// Helper function to log to both console and renderer
+void logMessage(const std::string& message) {
+    std::cout << message << std::endl;
+    if (logCallback) {
+        logCallback(message.c_str());
+    }
+}
 
 AudioEngine::AudioEngine() 
     : shared_state_(nullptr)
@@ -185,23 +200,33 @@ void AudioEngine::shutdown() {
     }
 }
 
+// Fix the setDeckPlaying function
 void AudioEngine::setDeckPlaying(int deck, bool playing) {
     if (!shared_state_) {
-        std::cerr << "❌ setDeckPlaying: shared_state_ is null!" << std::endl;
+        std::cout << "❌ setDeckPlaying: shared_state_ is null!" << std::endl;
         return;
     }
     
-    std::cout << " C++ setDeckPlaying called: deck=" << deck << ", playing=" << playing << std::endl;
+    std::cout << " C++ setDeckPlaying called: deck=" << deck << ", playing=" << (playing ? "true" : "false") << std::endl;
     
     if (deck >= 1 && deck <= 2) {
         shared_state_->deck_playing[deck - 1].store(playing);
-        std::cout << "✅ C++ deck " << deck << " playing state set to: " << playing << std::endl;
+        std::cout << "✅ C++ deck " << deck << " playing state set to: " << (playing ? "true" : "false") << std::endl;
         
         // Verify the value was set
         bool actualValue = shared_state_->deck_playing[deck - 1].load();
-        std::cout << " Verified deck " << deck << " playing state: " << actualValue << std::endl;
+        std::cout << " Verified deck " << deck << " playing state: " << (actualValue ? "true" : "false") << std::endl;
+        
+        // Check if audio file is loaded
+        if (deck == 1) {
+            std::cout << " Deck 1 audio loaded: " << (deck1_audio_.loaded ? "true" : "false") << std::endl;
+            std::cout << " Deck 1 samples: " << deck1_audio_.leftChannel.size() << std::endl;
+        } else if (deck == 2) {
+            std::cout << " Deck 2 audio loaded: " << (deck2_audio_.loaded ? "true" : "false") << std::endl;
+            std::cout << " Deck 2 samples: " << deck2_audio_.leftChannel.size() << std::endl;
+        }
     } else {
-        std::cerr << "❌ Invalid deck number: " << deck << std::endl;
+        std::cout << "❌ Invalid deck number: " << deck << std::endl;
     }
 }
 
@@ -221,64 +246,66 @@ void AudioEngine::setDeckPitch(int deck, float pitch) {
     }
 }
 
+// Fix the setDeckPosition function
 void AudioEngine::setDeckPosition(int deck, float position) {
-    if (deck == 1) {
-        shared_state_->deck1_position = position;
-    } else if (deck == 2) {
-        shared_state_->deck2_position = position;
+    if (!shared_state_) return;
+    
+    if (deck >= 1 && deck <= 2) {
+        int deckIndex = deck - 1;
+        AudioFile* audioFile = (deckIndex == 0) ? &deck1_audio_ : &deck2_audio_;
+        
+        if (audioFile->loaded) {
+            int totalSamples = audioFile->leftChannel.size();
+            int newPosition = static_cast<int>(position * totalSamples);
+            if (deckIndex == 0) {
+                deck1_position_.store(newPosition);
+            } else {
+                deck2_position_.store(newPosition);
+            }
+        }
     }
 }
 
+float AudioEngine::getDeckPosition(int deck) {
+    if (!shared_state_) return 0.0f;
+    
+    if (deck >= 1 && deck <= 2) {
+        int deckIndex = deck - 1;
+        AudioFile* audioFile = (deckIndex == 0) ? &deck1_audio_ : &deck2_audio_;
+        
+        if (audioFile->loaded) {
+            int totalSamples = audioFile->leftChannel.size();
+            size_t currentPos = (deckIndex == 0) ? deck1_position_.load() : deck2_position_.load();
+            return static_cast<float>(currentPos) / totalSamples;
+        }
+    }
+    
+    return 0.0f;
+}
+
+// Fix the setDeckFile function
 void AudioEngine::setDeckFile(int deck, const std::string& filepath) {
+    if (!shared_state_) {
+        std::cout << "❌ setDeckFile: shared_state_ is null!" << std::endl;
+        return;
+    }
+    
     std::cout << " Loading audio file for deck " << deck << ": " << filepath << std::endl;
     
-    if (deck == 1) {
-        strncpy(shared_state_->deck1_file, filepath.c_str(), 255);
-        shared_state_->deck1_file[255] = '\0';
-        
-        // Load the audio file
-        if (loadAudioFile(filepath, deck1_audio_)) {
-            std::cout << "✅ Successfully loaded audio file for deck 1" << std::endl;
-            std::cout << "   Duration: " << deck1_audio_.duration << " seconds" << std::endl;
-            std::cout << "   Sample rate: " << deck1_audio_.sampleRate << " Hz" << std::endl;
-            std::cout << "   Channels: " << deck1_audio_.channels << std::endl;
-            std::cout << "   Samples: " << deck1_audio_.leftChannel.size() << std::endl;
-            
-            // Update duration in shared state
-            shared_state_->deck1_duration = deck1_audio_.duration;
-            
-            // Reset position
-            deck1_position_ = 0;
-            shared_state_->deck1_position = 0.0f;
-            
-            // Test: Play first few samples to verify loading
-            if (deck1_audio_.leftChannel.size() > 0) {
-                std::cout << "   First sample (left): " << deck1_audio_.leftChannel[0] << std::endl;
-                std::cout << "   First sample (right): " << deck1_audio_.rightChannel[0] << std::endl;
-            }
+    if (deck >= 1 && deck <= 2) {
+        // Reset position when loading new file
+        if (deck == 1) {
+            deck1_position_.store(0);
         } else {
-            std::cerr << "❌ Failed to load audio file for deck 1" << std::endl;
+            deck2_position_.store(0);
         }
-    } else if (deck == 2) {
-        strncpy(shared_state_->deck2_file, filepath.c_str(), 255);
-        shared_state_->deck2_file[255] = '\0';
         
         // Load the audio file
-        if (loadAudioFile(filepath, deck2_audio_)) {
-            std::cout << "✅ Successfully loaded audio file for deck 2" << std::endl;
-            std::cout << "   Duration: " << deck2_audio_.duration << " seconds" << std::endl;
-            std::cout << "   Sample rate: " << deck2_audio_.sampleRate << " Hz" << std::endl;
-            std::cout << "   Channels: " << deck2_audio_.channels << std::endl;
-            std::cout << "   Samples: " << deck2_audio_.leftChannel.size() << std::endl;
-            
-            // Update duration in shared state
-            shared_state_->deck2_duration = deck2_audio_.duration;
-            
-            // Reset position
-            deck2_position_ = 0;
-            shared_state_->deck2_position = 0.0f;
+        AudioFile* audioFile = (deck == 1) ? &deck1_audio_ : &deck2_audio_;
+        if (loadAudioFile(filepath, *audioFile)) {
+            std::cout << "✅ Successfully loaded audio file for deck " << deck << std::endl;
         } else {
-            std::cerr << "❌ Failed to load audio file for deck 2" << std::endl;
+            std::cout << "❌ Failed to load audio file for deck " << deck << std::endl;
         }
     }
 }
@@ -501,7 +528,7 @@ bool AudioEngine::loadAudioFile(const std::string& filepath, AudioFile& audioFil
     }
 }
 
-// Add audio callback function
+// Add debug messages to the audioCallback function
 int AudioEngine::audioCallback(const void* inputBuffer, void* outputBuffer,
                               unsigned long framesPerBuffer,
                               const PaStreamCallbackTimeInfo* timeInfo,
@@ -510,81 +537,77 @@ int AudioEngine::audioCallback(const void* inputBuffer, void* outputBuffer,
     AudioEngine* engine = static_cast<AudioEngine*>(userData);
     float* out = static_cast<float*>(outputBuffer);
     
+    // Add debug counter (only log every 1000 calls to avoid spam)
+    static int callbackCount = 0;
+    static float phase = 0.0f;
+    callbackCount++;
+    
+    if (callbackCount % 1000 == 0) {
+        std::cout << "🔊 Audio callback #" << callbackCount << " - Deck1: " 
+                  << engine->shared_state_->deck_playing[0].load() 
+                  << ", Deck2: " << engine->shared_state_->deck_playing[1].load() << std::endl;
+    }
+    
     // Clear output buffer
     memset(out, 0, framesPerBuffer * 2 * sizeof(float));
     
-    // Check if any deck is playing
-    bool deck1Playing = false;
-    bool deck2Playing = false;
-    
-    if (engine->shared_state_) {
-        deck1Playing = engine->shared_state_->deck_playing[0].load();
-        deck2Playing = engine->shared_state_->deck_playing[1].load();
-    }
-    
-    // Debug logging (only log occasionally to avoid spam)
-    static int debugCounter = 0;
-    if (debugCounter++ % 1000 == 0) { // Log every 1000 callbacks
-        std::cout << " Audio callback - Deck1: " << deck1Playing 
-                  << ", Deck2: " << deck2Playing 
-                  << ", Deck1 loaded: " << engine->deck1_audio_.loaded
-                  << ", Deck2 loaded: " << engine->deck2_audio_.loaded << std::endl;
-    }
-    
-    if (deck1Playing || deck2Playing) {
-        std::lock_guard<std::mutex> lock(engine->audio_mutex_);
+    // Generate a simple test tone when deck 1 is playing
+    if (engine->shared_state_->deck_playing[0].load()) {
+        float frequency = 440.0f; // A4 note
+        float sampleRate = 44100.0f;
         
         for (unsigned long i = 0; i < framesPerBuffer; i++) {
-            float leftSample = 0.0f;
-            float rightSample = 0.0f;
+            float sample = 0.1f * sin(phase); // Low volume test tone
+            out[i * 2] = sample;     // Left channel
+            out[i * 2 + 1] = sample; // Right channel
+            phase += 2.0f * M_PI * frequency / sampleRate;
             
-            // Deck 1 audio
-            if (deck1Playing && engine->deck1_audio_.loaded) {
-                size_t pos = engine->deck1_position_.load();
-                if (pos < engine->deck1_audio_.leftChannel.size()) {
-                    float volume = engine->shared_state_->deck1_volume.load();
-                    leftSample += volume * engine->deck1_audio_.leftChannel[pos];
-                    rightSample += volume * engine->deck1_audio_.rightChannel[pos];
-                    
-                    // Advance position
-                    engine->deck1_position_.store(pos + 1);
-                    
-                    // Update shared position (in seconds)
-                    float positionSeconds = static_cast<float>(pos) / engine->deck1_audio_.sampleRate;
-                    engine->shared_state_->deck1_position.store(positionSeconds);
-                } else {
-                    // End of file reached
-                    if (debugCounter % 1000 == 0) {
-                        std::cout << " Deck 1 reached end of file at position " << pos << std::endl;
-                    }
-                }
+            if (phase >= 2.0f * M_PI) {
+                phase -= 2.0f * M_PI;
             }
-            
-            // Deck 2 audio
-            if (deck2Playing && engine->deck2_audio_.loaded) {
-                size_t pos = engine->deck2_position_.load();
-                if (pos < engine->deck2_audio_.leftChannel.size()) {
-                    float volume = engine->shared_state_->deck2_volume.load();
-                    leftSample += volume * engine->deck2_audio_.leftChannel[pos];
-                    rightSample += volume * engine->deck2_audio_.rightChannel[pos];
-                    
-                    // Advance position
-                    engine->deck2_position_.store(pos + 1);
-                    
-                    // Update shared position (in seconds)
-                    float positionSeconds = static_cast<float>(pos) / engine->deck2_audio_.sampleRate;
-                    engine->shared_state_->deck2_position.store(positionSeconds);
-                }
-            }
-            
-            // Apply master volume
-            float masterVolume = engine->shared_state_->master_volume.load();
-            leftSample *= masterVolume;
-            rightSample *= masterVolume;
-            
-            out[i * 2] = leftSample;     // Left channel
-            out[i * 2 + 1] = rightSample; // Right channel
         }
+        
+        if (callbackCount <= 5) {
+            std::cout << " Generating test tone for deck 1" << std::endl;
+        }
+    }
+    
+    // Try to play actual audio file if loaded
+    if (engine->shared_state_->deck_playing[0].load() && engine->deck1_audio_.loaded) {
+        // Get current position
+        size_t currentPos = engine->deck1_position_.load();
+        size_t totalSamples = engine->deck1_audio_.leftChannel.size();
+        
+        if (callbackCount <= 5) {
+            std::cout << "🎵 Playing actual audio - Pos: " << currentPos 
+                      << ", Total: " << totalSamples << std::endl;
+        }
+        
+        // Play audio data
+        for (unsigned long i = 0; i < framesPerBuffer; i++) {
+            if (currentPos + i < totalSamples) {
+                // Apply volume control
+                float volume = engine->shared_state_->deck1_volume.load();
+                
+                // Mix with test tone
+                out[i * 2] += engine->deck1_audio_.leftChannel[currentPos + i] * volume;
+                out[i * 2 + 1] += engine->deck1_audio_.rightChannel[currentPos + i] * volume;
+            }
+        }
+        
+        // Update position
+        engine->deck1_position_.store(currentPos + framesPerBuffer);
+        
+        // Loop if we reach the end
+        if (currentPos + framesPerBuffer >= totalSamples) {
+            engine->deck1_position_.store(0);
+        }
+    }
+    
+    // Apply master volume
+    float masterVolume = engine->shared_state_->master_volume.load();
+    for (unsigned long i = 0; i < framesPerBuffer * 2; i++) {
+        out[i] *= masterVolume;
     }
     
     return paContinue;
@@ -625,7 +648,7 @@ extern "C" {
     }
     
     void AudioEngine_SetDeckFile(void* engine, int deck, const char* filepath) {
-        static_cast<AudioEngine*>(engine)->setDeckFile(deck, std::string(filepath));
+        static_cast<AudioEngine*>(engine)->setDeckFile(deck, filepath);
     }
     
     void AudioEngine_SetEffect(void* engine, int deck, int effect, bool enabled) {
