@@ -59,8 +59,8 @@ export const DJFader = ({
           style={{
             bottom: `${position}%`,
             boxShadow: isDragging
-              ? `0 0 15px hsl(var(--neon-cyan))`
-              : undefined,
+              ? `0 0 20px hsl(var(--glow-blue) / 0.8)`
+              : `0 0 10px hsl(var(--glow-blue) / 0.4)`,
           }}
         />
       </div>

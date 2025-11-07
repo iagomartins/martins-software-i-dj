@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { DJKnob } from "./DJKnob";
 import { DJButton } from "./DJButton";
 import { DJFader } from "./DJFader";
@@ -6,12 +6,12 @@ import { ScratchWheel } from "./ScratchWheel";
 import { PitchFader } from "./PitchFader";
 import { AudioWaveform } from "./AudioWaveform";
 import { useDJ } from "@/contexts/DJContext";
+import { AudioService } from "@/services/AudioService";
 import {
   useAudioEngine,
   AudioEffects,
   DeckAudioChain,
 } from "@/hooks/useAudioEngine";
-
 interface DJDeckProps {
   deckNumber: 1 | 2;
   deckState: boolean;
@@ -26,9 +26,15 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
     updateVolume,
     updatePitch,
     updateEffects,
-    setDeckChain,
-    createDeckChain,
-    setDeckPlaying, // Add this new function
+    loadTrack,
+    setDeckPlaying,
+    setCuePoint,
+    cue,
+    seek,
+    setBaseBPM,
+    setSync,
+    setHeadphoneRouting,
+    scratch,
   } = useAudioEngine();
 
   // Deck state
@@ -62,12 +68,9 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
   const [duration, setDuration] = useState(0);
   const [bpm, setBpm] = useState(120);
   const [baseBpm, setBaseBpm] = useState(120);
-  const [cuePoint, setCuePoint] = useState(0);
   const [isHeadphoneActive, setIsHeadphoneActive] = useState(false);
 
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const deckChainRef = useRef<DeckAudioChain | null>(null); // Fix: Use proper type
+  // Audio playback is now handled by AudioService
 
   const toggleEffect = (effectType: keyof AudioEffects) => {
     const newEffects = {
@@ -79,7 +82,9 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
   };
 
   const handleHeadphoneToggle = () => {
-    setIsHeadphoneActive(!isHeadphoneActive);
+    const newState = !isHeadphoneActive;
+    setIsHeadphoneActive(newState);
+    setHeadphoneRouting(deckNumber, newState);
     dispatch({ type: "TOGGLE_HEADPHONE_DECK", payload: deckNumber });
   };
 
@@ -87,93 +92,46 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
   const isHeadphone = isHeadphoneActive;
 
   // Audio handling functions
-  const [tempFilePath, setTempFilePath] = useState<string | null>(null);
 
   const handleAudioLoad = async (file: File) => {
     setAudioFile(file);
     setCurrentTime(0);
     setDuration(0);
     setIsPlaying(false);
-    setCuePoint(0);
+    // Cue point is managed by AudioService
 
     // Initialize audio context
     await initAudioContext();
 
-    // Load file into C++ audio engine if available
-    if (
-      typeof window !== "undefined" &&
-      window.electronAPI?.audio &&
-      window.electronAPI?.fs
-    ) {
-      try {
-        // Save file to temporary location and get path
-        const arrayBuffer = await file.arrayBuffer();
-        const fileName = file.name;
-
-        // Create a temporary file path
-        const tempPath = `C:/temp/${Date.now()}_${fileName}`;
-
-        console.log(`⚠️ Saving file to temp location: ${tempPath}`);
-
-        // Save file to temp location
-        const result = await window.electronAPI.fs.writeFile(
-          tempPath,
-          arrayBuffer
-        );
-
-        if (result.success) {
-          console.log(`✅ File saved successfully: ${result.path}`);
-          setTempFilePath(tempPath); // Store for cleanup
-          await window.electronAPI.audio.setDeckFile(deckNumber, tempPath);
-          console.log(
-            `✅ File loaded into C++ audio engine for deck ${deckNumber}`
-          );
-        } else {
-          console.error(`❌ Failed to save file: ${result.error}`);
-        }
-      } catch (error) {
-        console.error("Failed to load file into C++ audio engine:", error);
-      }
-    }
-
-    // Detect BPM
     try {
+      // Read file as ArrayBuffer
       const arrayBuffer = await file.arrayBuffer();
+
+      // Load track into AudioService
+      await loadTrack(deckNumber, arrayBuffer);
+
+      // Detect BPM
       const audioContext = new AudioContext();
-      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+      const audioBuffer = await audioContext.decodeAudioData(
+        arrayBuffer.slice(0)
+      );
       const detectedBPM = await detectBPM(audioBuffer);
       setBaseBpm(detectedBPM);
+      setBaseBPM(deckNumber, detectedBPM);
       setBpm(detectedBPM);
-
-      // Create deck audio chain
-      const deckChain = await createDeckChain(deckNumber, audioBuffer);
-      if (
-        deckChain &&
-        "reverbGain" in deckChain &&
-        "echoGain" in deckChain &&
-        "filterGain" in deckChain &&
-        "flangerGain" in deckChain
-      ) {
-        deckChainRef.current = deckChain as DeckAudioChain;
-        setDeckChain(deckNumber, deckChain as DeckAudioChain);
-      }
+      setDuration(audioBuffer.duration);
 
       audioContext.close();
+
+      console.log(`✅ Track loaded for deck ${deckNumber}`);
     } catch (error) {
-      console.warn("Could not detect BPM:", error);
+      console.error("Failed to load track:", error);
     }
   };
 
   const handleTimeUpdate = (time: number) => {
     setCurrentTime(time);
-    // Update C++ audio engine position
-    if (typeof window !== "undefined" && window.electronAPI?.audio) {
-      try {
-        window.electronAPI.audio.setDeckPosition(deckNumber, time);
-      } catch (error) {
-        console.error("Failed to update C++ deck position:", error);
-      }
-    }
+    // Position updates are handled by AudioService internally
   };
 
   const handlePlayToggle = () => {
@@ -199,47 +157,13 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
   };
 
   const handleCue = (pressed: boolean) => {
-    if (!audioFile || !audioRef.current) return;
+    if (!audioFile) return;
 
-    if (pressed) {
-      // Store current position as cue point if not playing
-      if (!isPlaying) {
-        setCuePoint(currentTime);
-      }
-      setIsCued(true);
-      // Play from current position
-      audioRef.current.play();
-      // Update C++ audio engine
-      setDeckPlaying(deckNumber, true);
-    } else {
-      setIsCued(false);
-      // If play button is not active, stop and return to cue point
-      if (!isPlaying) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = cuePoint;
-        setCurrentTime(cuePoint);
-        // Update C++ audio engine
-        setDeckPlaying(deckNumber, false);
-      }
-    }
+    setIsCued(pressed);
+    cue(deckNumber, pressed);
   };
 
-  // Update duration when audio metadata is loaded
-  useEffect(() => {
-    if (audioRef.current) {
-      const handleLoadedMetadata = () => {
-        setDuration(audioRef.current?.duration || 0);
-      };
-
-      audioRef.current.addEventListener("loadedmetadata", handleLoadedMetadata);
-      return () => {
-        audioRef.current?.removeEventListener(
-          "loadedmetadata",
-          handleLoadedMetadata
-        );
-      };
-    }
-  }, [audioFile]);
+  // Duration is set when audio is loaded via handleDurationLoad
 
   // Update audio volume when volume changes
   useEffect(() => {
@@ -269,18 +193,20 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
     setDuration(audioDuration);
   };
 
-  // Add cleanup effect
+  // Position tracking
   useEffect(() => {
-    return () => {
-      // Cleanup temp file when component unmounts
-      if (tempFilePath && window.electronAPI?.fs) {
-        window.electronAPI.fs.unlink(tempFilePath).catch(console.error);
+    const audioService = AudioService.getInstance();
+    const unsubscribe = audioService.onPositionUpdate(
+      deckNumber,
+      (position) => {
+        setCurrentTime(position);
       }
-    };
-  }, [tempFilePath]);
+    );
+    return unsubscribe;
+  }, [deckNumber]);
 
   return (
-    <div className="bg-dj-console border border-border rounded-sm p-2 space-y-2 flex flex-col h-full">
+    <div className="bg-dj-console border border-border rounded-sm p-2 space-y-2 flex flex-col h-full relative z-10">
       {/* Waveform Panel - Now purely visual */}
       <AudioWaveform
         deckNumber={deckNumber}
@@ -291,6 +217,7 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
         onTimeUpdate={handleTimeUpdate}
         onLoad={handleAudioLoad}
         onDurationLoad={handleDurationLoad}
+        onSeek={(time) => seek(deckNumber, time)}
       />
 
       {/* Deck Header */}
@@ -352,14 +279,9 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
             <ScratchWheel
               isPlaying={isPlaying}
               onScratch={(delta) => {
-                if (audioRef.current && duration > 0) {
-                  const timeChange = ((delta * duration) / (Math.PI * 2)) * 10; // Scale factor for sensitivity
-                  const newTime = Math.max(
-                    0,
-                    Math.min(duration, currentTime + timeChange)
-                  );
-                  audioRef.current.currentTime = newTime;
-                  setCurrentTime(newTime);
+                if (audioFile && duration > 0) {
+                  scratch(deckNumber, delta);
+                  // Position will be updated by position tracking
                 }
               }}
             />
@@ -416,7 +338,11 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
                 label="SYNC"
                 variant="sync"
                 active={isSynced}
-                onClick={() => setIsSynced(!isSynced)}
+                onClick={() => {
+                  const newSyncState = !isSynced;
+                  setIsSynced(newSyncState);
+                  setSync(deckNumber, newSyncState);
+                }}
                 size="sm"
               />
               <DJButton
@@ -471,18 +397,6 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
           </div>
         </div>
       </div>
-
-      {/* Hidden audio element for playback control */}
-      <audio
-        ref={audioRef}
-        preload="metadata"
-        onEnded={() => setIsPlaying(false)}
-        onTimeUpdate={() => {
-          if (audioRef.current) {
-            handleTimeUpdate(audioRef.current.currentTime);
-          }
-        }}
-      />
     </div>
   );
 }

@@ -14,16 +14,26 @@ import { useDJ } from "@/contexts/DJContext";
 import { KeyMappingSection } from "./KeyMappingSection";
 import { Settings, Volume2, Headphones, Mic, Speaker } from "lucide-react";
 import { useAudioEngine } from "@/hooks/useAudioEngine";
+import { AudioService } from "@/services/AudioService";
 
 export const ConfigModal = () => {
   const { state, dispatch } = useDJ();
   const { audioDevices } = useAudioEngine();
 
-  const handleAudioConfigChange = (key: keyof typeof state.audioConfig, value: string) => {
+  const handleAudioConfigChange = async (key: keyof typeof state.audioConfig, value: string) => {
     dispatch({
       type: 'UPDATE_AUDIO_CONFIG',
       payload: { [key]: value },
     });
+
+    // Apply device changes to AudioService
+    const audioService = AudioService.getInstance();
+    
+    if (key === 'masterOutput') {
+      await audioService.setOutputDevice(value);
+    } else if (key === 'headphoneOutput') {
+      await audioService.setHeadphoneDevice(value);
+    }
   };
 
   const audioInputDevices = audioDevices.filter(

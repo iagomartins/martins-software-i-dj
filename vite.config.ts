@@ -15,12 +15,24 @@ export default defineConfig({
         assetFileNames: 'assets/[name]-[hash][extname]',
         chunkFileNames: 'assets/[name]-[hash].js',
         entryFileNames: 'assets/[name]-[hash].js',
-      }
+      },
+      external: ['/audio_processor.js'], // Mark Wasm module as external (loaded at runtime)
     }
   },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+    },
+  },
+  // Configure for Wasm and AudioWorklet
+  assetsInclude: ['**/*.wasm'],
+  optimizeDeps: {
+    exclude: ['audio_processor.js']
+  },
+  server: {
+    headers: {
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+      'Cross-Origin-Opener-Policy': 'same-origin',
     },
   },
 })

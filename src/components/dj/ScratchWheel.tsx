@@ -4,11 +4,18 @@ const VinylSVG = () => (
   <svg viewBox="0 0 200 200" className="w-full h-full">
     <defs>
       <radialGradient id="vinylGradient" cx="50%" cy="50%">
-        <stop offset="0%" stopColor="#1a1a1a" />
-        <stop offset="30%" stopColor="#2a2a2a" />
-        <stop offset="60%" stopColor="#1a1a1a" />
-        <stop offset="100%" stopColor="#0a0a0a" />
+        <stop offset="0%" stopColor="hsl(240, 30%, 18%)" />
+        <stop offset="30%" stopColor="hsl(240, 35%, 12%)" />
+        <stop offset="60%" stopColor="hsl(240, 30%, 18%)" />
+        <stop offset="100%" stopColor="hsl(240, 35%, 10%)" />
       </radialGradient>
+      <filter id="glow">
+        <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+        <feMerge>
+          <feMergeNode in="coloredBlur"/>
+          <feMergeNode in="SourceGraphic"/>
+        </feMerge>
+      </filter>
     </defs>
     {/* Vinyl record circles */}
     {Array.from({length: 15}, (_, i) => (
@@ -18,17 +25,18 @@ const VinylSVG = () => (
         cy="100"
         r={10 + i * 6}
         fill="none"
-        stroke="#333"
+        stroke="hsl(217, 91%, 60%)"
         strokeWidth="0.5"
+        opacity="0.3"
       />
     ))}
     {/* Main vinyl body */}
     <circle cx="100" cy="100" r="95" fill="url(#vinylGradient)" />
     {/* Center label */}
-    <circle cx="100" cy="100" r="25" fill="#f0f0f0" />
-    {/* iDJ text */}
-    <text x="100" y="105" textAnchor="middle" fontSize="16" fontWeight="bold" fill="#1C1D33">
-      iDJ
+    <circle cx="100" cy="100" r="25" fill="hsl(0, 0%, 95%)" filter="url(#glow)" />
+    {/* IDJ text */}
+    <text x="100" y="105" textAnchor="middle" fontSize="18" fontWeight="bold" fill="hsl(240, 35%, 12%)">
+      IDJ
     </text>
   </svg>
 );
@@ -98,21 +106,18 @@ export const ScratchWheel = ({ onScratch, isPlaying = false }: ScratchWheelProps
   return (
     <div className="flex flex-col items-center gap-2">
       <div
-        className="relative w-32 h-32 cursor-pointer select-none"
+        className="scratch-wheel"
         style={{ 
           transform: `rotate(${rotation}deg)`,
-          filter: isDragging 
-            ? `drop-shadow(0 0 50px hsl(var(--soft-accent)))`
-            : isPlaying 
-            ? `drop-shadow(0 0 30px hsl(var(--soft-light)))`
-            : undefined,
         }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
       >
-        <VinylSVG />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <VinylSVG />
+        </div>
       </div>
     </div>
   );
