@@ -551,56 +551,107 @@ int AudioEngine::audioCallback(const void* inputBuffer, void* outputBuffer,
     // Clear output buffer
     memset(out, 0, framesPerBuffer * 2 * sizeof(float));
     
-    // Generate a simple test tone when deck 1 is playing
+    // Play deck 1
     if (engine->shared_state_->deck_playing[0].load()) {
-        float frequency = 440.0f; // A4 note
-        float sampleRate = 44100.0f;
-        
-        for (unsigned long i = 0; i < framesPerBuffer; i++) {
-            float sample = 0.1f * sin(phase); // Low volume test tone
-            out[i * 2] = sample;     // Left channel
-            out[i * 2 + 1] = sample; // Right channel
-            phase += 2.0f * M_PI * frequency / sampleRate;
+        if (engine->deck1_audio_.loaded) {
+            // Play actual audio file
+            size_t currentPos = engine->deck1_position_.load();
+            size_t totalSamples = engine->deck1_audio_.leftChannel.size();
             
-            if (phase >= 2.0f * M_PI) {
-                phase -= 2.0f * M_PI;
+            if (callbackCount <= 5) {
+                std::cout << "🎵 Playing actual audio from deck 1 - Pos: " << currentPos 
+                          << ", Total: " << totalSamples << std::endl;
             }
-        }
-        
-        if (callbackCount <= 5) {
-            std::cout << " Generating test tone for deck 1" << std::endl;
+            
+            // Play audio data
+            for (unsigned long i = 0; i < framesPerBuffer; i++) {
+                if (currentPos + i < totalSamples) {
+                    // Apply volume control
+                    float volume = engine->shared_state_->deck1_volume.load();
+                    
+                    out[i * 2] += engine->deck1_audio_.leftChannel[currentPos + i] * volume;
+                    out[i * 2 + 1] += engine->deck1_audio_.rightChannel[currentPos + i] * volume;
+                }
+            }
+            
+            // Update position
+            engine->deck1_position_.store(currentPos + framesPerBuffer);
+            
+            // Loop if we reach the end
+            if (currentPos + framesPerBuffer >= totalSamples) {
+                engine->deck1_position_.store(0);
+            }
+        } else {
+            // Play test tone only if no audio file loaded
+            float frequency = 440.0f; // A4 note
+            float sampleRate = 44100.0f;
+            
+            for (unsigned long i = 0; i < framesPerBuffer; i++) {
+                float sample = 0.1f * sin(phase); // Low volume test tone
+                out[i * 2] = sample;     // Left channel
+                out[i * 2 + 1] = sample; // Right channel
+                phase += 2.0f * M_PI * frequency / sampleRate;
+                
+                if (phase >= 2.0f * M_PI) {
+                    phase -= 2.0f * M_PI;
+                }
+            }
+            
+            if (callbackCount <= 5) {
+                std::cout << "🔊 Generating test tone for deck 1 (no audio file loaded)" << std::endl;
+            }
         }
     }
     
-    // Try to play actual audio file if loaded
-    if (engine->shared_state_->deck_playing[0].load() && engine->deck1_audio_.loaded) {
-        // Get current position
-        size_t currentPos = engine->deck1_position_.load();
-        size_t totalSamples = engine->deck1_audio_.leftChannel.size();
-        
-        if (callbackCount <= 5) {
-            std::cout << "🎵 Playing actual audio - Pos: " << currentPos 
-                      << ", Total: " << totalSamples << std::endl;
-        }
-        
-        // Play audio data
-        for (unsigned long i = 0; i < framesPerBuffer; i++) {
-            if (currentPos + i < totalSamples) {
-                // Apply volume control
-                float volume = engine->shared_state_->deck1_volume.load();
-                
-                // Mix with test tone
-                out[i * 2] += engine->deck1_audio_.leftChannel[currentPos + i] * volume;
-                out[i * 2 + 1] += engine->deck1_audio_.rightChannel[currentPos + i] * volume;
+    // Play deck 2
+    if (engine->shared_state_->deck_playing[1].load()) {
+        if (engine->deck2_audio_.loaded) {
+            // Play actual audio file
+            size_t currentPos = engine->deck2_position_.load();
+            size_t totalSamples = engine->deck2_audio_.leftChannel.size();
+            
+            if (callbackCount <= 5) {
+                std::cout << "🎵 Playing actual audio from deck 2 - Pos: " << currentPos 
+                          << ", Total: " << totalSamples << std::endl;
             }
-        }
-        
-        // Update position
-        engine->deck1_position_.store(currentPos + framesPerBuffer);
-        
-        // Loop if we reach the end
-        if (currentPos + framesPerBuffer >= totalSamples) {
-            engine->deck1_position_.store(0);
+            
+            // Play audio data
+            for (unsigned long i = 0; i < framesPerBuffer; i++) {
+                if (currentPos + i < totalSamples) {
+                    // Apply volume control
+                    float volume = engine->shared_state_->deck2_volume.load();
+                    
+                    out[i * 2] += engine->deck2_audio_.leftChannel[currentPos + i] * volume;
+                    out[i * 2 + 1] += engine->deck2_audio_.rightChannel[currentPos + i] * volume;
+                }
+            }
+            
+            // Update position
+            engine->deck2_position_.store(currentPos + framesPerBuffer);
+            
+            // Loop if we reach the end
+            if (currentPos + framesPerBuffer >= totalSamples) {
+                engine->deck2_position_.store(0);
+            }
+        } else {
+            // Play test tone only if no audio file loaded
+            float frequency = 880.0f; // A5 note (different from deck 1)
+            float sampleRate = 44100.0f;
+            
+            for (unsigned long i = 0; i < framesPerBuffer; i++) {
+                float sample = 0.1f * sin(phase + M_PI); // Different phase for deck 2
+                out[i * 2] += sample;     // Left channel
+                out[i * 2 + 1] += sample; // Right channel
+                phase += 2.0f * M_PI * frequency / sampleRate;
+                
+                if (phase >= 2.0f * M_PI) {
+                    phase -= 2.0f * M_PI;
+                }
+            }
+            
+            if (callbackCount <= 5) {
+                std::cout << "🔊 Generating test tone for deck 2 (no audio file loaded)" << std::endl;
+            }
         }
     }
     
