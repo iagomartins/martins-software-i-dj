@@ -1,54 +1,122 @@
 # iDJ - Professional DJ Software
 
-A modern, cross-platform DJ software built with React, TypeScript, and a custom C++ audio engine. Features real-time audio processing, dual-deck mixing, effects, EQ controls, and more.
-
-## Quick Start
-
-### Prerequisites
+A modern, cross-platform DJ software built with React, TypeScript, and Web Audio API. Features real-time audio processing via WebAssembly, dual-deck mixing, effects, EQ controls, and more.
 
 ## 🎛️ Features
 
-### Audio Engine (C++)
+### Audio Engine (WebAssembly + Web Audio API)
 
-- **Real-time audio processing** with PortAudio
+- **Real-time audio processing** with Web Audio API and AudioWorklet
+- **High-performance DSP** via WebAssembly (compiled from C++)
 - **Dual-deck mixing** with independent controls
-- **Crossfader** for smooth transitions
-- **Pitch control** for tempo adjustment
-- **EQ controls** (Low, Mid, High)
+- **Crossfader** for smooth transitions between decks
+- **Pitch control** for tempo adjustment (±100%)
+- **EQ controls** (Low, Mid, High bands)
 - **Audio effects** (Flanger, Filter, Echo, Reverb)
-- **Master and headphone volume** controls
-- **File loading** support for audio files
+- **Master and headphone volume** controls with separate routing
+- **CUE functionality** for precise track positioning
+- **SYNC functionality** for automatic BPM matching
+- **Scratch simulation** with pitch-bend effects
+- **Position tracking** with real-time waveform visualization
+- **File loading** support for multiple audio formats (MP3, WAV, OGG, FLAC, M4A, AAC)
 
-### User Interface (React)
+### User Interface (React + TypeScript)
 
 - **Modern, responsive design** with Tailwind CSS
-- **Dual-deck interface** with waveform visualization
+- **Dual-deck interface** with real-time waveform visualization
+- **Interactive waveform** with click-to-seek and hover feedback
 - **Real-time controls** for all audio parameters
-- **Keyboard mapping** for DJ controllers
-- **Configuration modal** for settings
+- **Visual feedback** with glowing effects and animations
+- **Configuration modal** for audio device selection
 - **Error handling** with error boundaries
 - **Toast notifications** for user feedback
+- **Dark theme** with blue-purple gradient aesthetics
 
 ### Desktop Integration (Electron)
 
 - **Cross-platform** Windows, macOS, and Linux support
-- **Native audio processing** through C++ engine
-- **IPC communication** between frontend and audio engine
+- **Native file dialogs** for audio file selection
 - **File system access** for audio file loading
+- **IPC communication** for secure file operations
+- **Web Audio API** for platform-independent audio processing
+
+## 🏗️ Architecture
+
+### Frontend Stack
+
+- **React 18** - UI framework
+- **TypeScript** - Type-safe development
+- **Vite** - Fast build tool and dev server
+- **Tailwind CSS** - Utility-first styling
+- **shadcn/ui** - High-quality component primitives
+- **React Router** - Client-side routing
+- **Zustand/Context API** - State management
+
+### Audio Processing Stack
+
+- **Web Audio API** - Audio routing and graph management
+- **AudioWorklet** - Real-time audio processing on separate thread
+- **WebAssembly (Wasm)** - High-performance C++ audio DSP
+- **Emscripten** - C++ to WebAssembly compiler
+- **AudioContext** - Audio graph management
+
+### Build Tools
+
+- **Emscripten** - Compiles C++ audio engine to Wasm
+- **Vite** - Bundles React app
+- **Electron** - Desktop app wrapper
+- **TypeScript** - Type checking and compilation
 
 ## 🔧 Development
+
+### Prerequisites
+
+- **Node.js** 18+ and npm
+- **Emscripten SDK** (for building Wasm module)
+- **Electron** (installed via npm)
+
+### Installing Emscripten
+
+#### Windows
+
+```bash
+# Clone Emscripten
+git clone https://github.com/emscripten-core/emsdk.git
+cd emsdk
+
+# Install and activate latest SDK
+emsdk install latest
+emsdk activate latest
+
+# Activate environment (run in PowerShell/CMD)
+.\emsdk_env.bat
+```
+
+#### Linux/macOS
+
+```bash
+# Clone Emscripten
+git clone https://github.com/emscripten-core/emsdk.git
+cd emsdk
+
+# Install and activate latest SDK
+./emsdk install latest
+./emsdk activate latest
+
+# Activate environment
+source ./emsdk_env.sh
+```
 
 ### Available Scripts
 
 ```bash
 # Development
-npm run dev              # Start Vite dev server
-npm run electron:dev     # Run Electron in development
+npm run dev              # Start Vite dev server (web version)
+npm run electron:dev     # Run Electron in development mode
 
 # Building
-npm run build            # Build React app
+npm run build            # Build React app for production
 npm run build:dev        # Build in development mode
-npm run build:all        # Build both React app and C++ engine
 
 # Electron
 npm run electron         # Run Electron app
@@ -59,57 +127,78 @@ npm run electron:build   # Build and run Electron
 npm run lint             # Run ESLint
 ```
 
-### Building the C++ Audio Engine
+### Building the WebAssembly Audio Engine
+
+The C++ audio processing engine is compiled to WebAssembly using Emscripten.
 
 #### Windows
 
-> IMPORTANT! Copy portaudio.dll to the CMake dist\Build\Release folder.
-
 ```bash
-# Use the provided batch script
-scripts/build-auto.bat
-``
-# Or manually
+# Make sure Emscripten environment is activated
+# Then run the build script
 cd cpp
-mkdir build && cd build
-cmake ..
-cmake --build . --config Release
+.\build_wasm.ps1
+# Or use the batch script
+.\build_wasm.bat
 ```
 
 #### Linux/macOS
 
 ```bash
+# Make sure Emscripten environment is activated
 cd cpp
-mkdir build && cd build
-cmake ..
-make -j$(nproc)
+chmod +x build_wasm.sh
+./build_wasm.sh
 ```
 
-### PortAudio Installation
+The build process generates:
+- `public/audio_processor.wasm` - WebAssembly binary
+- `public/audio_processor.js` - Emscripten glue code
+- `public/audio-processor.js` - AudioWorklet processor script
 
-#### Windows (using vcpkg)
+### Project Structure
 
-```bash
-# Install vcpkg
-git clone https://github.com/Microsoft/vcpkg.git
-cd vcpkg
-.\bootstrap-vcpkg.bat
-
-# Install PortAudio
-.\vcpkg install portaudio:x64-windows
+```
+martins-software-i-dj/
+├── src/                    # React application source
+│   ├── components/         # React components
+│   │   ├── dj/            # DJ-specific components
+│   │   └── ui/            # shadcn/ui components
+│   ├── contexts/          # React contexts
+│   ├── hooks/             # Custom React hooks
+│   ├── services/          # Business logic services
+│   │   └── AudioService.ts # Audio management singleton
+│   └── pages/             # Page components
+├── cpp/                    # C++ audio engine source
+│   ├── audio_processor.cpp # Audio DSP algorithms
+│   ├── audio_processor.h   # DSP header
+│   ├── wasm_bindings.cpp   # Emscripten bindings
+│   └── build_wasm.*        # Build scripts
+├── electron/               # Electron main process
+│   ├── main.cjs           # Main process entry
+│   └── preload.js         # Preload script
+├── public/                 # Static assets
+│   ├── audio_processor.*  # Wasm module files
+│   └── audio-processor.js # AudioWorklet processor
+└── dist/                   # Build output
 ```
 
-#### Linux (Ubuntu/Debian)
+## 🎵 How It Works
 
-```bash
-sudo apt-get install libportaudio2-dev
-```
+### Audio Processing Pipeline
 
-#### macOS (using Homebrew)
+1. **Audio Loading**: Files are loaded via Electron IPC and decoded using Web Audio API
+2. **Audio Graph**: Audio flows through `AudioBufferSourceNode` → `GainNode` → `AudioWorkletNode`
+3. **Real-time Processing**: AudioWorklet runs C++ DSP code (compiled to Wasm) on a separate audio thread
+4. **Crossfader**: Web Audio API gain nodes control deck mixing
+5. **Output**: Audio is routed to master output and headphone output via `MediaStreamAudioDestinationNode`
 
-```bash
-brew install portaudio
-```
+### Key Components
+
+- **AudioService**: Singleton managing AudioContext, AudioWorklet, and deck state
+- **AudioWorklet**: Real-time audio processing thread running Wasm module
+- **DJDeck**: React component for individual deck controls
+- **AudioWaveform**: Interactive waveform visualization with seek functionality
 
 ## 🤝 Contributing
 
@@ -131,7 +220,12 @@ We welcome contributions to iDJ! Here's how you can help:
    ```bash
    npm install
    ```
-5. **Build the C++ audio engine** (see Building section above)
+5. **Build the Wasm module** (see Building section above)
+6. **Start development**:
+   ```bash
+   npm run dev          # Web version
+   npm run electron:dev # Desktop version
+   ```
 
 ### Development Workflow
 
@@ -161,17 +255,17 @@ We welcome contributions to iDJ! Here's how you can help:
 - **TypeScript**: Use strict typing, avoid `any`
 - **React**: Use functional components with hooks
 - **CSS**: Use Tailwind CSS classes, avoid custom CSS when possible
-- **C++**: Follow modern C++17 practices
+- **C++**: Follow modern C++17 practices for Wasm compilation
 - **Commits**: Use conventional commit messages (feat:, fix:, docs:, etc.)
 
 ### Areas for Contribution
 
-- 🎵 **Audio Features**: New effects, better audio processing
-- 🎨 **UI/UX**: Interface improvements, new themes
+- 🎵 **Audio Features**: New effects, better audio processing algorithms
+- 🎨 **UI/UX**: Interface improvements, new themes, accessibility
 - ⌨️ **Controller Support**: MIDI controller integration
-- 🐛 **Bug Fixes**: Performance improvements, stability
-- **Documentation**: Code comments, user guides
-- 🧪 **Testing**: Unit tests, integration tests
+- 🐛 **Bug Fixes**: Performance improvements, stability, cross-platform compatibility
+- 📚 **Documentation**: Code comments, user guides, API documentation
+- 🧪 **Testing**: Unit tests, integration tests, E2E tests
 
 ### Reporting Issues
 
@@ -179,18 +273,48 @@ When reporting bugs, please include:
 
 - **Operating System** and version
 - **Node.js version**
+- **Browser/Electron version** (if applicable)
 - **Steps to reproduce** the issue
 - **Expected vs actual behavior**
 - **Console errors** (if any)
 - **Screenshots** (if applicable)
 
+## 🔍 Technical Details
+
+### Web Audio API Architecture
+
+- **AudioContext**: Main audio context managing the audio graph
+- **AudioWorkletNode**: Custom audio processor running on audio thread
+- **AudioBufferSourceNode**: Plays decoded audio buffers
+- **GainNode**: Volume and crossfader control
+- **MediaStreamAudioDestinationNode**: Output routing for device selection
+
+### WebAssembly Integration
+
+- **Emscripten**: Compiles C++ to Wasm with JavaScript glue code
+- **AudioWorklet**: Loads and runs Wasm module on audio thread
+- **Shared Memory**: Efficient data transfer between main thread and audio thread
+- **Real-time Processing**: 128-sample buffer processing at 44.1kHz
+
+### Electron Integration
+
+- **Main Process**: Handles file system access and window management
+- **Renderer Process**: Runs React app with Web Audio API
+- **IPC**: Secure communication for file operations
+- **Preload Script**: Exposes limited API to renderer process
+
 ## 🙏 Acknowledgments
 
-- **PortAudio** for cross-platform audio I/O
+- **Web Audio API** team for excellent browser audio capabilities
+- **Emscripten** project for C++ to WebAssembly compilation
 - **React** and **Vite** teams for excellent tooling
 - **shadcn/ui** for beautiful component primitives
 - **Electron** team for desktop app framework
 - **Tailwind CSS** for utility-first styling
+
+## 📄 License
+
+[Add your license here]
 
 ---
 
