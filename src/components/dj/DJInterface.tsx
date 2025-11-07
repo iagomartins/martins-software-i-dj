@@ -69,9 +69,18 @@ export function DJInterface() {
         </div>
       }
     >
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-slate-900 text-white">
+      <div className="min-h-screen text-white relative overflow-hidden" style={{
+        background: 'linear-gradient(135deg, hsl(240, 35%, 12%) 0%, hsl(240, 30%, 15%) 50%, hsl(240, 35%, 12%) 100%)'
+      }}>
+        {/* Subtle star pattern background */}
+        <div className="absolute inset-0 opacity-20 pointer-events-none" style={{
+          backgroundImage: `radial-gradient(circle at 20% 80%, hsl(217, 91%, 60%) 1px, transparent 1px),
+                           radial-gradient(circle at 80% 20%, hsl(217, 91%, 60%) 1px, transparent 1px),
+                           radial-gradient(circle at 40% 40%, hsl(217, 91%, 60%) 1px, transparent 1px)`,
+          backgroundSize: '200px 200px, 150px 150px, 100px 100px'
+        }} />
         {/* Header */}
-        <header className="bg-[#1C1D33]/20 backdrop-blur-sm border-b border-white/10 p-2">
+        <header className="relative bg-[hsl(var(--soft-darker))]/50 backdrop-blur-sm border-b border-[hsl(var(--glow-blue)/0.2)] p-2">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
             <div className="flex items-center space-x-4">
               {/* Use imported logo or fallback text */}
@@ -85,8 +94,13 @@ export function DJInterface() {
             </div>
             <div className="flex items-center space-x-4">
               <button
-                className="px-4 bg-primary bg-accent-hover rounded-sm text-sm transition-colors"
-                onClick={() => dispatch({ type: "TOGGLE_CONFIG_MODAL" })}
+                type="button"
+                className="px-4 bg-primary bg-accent-hover rounded-sm text-sm transition-colors relative z-10"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  dispatch({ type: "TOGGLE_CONFIG_MODAL" });
+                }}
               >
                 SETTINGS
               </button>
@@ -98,7 +112,7 @@ export function DJInterface() {
         <main className="flex-1 p-8">
           <div className="max-w-7xl mx-auto">
             {/* DJ Console Header */}
-            <div className="bg-[#1C1D33]/30 backdrop-blur-sm rounded-t-xl border border-white/10 p-4 mb-8">
+            <div className="bg-[hsl(var(--soft-darker))]/30 backdrop-blur-sm rounded-t-xl border border-[hsl(var(--glow-blue)/0.2)] p-4 mb-8">
               <div className="grid grid-cols-3 gap-8 text-center">
                 <div>
                   <h3 className="text-md font-semibold text-light">DECK 1</h3>
@@ -122,14 +136,14 @@ export function DJInterface() {
             </div>
 
             {/* Main Deck Area */}
-            <div className="grid lg:grid-cols-12 gap-8">
+            <div className="grid lg:grid-cols-12 gap-8 relative z-10">
               {/* Deck 1 */}
-              <div className="lg:col-span-5">
+              <div className="lg:col-span-5 relative z-10">
                 <DJDeck deckNumber={1} deckState={deck1.isPlaying} />
               </div>
 
               {/* Center Controls */}
-              <div className="lg:col-span-2 flex flex-col items-center space-y-8">
+              <div className="lg:col-span-2 flex flex-col items-center space-y-8 relative z-10">
                 {/* Crossfader */}
                 <div className="w-full">
                   <h3 className="text-lg font-semibold text-center mb-4">
@@ -179,7 +193,7 @@ export function DJInterface() {
               </div>
 
               {/* Deck 2 */}
-              <div className="lg:col-span-5">
+              <div className="lg:col-span-5 relative z-10">
                 <DJDeck deckNumber={2} deckState={deck2.isPlaying} />
               </div>
             </div>

@@ -1,45 +1,11 @@
-import { useRef, useCallback, useState } from "react";
+import { useRef, useCallback, useEffect } from "react";
 import { useDJ } from "@/contexts/DJContext";
+import AudioService from "@/services/AudioService";
 
-// Add type declarations for window.electronAPI
+// Keep type declarations for window.electronAPI (for file system access only)
 declare global {
   interface Window {
     electronAPI?: {
-      audio: {
-        setDeckPlaying: (
-          deck: number,
-          playing: boolean
-        ) => Promise<{ success: boolean }>;
-        setDeckVolume: (
-          deck: number,
-          volume: number
-        ) => Promise<{ success: boolean }>;
-        setDeckPitch: (
-          deck: number,
-          pitch: number
-        ) => Promise<{ success: boolean }>;
-        setDeckPosition: (
-          deck: number,
-          position: number
-        ) => Promise<{ success: boolean }>;
-        setDeckFile: (
-          deck: number,
-          filepath: string
-        ) => Promise<{ success: boolean }>;
-        setEffect: (
-          deck: number,
-          effect: number,
-          enabled: boolean
-        ) => Promise<{ success: boolean }>;
-        setEQ: (
-          deck: number,
-          band: number,
-          value: number
-        ) => Promise<{ success: boolean }>;
-        setCrossfader: (value: number) => Promise<{ success: boolean }>;
-        setMasterVolume: (volume: number) => Promise<{ success: boolean }>;
-        setHeadphoneVolume: (volume: number) => Promise<{ success: boolean }>;
-      };
       dialog?: {
         showOpenDialog: (options: {
           properties: string[];
@@ -90,6 +56,7 @@ export interface DeckAudioState {
   effects: AudioEffects;
 }
 
+// Legacy interface for compatibility (not used with AudioService)
 export interface DeckAudioChain {
   reverbGain: GainNode;
   echoGain: GainNode;
@@ -110,144 +77,45 @@ export interface DeckAudioChain {
 }
 
 export const useAudioEngine = () => {
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const deck1ChainRef = useRef<DeckAudioChain | null>(null);
-  const deck2ChainRef = useRef<DeckAudioChain | null>(null);
-  const masterGainRef = useRef<GainNode | null>(null);
-  const headphoneGainRef = useRef<GainNode | null>(null);
-  const crossfaderGainRef = useRef<GainNode | null>(null);
-  const headphoneVolumeRef = useRef<GainNode | null>(null);
+  const audioServiceRef = useRef<AudioService | null>(null);
   const { dispatch, state } = useDJ();
   const devicesRef = useRef<MediaDeviceInfo[]>([]);
+  const initializedRef = useRef(false);
 
-  // Check if we're in Electron with C++ audio engine
-  const isElectronWithCpp = useCallback(() => {
-    console.log("�� DEBUGGING electronAPI:");
-    console.log("- typeof window:", typeof window);
-    console.log("- window.electronAPI:", window.electronAPI);
-    console.log("- window.electronAPI?.audio:", window.electronAPI?.audio);
-
-    if (window.electronAPI?.audio) {
-      console.log(
-        "- Available audio methods:",
-        Object.keys(window.electronAPI.audio)
-      );
+  // Initialize AudioService
+  const initAudioContext = useCallback(async () => {
+    if (initializedRef.current) {
+      return;
     }
 
-    const result = typeof window !== "undefined" && window.electronAPI?.audio;
-    console.log("- isElectronWithCpp result:", result);
-
-    return result;
-  }, []);
-
-  // Fix the Electron detection
-  const initAudioContext = useCallback(async () => {
     try {
-      console.log("�� Initializing audio context...");
-      console.log("🔧 Environment check:");
-      console.log("  - navigator.mediaDevices:", !!navigator.mediaDevices);
-      console.log("  - window.require:", !!window.require);
-      console.log("  - window.electronAPI:", !!window.electronAPI);
-      console.log("  - User agent:", navigator.userAgent);
+      console.log("Initializing AudioService...");
 
-      // Check if we're in Electron - use electronAPI instead of window.require
-      const isElectron = !!window.electronAPI;
-      console.log("🔧 Is Electron:", isElectron);
+      // Get AudioService instance
+      const audioService = AudioService.getInstance();
+      audioServiceRef.current = audioService;
 
-      if (isElectron) {
-        console.log("🔧 Running in Electron environment");
+      // Initialize AudioService
+      await audioService.initialize();
 
-        // In Electron, we don't need to request permissions through IPC
-        // Just initialize the audio context
-        if (!audioContextRef.current) {
-          audioContextRef.current = new AudioContext({
-            latencyHint: "interactive",
-            sampleRate: 48000,
-          });
-
-          // Create master output
-          masterGainRef.current = audioContextRef.current.createGain();
-          masterGainRef.current.gain.setValueAtTime(
-            1,
-            audioContextRef.current.currentTime
-          );
-
-          // Create crossfader
-          crossfaderGainRef.current = audioContextRef.current.createGain();
-          crossfaderGainRef.current.gain.setValueAtTime(
-            1,
-            audioContextRef.current.currentTime
-          );
-
-          // Create headphone output
-          headphoneGainRef.current = audioContextRef.current.createGain();
-          headphoneGainRef.current.gain.setValueAtTime(
-            1,
-            audioContextRef.current.currentTime
-          );
-
-          // Create headphone volume control
-          headphoneVolumeRef.current = audioContextRef.current.createGain();
-          headphoneVolumeRef.current.gain.setValueAtTime(
-            0.7,
-            audioContextRef.current.currentTime
-          );
-
-          // Connect chain
-          crossfaderGainRef.current.connect(masterGainRef.current);
-          headphoneGainRef.current.connect(headphoneVolumeRef.current);
-          masterGainRef.current.connect(audioContextRef.current.destination);
-          headphoneVolumeRef.current.connect(
-            audioContextRef.current.destination
-          );
-
-          console.log("Electron audio context initialized successfully");
-        }
-
-        // Get available audio devices directly (in renderer process)
+      // Get AudioContext for device enumeration
+      const audioContext = audioService.getAudioContext();
+      if (audioContext) {
+        // Enumerate audio devices
         if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
           try {
-            console.log("🔍 Attempting to enumerate audio devices...");
-            console.log("🔍 MediaDevices available:", !!navigator.mediaDevices);
-            console.log(
-              "🔍 enumerateDevices available:",
-              !!navigator.mediaDevices.enumerateDevices
-            );
-
-            // First try to get devices without requesting permission
             let devices = await navigator.mediaDevices.enumerateDevices();
-            console.log("📱 Initial devices found:", devices.length);
-            console.log("�� Initial devices:", devices);
 
-            // Check if we have any devices with labels
-            const devicesWithLabels = devices.filter((device) => device.label);
-            console.log(" Devices with labels:", devicesWithLabels.length);
-
-            // If we don't have labels, try requesting permission
+            // Request permission if needed for device labels
             if (devices.some((device) => !device.label)) {
-              console.log(
-                "🔐 Requesting audio permission for device labels..."
-              );
               try {
                 const stream = await navigator.mediaDevices.getUserMedia({
                   audio: true,
                 });
-                console.log("✅ Permission granted, stream:", stream);
-
-                // Stop the stream immediately as we only needed it for permission
                 stream.getTracks().forEach((track) => track.stop());
-
-                // Now enumerate devices again
                 devices = await navigator.mediaDevices.enumerateDevices();
-                console.log(" Devices after permission:", devices.length);
-                console.log(" Devices after permission:", devices);
               } catch (permError) {
-                console.error("❌ Permission denied:", permError);
-                console.error("❌ Permission error details:", {
-                  name: permError.name,
-                  message: permError.message,
-                  constraint: permError.constraint,
-                });
+                console.error("Permission denied:", permError);
               }
             }
 
@@ -257,171 +125,56 @@ export const useAudioEngine = () => {
                 device.kind === "audioinput" || device.kind === "audiooutput"
             );
 
-            console.log("🎵 Audio devices found:", audioDevicesFound.length);
-            console.log(
-              "Device details:",
-              audioDevicesFound.map((d) => ({
-                kind: d.kind,
-                label: d.label || "Unknown Device",
-                deviceId: d.deviceId,
-                groupId: d.groupId,
-              }))
-            );
-
-            // Dispatch to DJContext
             dispatch({
               type: "SET_CONNECTED_DEVICES",
               payload: audioDevicesFound,
             });
 
-            console.log(
-              "✅ Audio devices dispatched to context:",
-              audioDevicesFound.length
-            );
+            console.log("Audio devices found:", audioDevicesFound.length);
           } catch (error) {
-            console.error("❌ Could not enumerate audio devices:", error);
-            console.error("❌ Error details:", {
-              name: error.name,
-              message: error.message,
-              stack: error.stack,
-            });
-
-            // Don't use fallback devices, just log the error
-            console.log("❌ No devices available due to error");
+            console.error("Could not enumerate audio devices:", error);
           }
-        } else {
-          console.warn("❌ MediaDevices API not available");
-          console.log("❌ navigator.mediaDevices:", navigator.mediaDevices);
-          console.log(
-            "❌ navigator.mediaDevices.enumerateDevices:",
-            navigator.mediaDevices?.enumerateDevices
-          );
         }
-      } else {
-        console.log(" Running in web browser environment");
       }
+
+      initializedRef.current = true;
+      console.log("AudioService initialized successfully");
     } catch (error) {
-      console.error("Failed to initialize audio context:", error);
+      console.error("Failed to initialize AudioService:", error);
       throw error;
     }
   }, [dispatch]);
 
-  const createEQFilter = useCallback(
-    (context: AudioContext, type: BiquadFilterType, frequency: number) => {
-      const filter = context.createBiquadFilter();
-      filter.type = type;
-      filter.frequency.setValueAtTime(frequency, context.currentTime);
-      filter.Q.setValueAtTime(1, context.currentTime);
-      return filter;
+  // Load track from file buffer
+  const loadTrack = useCallback(
+    async (deckNumber: 1 | 2, fileBuffer: ArrayBuffer) => {
+      const audioService = audioServiceRef.current;
+      if (!audioService) {
+        throw new Error("AudioService not initialized");
+      }
+
+      await audioService.loadTrack(deckNumber, fileBuffer);
     },
     []
   );
 
-  const createEffects = useCallback((context: AudioContext) => {
-    // Flanger effect
-    const flanger = context.createDelay(0.003);
-    flanger.delayTime.setValueAtTime(0.003, context.currentTime);
-
-    // Filter effect
-    const filter = context.createBiquadFilter();
-    filter.type = "lowpass";
-    filter.frequency.setValueAtTime(1000, context.currentTime);
-    filter.Q.setValueAtTime(1, context.currentTime);
-
-    // Echo effect
-    const echo = context.createDelay(0.5);
-    echo.delayTime.setValueAtTime(0.5, context.currentTime);
-
-    // Reverb effect (simple convolution)
-    const reverb = context.createConvolver();
-    // Create a simple impulse response for reverb
-    const sampleRate = context.sampleRate;
-    const length = sampleRate * 0.5; // 0.5 second reverb
-    const impulse = context.createBuffer(2, length, sampleRate);
-    for (let channel = 0; channel < 2; channel++) {
-      const channelData = impulse.getChannelData(channel);
-      for (let i = 0; i < length; i++) {
-        channelData[i] =
-          (Math.random() * 2 - 1) * Math.exp(-i / (sampleRate * 0.1));
-      }
-    }
-    reverb.buffer = impulse;
-
-    return { flanger, filter, echo, reverb };
+  // Set base BPM for a deck
+  const setBaseBPM = useCallback((deckNumber: 1 | 2, bpm: number) => {
+    const audioService = audioServiceRef.current;
+    if (!audioService) return;
+    audioService.setBaseBPM(deckNumber, bpm);
   }, []);
 
-  const createDeckChain = useCallback(
-    async (deckNumber: 1 | 2, audioBuffer: AudioBuffer) => {
-      if (!audioContextRef.current) return null;
+  // Set sync for a deck
+  const setSync = useCallback((deckNumber: 1 | 2, enabled: boolean) => {
+    const audioService = audioServiceRef.current;
+    if (!audioService) return;
+    audioService.setSync(deckNumber, enabled);
+  }, []);
 
-      const context = audioContextRef.current;
-
-      // Create source
-      const source = context.createBufferSource();
-      source.buffer = audioBuffer;
-
-      // Create EQ filters
-      const lowFilter = createEQFilter(context, "lowshelf", 320);
-      const midFilter = createEQFilter(context, "peaking", 1000);
-      const highFilter = createEQFilter(context, "highshelf", 3200);
-
-      // Create gain nodes
-      const volumeGain = context.createGain();
-      const masterGain = context.createGain();
-      const headphoneGain = context.createGain();
-      const pitchGain = context.createGain();
-
-      // Create effects
-      const effects = createEffects(context);
-
-      // Connect chain
-      source.connect(pitchGain);
-      pitchGain.connect(lowFilter);
-      lowFilter.connect(midFilter);
-      midFilter.connect(highFilter);
-      highFilter.connect(volumeGain);
-
-      // Effects chain (bypass by default)
-      const effectsGain = context.createGain();
-      effectsGain.gain.setValueAtTime(0, context.currentTime);
-      volumeGain.connect(effectsGain);
-
-      // Connect effects
-      effects.flanger.connect(effects.filter);
-      effects.filter.connect(effects.echo);
-      effects.echo.connect(effects.reverb);
-      effects.reverb.connect(effectsGain);
-
-      // Split to master and headphone outputs
-      volumeGain.connect(masterGain);
-      volumeGain.connect(headphoneGain);
-
-      if (crossfaderGainRef.current) {
-        masterGain.connect(crossfaderGainRef.current);
-      }
-
-      if (headphoneGainRef.current) {
-        headphoneGain.connect(headphoneGainRef.current);
-      }
-
-      return {
-        source,
-        lowFilter,
-        midFilter,
-        highFilter,
-        volumeGain,
-        masterGain,
-        headphoneGain,
-        pitchGain,
-        ...effects,
-      };
-    },
-    [createEQFilter, createEffects]
-  );
-
+  // Detect BPM from audio buffer
   const detectBPM = useCallback(
     async (audioBuffer: AudioBuffer): Promise<number> => {
-      // Enhanced BPM detection using autocorrelation
       const sampleRate = audioBuffer.sampleRate;
       const length = audioBuffer.length;
       const channelData = audioBuffer.getChannelData(0);
@@ -482,276 +235,146 @@ export const useAudioEngine = () => {
     []
   );
 
-  const applyCrossfader = useCallback((crossfaderValue: number) => {
-    if (
-      !crossfaderGainRef.current ||
-      !deck1ChainRef.current ||
-      !deck2ChainRef.current
-    )
-      return;
-
-    // crossfaderValue: -1 = deck1 only, 0 = both equal, 1 = deck2 only
-    const deck1Volume =
-      crossfaderValue <= 0 ? 1 : Math.max(0, 1 - crossfaderValue);
-    const deck2Volume =
-      crossfaderValue >= 0 ? 1 : Math.max(0, 1 + crossfaderValue);
-
-    deck1ChainRef.current.masterGain.gain.setValueAtTime(
-      deck1Volume,
-      audioContextRef.current?.currentTime || 0
-    );
-    deck2ChainRef.current.masterGain.gain.setValueAtTime(
-      deck2Volume,
-      audioContextRef.current?.currentTime || 0
-    );
-  }, []);
-
-  // Updated functions to use C++ audio engine when available (synchronous)
+  // Update EQ
   const updateEQ = useCallback(
     (deckNumber: 1 | 2, eq: { low: number; mid: number; high: number }) => {
-      // Use C++ audio engine if available
-      if (isElectronWithCpp()) {
-        try {
-          window.electronAPI!.audio.setEQ(deckNumber, 0, eq.low); // Low band
-          window.electronAPI!.audio.setEQ(deckNumber, 1, eq.mid); // Mid band
-          window.electronAPI!.audio.setEQ(deckNumber, 2, eq.high); // High band
-          console.log(`C++ EQ updated for deck ${deckNumber}:`, eq);
-        } catch (error) {
-          console.error("Failed to update C++ EQ:", error);
-        }
-      }
+      const audioService = audioServiceRef.current;
+      if (!audioService) return;
 
-      // Fallback to Web Audio API
-      const chain =
-        deckNumber === 1 ? deck1ChainRef.current : deck2ChainRef.current;
-      if (!chain || !audioContextRef.current) return;
-
-      const context = audioContextRef.current;
-
-      // Convert -1..1 range to dB gain
-      const lowGain = eq.low * 12; // +/- 12dB
-      const midGain = eq.mid * 12;
-      const highGain = eq.high * 12;
-
-      chain.lowFilter.gain.setValueAtTime(lowGain, context.currentTime);
-      chain.midFilter.gain.setValueAtTime(midGain, context.currentTime);
-      chain.highFilter.gain.setValueAtTime(highGain, context.currentTime);
-    },
-    [isElectronWithCpp]
-  );
-
-  const updateVolume = useCallback(
-    (deckNumber: 1 | 2, volume: number) => {
-      console.log(
-        `🔍 updateVolume called: deck=${deckNumber}, volume=${volume}`
-      );
-      console.log(` isElectronWithCpp():`, isElectronWithCpp());
-
-      // Use C++ audio engine if available
-      if (isElectronWithCpp()) {
-        try {
-          console.log(` Calling C++ setDeckVolume...`);
-          window.electronAPI!.audio.setDeckVolume(deckNumber, volume);
-          console.log(`✅ C++ volume updated for deck ${deckNumber}:`, volume);
-        } catch (error) {
-          console.error("❌ Failed to update C++ volume:", error);
-        }
-      } else {
-        console.log("⚠️ Using Web Audio fallback");
-      }
-
-      // Fallback to Web Audio API
-      const chain =
-        deckNumber === 1 ? deck1ChainRef.current : deck2ChainRef.current;
-      if (!chain) return;
-
-      chain.volumeGain.gain.setValueAtTime(
-        volume,
-        audioContextRef.current?.currentTime || 0
-      );
-    },
-    [isElectronWithCpp]
-  );
-
-  const updatePitch = useCallback(
-    (deckNumber: 1 | 2, pitch: number) => {
-      // Use C++ audio engine if available
-      if (isElectronWithCpp()) {
-        try {
-          window.electronAPI!.audio.setDeckPitch(deckNumber, pitch);
-          console.log(`C++ pitch updated for deck ${deckNumber}:`, pitch);
-        } catch (error) {
-          console.error("Failed to update C++ pitch:", error);
-        }
-      }
-
-      // Fallback to Web Audio API
-      const chain =
-        deckNumber === 1 ? deck1ChainRef.current : deck2ChainRef.current;
-      if (!chain) return;
-
-      // Pitch affects playback rate
-      const playbackRate = Math.pow(2, pitch);
-      chain.source.playbackRate.setValueAtTime(
-        playbackRate,
-        audioContextRef.current?.currentTime || 0
-      );
-    },
-    [isElectronWithCpp]
-  );
-
-  const updateEffects = useCallback(
-    (deckNumber: 1 | 2, effects: AudioEffects) => {
-      // Use C++ audio engine if available
-      if (isElectronWithCpp()) {
-        try {
-          window.electronAPI!.audio.setEffect(deckNumber, 0, effects.flanger); // Flanger
-          window.electronAPI!.audio.setEffect(deckNumber, 1, effects.filter); // Filter
-          window.electronAPI!.audio.setEffect(deckNumber, 2, effects.echo); // Echo
-          window.electronAPI!.audio.setEffect(deckNumber, 3, effects.reverb); // Reverb
-          console.log(`C++ effects updated for deck ${deckNumber}:`, effects);
-        } catch (error) {
-          console.error("Failed to update C++ effects:", error);
-        }
-      }
-
-      // Fallback to Web Audio API
-      const chain =
-        deckNumber === 1 ? deck1ChainRef.current : deck2ChainRef.current;
-      if (!chain || !audioContextRef.current) return;
-
-      const context = audioContextRef.current;
-
-      // Ensure all effects and their gain nodes exist before trying to access them
-      if (
-        chain.flangerGain &&
-        chain.filterGain &&
-        chain.echoGain &&
-        chain.reverbGain
-      ) {
-        // Flanger effect
-        if (effects.flanger) {
-          chain.flangerGain.gain.setValueAtTime(0.3, context.currentTime);
-        } else {
-          chain.flangerGain.gain.setValueAtTime(0, context.currentTime);
-        }
-
-        // Filter effect
-        if (effects.filter) {
-          chain.filterGain.gain.setValueAtTime(0.5, context.currentTime);
-        } else {
-          chain.filterGain.gain.setValueAtTime(0, context.currentTime);
-        }
-
-        // Echo effect
-        if (effects.echo) {
-          chain.echoGain.gain.setValueAtTime(0.4, context.currentTime);
-        } else {
-          chain.echoGain.gain.setValueAtTime(0, context.currentTime);
-        }
-
-        // Reverb effect
-        if (effects.reverb) {
-          chain.reverbGain.gain.setValueAtTime(0.3, context.currentTime);
-        } else {
-          chain.reverbGain.gain.setValueAtTime(0, context.currentTime);
-        }
-      }
-    },
-    [isElectronWithCpp]
-  );
-
-  const updateHeadphoneVolume = useCallback(
-    (volume: number) => {
-      // Use C++ audio engine if available
-      if (isElectronWithCpp()) {
-        try {
-          window.electronAPI!.audio.setHeadphoneVolume(volume);
-          console.log("C++ headphone volume updated:", volume);
-        } catch (error) {
-          console.error("Failed to update C++ headphone volume:", error);
-        }
-      }
-
-      // Fallback to Web Audio API
-      if (!headphoneVolumeRef.current) return;
-      headphoneVolumeRef.current.gain.setValueAtTime(
-        volume,
-        audioContextRef.current?.currentTime || 0
-      );
-    },
-    [isElectronWithCpp]
-  );
-
-  const setDeckChain = useCallback(
-    (deckNumber: 1 | 2, chain: DeckAudioChain) => {
-      if (deckNumber === 1) {
-        deck1ChainRef.current = chain;
-      } else {
-        deck2ChainRef.current = chain;
-      }
+      audioService.setEQ(deckNumber, 0, eq.low);
+      audioService.setEQ(deckNumber, 1, eq.mid);
+      audioService.setEQ(deckNumber, 2, eq.high);
     },
     []
   );
 
-  // New function to handle deck playing state (synchronous)
-  const setDeckPlaying = useCallback(
-    (deckNumber: 1 | 2, playing: boolean) => {
-      if (isElectronWithCpp()) {
-        try {
-          window.electronAPI!.audio.setDeckPlaying(deckNumber, playing);
-          console.log(`C++ deck ${deckNumber} playing state:`, playing);
-        } catch (error) {
-          console.error("Failed to update C++ deck playing state:", error);
-        }
-      }
+  // Update volume
+  const updateVolume = useCallback((deckNumber: 1 | 2, volume: number) => {
+    const audioService = audioServiceRef.current;
+    if (!audioService) return;
+
+    audioService.setVolume(deckNumber, volume);
+  }, []);
+
+  // Update pitch
+  const updatePitch = useCallback((deckNumber: 1 | 2, pitch: number) => {
+    const audioService = audioServiceRef.current;
+    if (!audioService) return;
+
+    audioService.setPitch(deckNumber, pitch);
+  }, []);
+
+  // Update effects
+  const updateEffects = useCallback(
+    (deckNumber: 1 | 2, effects: AudioEffects) => {
+      const audioService = audioServiceRef.current;
+      if (!audioService) return;
+
+      audioService.setEffect(deckNumber, 0, effects.flanger);
+      audioService.setEffect(deckNumber, 1, effects.filter);
+      audioService.setEffect(deckNumber, 2, effects.echo);
+      audioService.setEffect(deckNumber, 3, effects.reverb);
     },
-    [isElectronWithCpp]
+    []
   );
 
-  // New function to handle crossfader (synchronous)
-  const setCrossfader = useCallback(
-    (value: number) => {
-      if (isElectronWithCpp()) {
-        try {
-          window.electronAPI!.audio.setCrossfader(value);
-          console.log("C++ crossfader updated:", value);
-        } catch (error) {
-          console.error("Failed to update C++ crossfader:", error);
-        }
-      }
+  // Update headphone volume
+  const updateHeadphoneVolume = useCallback((volume: number) => {
+    const audioService = audioServiceRef.current;
+    if (!audioService) return;
 
-      // Fallback to Web Audio API
-      applyCrossfader(value);
+    audioService.setHeadphoneVolume(volume);
+  }, []);
+
+  // Set deck playing state
+  const setDeckPlaying = useCallback(async (deckNumber: 1 | 2, playing: boolean) => {
+    const audioService = audioServiceRef.current;
+    if (!audioService) return;
+
+    if (playing) {
+      await audioService.play(deckNumber);
+    } else {
+      audioService.pause(deckNumber);
+    }
+  }, []);
+
+  // CUE functionality
+  const setCuePoint = useCallback((deckNumber: 1 | 2, position: number) => {
+    const audioService = audioServiceRef.current;
+    if (!audioService) return;
+    audioService.setCuePoint(deckNumber, position);
+  }, []);
+
+  const cue = useCallback((deckNumber: 1 | 2, pressed: boolean) => {
+    const audioService = audioServiceRef.current;
+    if (!audioService) return;
+    audioService.cue(deckNumber, pressed);
+  }, []);
+
+  // Seek functionality
+  const seek = useCallback((deckNumber: 1 | 2, position: number) => {
+    const audioService = audioServiceRef.current;
+    if (!audioService) return;
+    audioService.seek(deckNumber, position);
+  }, []);
+
+  // Scratch functionality
+  const scratch = useCallback((deckNumber: 1 | 2, delta: number) => {
+    const audioService = audioServiceRef.current;
+    if (!audioService) return;
+    audioService.scratch(deckNumber, delta);
+  }, []);
+
+  // Headphone routing
+  const setHeadphoneRouting = useCallback((deckNumber: 1 | 2, enabled: boolean) => {
+    const audioService = audioServiceRef.current;
+    if (!audioService) return;
+    audioService.setHeadphoneRouting(deckNumber, enabled);
+  }, []);
+
+  // Set crossfader
+  const setCrossfader = useCallback((value: number) => {
+    const audioService = audioServiceRef.current;
+    if (!audioService) return;
+
+    audioService.setCrossfader(value);
+  }, []);
+
+  // Set master volume
+  const setMasterVolume = useCallback((volume: number) => {
+    const audioService = audioServiceRef.current;
+    if (!audioService) return;
+
+    audioService.setMasterVolume(volume);
+  }, []);
+
+  // Legacy function for compatibility (not used with AudioService)
+  const createDeckChain = useCallback(
+    async (deckNumber: 1 | 2, audioBuffer: AudioBuffer) => {
+      // This is no longer used - AudioService handles audio chains internally
+      console.warn("createDeckChain is deprecated - use AudioService.loadTrack instead");
+      return null;
     },
-    [isElectronWithCpp, applyCrossfader]
+    []
   );
 
-  // New function to handle master volume (synchronous)
-  const setMasterVolume = useCallback(
-    (volume: number) => {
-      if (isElectronWithCpp()) {
-        try {
-          window.electronAPI!.audio.setMasterVolume(volume);
-          console.log("C++ master volume updated:", volume);
-        } catch (error) {
-          console.error("Failed to update C++ master volume:", error);
-        }
-      }
+  // Legacy function for compatibility
+  const applyCrossfader = useCallback((crossfaderValue: number) => {
+    setCrossfader(crossfaderValue);
+  }, [setCrossfader]);
 
-      // Fallback to Web Audio API
-      if (masterGainRef.current) {
-        masterGainRef.current.gain.setValueAtTime(
-          volume,
-          audioContextRef.current?.currentTime || 0
-        );
-      }
-    },
-    [isElectronWithCpp]
-  );
+  // Legacy function for compatibility
+  const setDeckChain = useCallback((deckNumber: 1 | 2, chain: DeckAudioChain | null) => {
+    // This is no longer used - AudioService handles audio chains internally
+    console.warn("setDeckChain is deprecated");
+  }, []);
+
+  // Get AudioContext (for compatibility)
+  const audioContext = audioServiceRef.current?.getAudioContext() || null;
 
   return {
     initAudioContext,
+    loadTrack,
     createDeckChain,
     detectBPM,
     applyCrossfader,
@@ -764,9 +387,16 @@ export const useAudioEngine = () => {
     setDeckPlaying,
     setCrossfader,
     setMasterVolume,
-    audioContext: audioContextRef.current,
-    masterGain: masterGainRef.current,
-    headphoneGain: headphoneGainRef.current,
+    setCuePoint,
+    cue,
+    seek,
+    setBaseBPM,
+    setSync,
+    setHeadphoneRouting,
+    scratch,
+    audioContext,
+    masterGain: null, // Not exposed directly anymore
+    headphoneGain: null, // Not exposed directly anymore
     audioDevices: state.connectedDevices,
   };
 };

@@ -27,14 +27,39 @@ export const DJButton = ({
 }: DJButtonProps) => {
   return (
     <button
+      type="button"
       id={id}
-      onClick={onClick}
-      onMouseDown={onMouseDown}
-      onMouseUp={onMouseUp}
-      onMouseLeave={onMouseLeave}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!disabled && onClick) {
+          onClick();
+        }
+      }}
+      onMouseDown={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!disabled && onMouseDown) {
+          onMouseDown();
+        }
+      }}
+      onMouseUp={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!disabled && onMouseUp) {
+          onMouseUp();
+        }
+      }}
+      onMouseLeave={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!disabled && onMouseLeave) {
+          onMouseLeave();
+        }
+      }}
       disabled={disabled}
       className={cn(
-        "dj-button",
+        "dj-button relative z-10",
         active && "active",
         variant === "cue" && "cue",
         variant === "play" && "play", 

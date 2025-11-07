@@ -9,6 +9,7 @@ interface AudioWaveformProps {
   onTimeUpdate: (time: number) => void;
   onLoad: (file: File) => void;
   onDurationLoad: (duration: number) => void;
+  onSeek?: (time: number) => void;
 }
 
 export const AudioWaveform = ({
@@ -20,6 +21,7 @@ export const AudioWaveform = ({
   onTimeUpdate,
   onLoad,
   onDurationLoad,
+  onSeek,
 }: AudioWaveformProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
@@ -28,10 +30,62 @@ export const AudioWaveform = ({
   const canvasSizeRef = useRef({ width: 0, height: 0 });
 
   // Handle file input change
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
     if (file && file.type.startsWith("audio/")) {
       onLoad(file);
+    }
+  };
+
+  // Handle file load button click - use Electron dialog if available
+  const handleLoadClick = async () => {
+    // Check if we're in Electron and use native dialog
+    if (typeof window !== "undefined" && window.electronAPI?.dialog) {
+      try {
+        const result = await window.electronAPI.dialog.showOpenDialog({
+          properties: ["openFile"],
+          filters: [
+            {
+              name: "Audio Files",
+              extensions: ["mp3", "wav", "ogg", "flac", "m4a", "aac"],
+            },
+            { name: "All Files", extensions: ["*"] },
+          ],
+        });
+
+        if (!result.canceled && result.filePaths.length > 0) {
+          const filePath = result.filePaths[0];
+
+          // Read file using Electron fs API
+          if (window.electronAPI?.fs) {
+            const readResult = await window.electronAPI.fs.readFile(filePath);
+            if (readResult.success && readResult.data) {
+              // Convert number array to ArrayBuffer
+              const arrayBuffer = new ArrayBuffer(readResult.data.length);
+              const view = new Uint8Array(arrayBuffer);
+              readResult.data.forEach((byte, index) => {
+                view[index] = byte;
+              });
+
+              // Create File object from ArrayBuffer
+              const fileName = filePath.split(/[/\\]/).pop() || "audio";
+              const file = new File([arrayBuffer], fileName, {
+                type: "audio/mpeg",
+              });
+              onLoad(file);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load file via Electron dialog:", error);
+        // Fallback to HTML file input
+        document.getElementById(`file-input-${deckNumber}`)?.click();
+      }
+    } else {
+      // Fallback to HTML file input for web
+      document.getElementById(`file-input-${deckNumber}`)?.click();
     }
   };
 
@@ -99,8 +153,8 @@ export const AudioWaveform = ({
     ctx.fillStyle = "#1a1a1a";
     ctx.fillRect(0, 0, width, height);
 
-    // Draw waveform bars
-    ctx.fillStyle = "#333";
+    // Draw waveform bars (blue)
+    ctx.fillStyle = "hsl(217, 91%, 60%)";
     for (let i = 0; i < waveformData.length; i++) {
       const barHeight = (waveformData[i] / maxAmplitude) * height * 0.8;
       const x = i * barWidth;
@@ -109,20 +163,25 @@ export const AudioWaveform = ({
       ctx.fillRect(x, y, barWidth - 1, barHeight);
     }
 
-    // Draw progress overlay
+    // Draw progress overlay (red tint)
     if (progressX > 0) {
-      ctx.fillStyle = "rgba(0, 255, 255, 0.3)";
+      ctx.fillStyle = "rgba(255, 0, 0, 0.2)";
       ctx.fillRect(0, 0, progressX, height);
     }
 
-    // Draw progress line
+    // Draw red playhead line
     if (progressX > 0) {
-      ctx.strokeStyle = "#00ffff";
+      ctx.strokeStyle = "#ff0000";
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(progressX, 0);
       ctx.lineTo(progressX, height);
       ctx.stroke();
+      // Add glow effect
+      ctx.shadowColor = "#ff0000";
+      ctx.shadowBlur = 8;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
     }
 
     ctx.restore();
@@ -140,9 +199,13 @@ export const AudioWaveform = ({
       const clampedTime = Math.max(0, Math.min(seekTime, duration));
 
       // Notify parent component about the seek
-      onTimeUpdate(clampedTime);
+      if (onSeek) {
+        onSeek(clampedTime);
+      } else {
+        onTimeUpdate(clampedTime);
+      }
     },
-    [duration, onTimeUpdate]
+    [duration, onTimeUpdate, onSeek]
   );
 
   // Effects
@@ -204,22 +267,28 @@ export const AudioWaveform = ({
   };
 
   return (
-    <div className="bg-dj-panel rounded-sm p-2 space-y-2">
+    <div className="bg-dj-panel rounded-sm p-2 space-y-2 relative">
       {/* File input */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 relative z-10">
         <input
           type="file"
           accept="audio/*"
           onChange={handleFileChange}
           className="hidden"
           id={`file-input-${deckNumber}`}
+          aria-label={`Load audio file for deck ${deckNumber}`}
         />
-        <label
-          htmlFor={`file-input-${deckNumber}`}
-          className="px-3 py-1 bg-dj-button text-dj-button-foreground rounded-sm text-xs font-medium cursor-pointer hover:bg-dj-button/80 transition-colors"
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleLoadClick();
+          }}
+          className="px-3 py-1 bg-[hsl(var(--soft-dark))] border border-[hsl(var(--glow-blue)/0.3)] text-white rounded-sm text-xs font-semibold uppercase tracking-wide cursor-pointer hover:border-[hsl(var(--glow-blue)/0.6)] hover:shadow-[0_0_10px_hsl(var(--glow-blue)/0.3)] transition-all relative z-10"
         >
           {audioFile ? "Change Track" : "Load Track"}
-        </label>
+        </button>
 
         {isLoading && (
           <span className="text-xs text-muted-foreground">Loading...</span>
