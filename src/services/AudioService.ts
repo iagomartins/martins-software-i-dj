@@ -599,12 +599,23 @@ class AudioService {
 
     // Update deck state (sourceNode and gainNode already stored above before start())
     deck.isPlaying = true;
+    // Set startTime accounting for the offset - this ensures position calculation is correct
     deck.startTime = this.audioContext.currentTime - startOffset;
     console.log(
       `✅ Deck ${deckId} state updated: isPlaying=${
         deck.isPlaying
-      }, startTime=${deck.startTime.toFixed(2)}s`
+      }, startTime=${deck.startTime.toFixed(
+        2
+      )}s, startOffset=${startOffset.toFixed(2)}s`
     );
+
+    // Immediately emit position update to ensure UI is in sync
+    const callbacks = this.positionUpdateCallbacks.get(deckId);
+    if (callbacks && deck.audioBuffer) {
+      callbacks.forEach((callback) =>
+        callback(startOffset % deck.audioBuffer.duration)
+      );
+    }
   }
 
   pause(deckId: DeckId): void {
@@ -674,6 +685,13 @@ class AudioService {
     deck.sourceNode = null;
     deck.gainNode = null;
     deck.isPlaying = false;
+    deck.startTime = 0;
+
+    // Emit position update with pauseTime when paused
+    const callbacks = this.positionUpdateCallbacks.get(deckId);
+    if (callbacks && deck.audioBuffer) {
+      callbacks.forEach((callback) => callback(deck.pauseTime));
+    }
   }
 
   setCuePoint(deckId: DeckId, position: number): void {
@@ -734,6 +752,12 @@ class AudioService {
     }
 
     deck.pauseTime = Math.max(0, Math.min(position, deck.audioBuffer.duration));
+
+    // Immediately emit position update
+    const callbacks = this.positionUpdateCallbacks.get(deckId);
+    if (callbacks) {
+      callbacks.forEach((callback) => callback(deck.pauseTime));
+    }
 
     if (wasPlaying) {
       this.play(deckId);
@@ -982,23 +1006,55 @@ class AudioService {
       return; // Already started
     }
 
-    // Update position every 100ms
+    // Update position every 50ms for smoother updates
     this.positionUpdateInterval = window.setInterval(() => {
       if (!this.audioContext) return;
 
       for (const [deckId, deck] of this.decks.entries()) {
-        if (deck.isPlaying && deck.audioBuffer && deck.startTime > 0) {
-          const elapsed = this.audioContext.currentTime - deck.startTime;
-          const position = elapsed % deck.audioBuffer.duration;
+        if (deck.audioBuffer) {
+          let position = 0;
+
+          if (deck.isPlaying && deck.startTime > 0) {
+            // Calculate position when playing
+            const elapsed = this.audioContext.currentTime - deck.startTime;
+            // Account for initial offset (startOffset) by adding it to elapsed
+            // Since startTime = currentTime - startOffset, elapsed already includes the offset
+            position = elapsed % deck.audioBuffer.duration;
+
+            // Ensure position is within valid range
+            position = Math.max(
+              0,
+              Math.min(position, deck.audioBuffer.duration)
+            );
+          } else {
+            // When paused, use pauseTime
+            position = deck.pauseTime;
+          }
 
           // Notify callbacks
           const callbacks = this.positionUpdateCallbacks.get(deckId);
-          if (callbacks) {
-            callbacks.forEach((callback) => callback(position));
+          if (callbacks && callbacks.size > 0) {
+            callbacks.forEach((callback) => {
+              try {
+                callback(position);
+              } catch (error) {
+                console.error(
+                  `Error in position callback for deck ${deckId}:`,
+                  error
+                );
+              }
+            });
+          } else if (deck.isPlaying) {
+            // Debug: Log when we have a playing deck but no callbacks
+            console.warn(
+              `⚠️ Deck ${deckId} is playing but has no position callbacks registered`
+            );
           }
         }
       }
-    }, 100);
+    }, 50); // Reduced from 100ms to 50ms for smoother updates
+
+    console.log(`✅ Position update interval started (50ms)`);
   }
 
   onPositionUpdate(
@@ -1008,11 +1064,44 @@ class AudioService {
     const callbacks = this.positionUpdateCallbacks.get(deckId);
     if (callbacks) {
       callbacks.add(callback);
+      console.log(
+        `📡 Registered position callback for deck ${deckId} (total callbacks: ${callbacks.size})`
+      );
+
+      // Immediately send current position if available
+      const deck = this.decks.get(deckId);
+      if (deck && deck.audioBuffer) {
+        let currentPosition = 0;
+        if (deck.isPlaying && deck.startTime > 0 && this.audioContext) {
+          const elapsed = this.audioContext.currentTime - deck.startTime;
+          currentPosition = elapsed % deck.audioBuffer.duration;
+        } else {
+          currentPosition = deck.pauseTime;
+        }
+        // Send initial position asynchronously to avoid blocking
+        setTimeout(() => {
+          try {
+            callback(currentPosition);
+            console.log(
+              `📍 Sent initial position to callback for deck ${deckId}: ${currentPosition.toFixed(
+                2
+              )}s`
+            );
+          } catch (error) {
+            console.error(`Error sending initial position to callback:`, error);
+          }
+        }, 0);
+      }
+
       // Return unsubscribe function
       return () => {
         callbacks.delete(callback);
+        console.log(
+          `📡 Unregistered position callback for deck ${deckId} (remaining callbacks: ${callbacks.size})`
+        );
       };
     }
+    console.warn(`⚠️ No callback set found for deck ${deckId}`);
     return () => {};
   }
 

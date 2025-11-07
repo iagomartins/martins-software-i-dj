@@ -193,16 +193,41 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
     setDuration(audioDuration);
   };
 
-  // Position tracking
+  // Position tracking - subscribe to AudioService position updates
   useEffect(() => {
     const audioService = AudioService.getInstance();
-    const unsubscribe = audioService.onPositionUpdate(
-      deckNumber,
-      (position) => {
-        setCurrentTime(position);
+    let unsubscribe: (() => void) | null = null;
+    let timeoutId: NodeJS.Timeout | null = null;
+
+    const subscribe = () => {
+      if (audioService.isInitialized()) {
+        console.log(
+          `✅ Subscribing to position updates for deck ${deckNumber}`
+        );
+        unsubscribe = audioService.onPositionUpdate(deckNumber, (position) => {
+          setCurrentTime(position);
+        });
+      } else {
+        console.log(
+          `⏳ AudioService not initialized yet for deck ${deckNumber}, waiting...`
+        );
+        // Try again after a short delay
+        timeoutId = setTimeout(() => {
+          subscribe();
+        }, 100);
       }
-    );
-    return unsubscribe;
+    };
+
+    subscribe();
+
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
   }, [deckNumber]);
 
   return (

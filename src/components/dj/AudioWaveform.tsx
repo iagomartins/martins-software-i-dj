@@ -28,6 +28,9 @@ export const AudioWaveform = ({
   const [waveformData, setWaveformData] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const canvasSizeRef = useRef({ width: 0, height: 0 });
+  const [hoverX, setHoverX] = useState<number | null>(null);
+  const [hoverTime, setHoverTime] = useState<number | null>(null);
+  const [clickFeedback, setClickFeedback] = useState<number | null>(null);
 
   // Handle file input change
   const handleFileChange = async (
@@ -90,43 +93,46 @@ export const AudioWaveform = ({
   };
 
   // Generate waveform data from audio file (for visualization only)
-  const generateWaveform = async (file: File) => {
-    setIsLoading(true);
-    try {
-      const arrayBuffer = await file.arrayBuffer();
-      const audioContext = new (window.AudioContext ||
-        (window as unknown as { webkitAudioContext: typeof AudioContext })
-          .webkitAudioContext)();
-      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+  const generateWaveform = useCallback(
+    async (file: File) => {
+      setIsLoading(true);
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const audioContext = new (window.AudioContext ||
+          (window as unknown as { webkitAudioContext: typeof AudioContext })
+            .webkitAudioContext)();
+        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
-      const channelData = audioBuffer.getChannelData(0);
-      const samples = 800; // Reduced for better performance
-      const blockSize = Math.floor(channelData.length / samples);
-      const waveform: number[] = [];
+        const channelData = audioBuffer.getChannelData(0);
+        const samples = 800; // Reduced for better performance
+        const blockSize = Math.floor(channelData.length / samples);
+        const waveform: number[] = [];
 
-      for (let i = 0; i < samples; i++) {
-        const start = i * blockSize;
-        const end = Math.min(start + blockSize, channelData.length);
-        let sum = 0;
-        let count = 0;
+        for (let i = 0; i < samples; i++) {
+          const start = i * blockSize;
+          const end = Math.min(start + blockSize, channelData.length);
+          let sum = 0;
+          let count = 0;
 
-        for (let j = start; j < end; j++) {
-          sum += Math.abs(channelData[j]);
-          count++;
+          for (let j = start; j < end; j++) {
+            sum += Math.abs(channelData[j]);
+            count++;
+          }
+
+          waveform.push(count > 0 ? sum / count : 0);
         }
 
-        waveform.push(count > 0 ? sum / count : 0);
+        setWaveformData(waveform);
+        onDurationLoad(audioBuffer.duration);
+        audioContext.close();
+      } catch (error) {
+        console.error("Error generating waveform:", error);
+      } finally {
+        setIsLoading(false);
       }
-
-      setWaveformData(waveform);
-      onDurationLoad(audioBuffer.duration);
-      audioContext.close();
-    } catch (error) {
-      console.error("Error generating waveform:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    },
+    [onDurationLoad]
+  );
 
   // Draw waveform
   const drawWaveform = useCallback(() => {
@@ -137,6 +143,11 @@ export const AudioWaveform = ({
     if (!ctx) return;
 
     const { width, height } = canvasSizeRef.current;
+
+    // Use requestAnimationFrame for smooth updates
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
+    }
 
     // Clear canvas
     ctx.clearRect(0, 0, width, height);
@@ -163,29 +174,111 @@ export const AudioWaveform = ({
       ctx.fillRect(x, y, barWidth - 1, barHeight);
     }
 
-    // Draw progress overlay (red tint)
+    // Draw progress overlay (red tint) - enhanced with gradient
     if (progressX > 0) {
-      ctx.fillStyle = "rgba(255, 0, 0, 0.2)";
+      const gradient = ctx.createLinearGradient(0, 0, progressX, 0);
+      gradient.addColorStop(0, "rgba(255, 0, 0, 0.15)");
+      gradient.addColorStop(1, "rgba(255, 0, 0, 0.25)");
+      ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, progressX, height);
     }
 
-    // Draw red playhead line
-    if (progressX > 0) {
-      ctx.strokeStyle = "#ff0000";
+    // Draw hover preview line (if hovering)
+    if (hoverX !== null && hoverX >= 0 && hoverX <= width) {
+      ctx.strokeStyle = "rgba(100, 200, 255, 0.6)";
       ctx.lineWidth = 2;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(hoverX, 0);
+      ctx.lineTo(hoverX, height);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Draw hover highlight area
+      ctx.fillStyle = "rgba(100, 200, 255, 0.1)";
+      ctx.fillRect(hoverX - 2, 0, 4, height);
+    }
+
+    // Draw click feedback (brief highlight)
+    if (
+      clickFeedback !== null &&
+      clickFeedback >= 0 &&
+      clickFeedback <= width
+    ) {
+      ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+      ctx.fillRect(clickFeedback - 3, 0, 6, height);
+    }
+
+    // Draw red playhead line - ENHANCED with thicker line, stronger glow, and indicators
+    if (progressX > 0 && progressX <= width) {
+      // Draw semi-transparent overlay behind playhead for better visibility
+      ctx.fillStyle = "rgba(255, 0, 0, 0.1)";
+      ctx.fillRect(progressX - 3, 0, 6, height);
+
+      // Draw playhead line with multiple passes for stronger glow
+      ctx.strokeStyle = "#ff0000";
+      ctx.lineWidth = 4; // Thicker line (was 2)
+
+      // First pass: outer glow
+      ctx.shadowColor = "#ff0000";
+      ctx.shadowBlur = 12; // Stronger glow (was 8)
       ctx.beginPath();
       ctx.moveTo(progressX, 0);
       ctx.lineTo(progressX, height);
       ctx.stroke();
-      // Add glow effect
+
+      // Second pass: inner line
+      ctx.shadowBlur = 0;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(progressX, 0);
+      ctx.lineTo(progressX, height);
+      ctx.stroke();
+
+      // Draw small circle indicators at top and bottom
+      const circleRadius = 4;
+      ctx.fillStyle = "#ff0000";
       ctx.shadowColor = "#ff0000";
       ctx.shadowBlur = 8;
-      ctx.stroke();
+
+      // Top circle
+      ctx.beginPath();
+      ctx.arc(progressX, circleRadius, circleRadius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Bottom circle
+      ctx.beginPath();
+      ctx.arc(progressX, height - circleRadius, circleRadius, 0, Math.PI * 2);
+      ctx.fill();
+
       ctx.shadowBlur = 0;
     }
 
     ctx.restore();
-  }, [waveformData, currentTime, duration]);
+  }, [waveformData, currentTime, duration, hoverX, clickFeedback]);
+
+  // Handle canvas mouse move for hover feedback
+  const handleCanvasMouseMove = useCallback(
+    (event: React.MouseEvent<HTMLCanvasElement>) => {
+      const canvas = canvasRef.current;
+      if (!canvas || duration <= 0) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const seekTime = (x / rect.width) * duration;
+      const clampedTime = Math.max(0, Math.min(seekTime, duration));
+
+      setHoverX(x);
+      setHoverTime(clampedTime);
+    },
+    [duration]
+  );
+
+  // Handle canvas mouse leave
+  const handleCanvasMouseLeave = useCallback(() => {
+    setHoverX(null);
+    setHoverTime(null);
+  }, []);
 
   // Handle canvas click for seeking
   const handleCanvasClick = useCallback(
@@ -197,6 +290,10 @@ export const AudioWaveform = ({
       const x = event.clientX - rect.left;
       const seekTime = (x / rect.width) * duration;
       const clampedTime = Math.max(0, Math.min(seekTime, duration));
+
+      // Visual feedback on click
+      setClickFeedback(x);
+      setTimeout(() => setClickFeedback(null), 200);
 
       // Notify parent component about the seek
       if (onSeek) {
@@ -213,18 +310,22 @@ export const AudioWaveform = ({
     if (audioFile) {
       generateWaveform(audioFile);
     }
-  }, [audioFile]);
+  }, [audioFile, generateWaveform]);
 
+  // Continuous animation loop for smooth updates
   useEffect(() => {
-    if (animationRef.current) {
-      cancelAnimationFrame(animationRef.current);
-    }
+    let animationId: number;
 
-    animationRef.current = requestAnimationFrame(drawWaveform);
+    const animate = () => {
+      drawWaveform();
+      animationId = requestAnimationFrame(animate);
+    };
+
+    animationId = requestAnimationFrame(animate);
 
     return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
+      if (animationId) {
+        cancelAnimationFrame(animationId);
       }
     };
   }, [drawWaveform]);
@@ -289,10 +390,6 @@ export const AudioWaveform = ({
         >
           {audioFile ? "Change Track" : "Load Track"}
         </button>
-
-        {isLoading && (
-          <span className="text-xs text-muted-foreground">Loading...</span>
-        )}
       </div>
 
       {/* Waveform canvas */}
@@ -300,9 +397,25 @@ export const AudioWaveform = ({
         <canvas
           ref={canvasRef}
           onClick={handleCanvasClick}
+          onMouseMove={handleCanvasMouseMove}
+          onMouseLeave={handleCanvasMouseLeave}
           className="w-full h-16 bg-dj-panel border border-border rounded-sm cursor-pointer"
           style={{ imageRendering: "pixelated" }}
         />
+
+        {/* Hover tooltip */}
+        {hoverX !== null && hoverTime !== null && duration > 0 && (
+          <div
+            className="absolute pointer-events-none z-20 bg-black/90 text-white text-xs px-2 py-1 rounded border border-[hsl(var(--glow-blue)/0.5)] shadow-lg"
+            style={{
+              left: `${hoverX}px`,
+              top: "-30px",
+              transform: "translateX(-50%)",
+            }}
+          >
+            {formatTime(hoverTime)}
+          </div>
+        )}
 
         {/* Progress bar overlay */}
         <div className="absolute bottom-0 left-0 right-0 h-1 bg-dj-panel rounded-b-sm overflow-hidden">
@@ -315,12 +428,24 @@ export const AudioWaveform = ({
         </div>
       </div>
 
-      {/* Time display */}
-      <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-        <span className="text-neon-cyan font-medium">
-          {formatTime(currentTime)}
-        </span>
-        <span>{formatTime(duration)}</span>
+      {/* Enhanced Time display */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-lg font-bold text-neon-cyan tabular-nums">
+            {formatTime(currentTime)}
+          </span>
+          {duration > 0 && (
+            <span className="text-xs text-muted-foreground">
+              ({Math.round((currentTime / duration) * 100)}%)
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="h-px w-8 bg-border"></div>
+          <span className="text-sm font-semibold text-muted-foreground tabular-nums">
+            {formatTime(duration)}
+          </span>
+        </div>
       </div>
     </div>
   );
