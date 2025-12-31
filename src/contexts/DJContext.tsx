@@ -1,7 +1,17 @@
-import React, { createContext, useContext, useReducer, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
+import { ConfigService } from '@/services/ConfigService';
+
+// Analog mapping interface
+export interface AnalogMapping {
+  controlId: string; // e.g., 'deck1-volume', 'crossfader', 'deck1-jog'
+  type: 'absolute' | 'relative'; // absolute for faders, relative for jog wheels
+  min: number; // target min value
+  max: number; // target max value
+  inverted?: boolean; // for inverted faders
+}
 
 // Your DJ state interface
-interface DJState {
+export interface DJState {
   activeHeadphoneDecks: Set<number>; // Fix: Replace 'any' with proper type
   connectedDevices: MediaDeviceInfo[]; // Add missing property
   audioConfig: { // Add missing property
@@ -13,6 +23,7 @@ interface DJState {
   };
   isConfigModalOpen: boolean; // Add missing property
   keyMappings: Record<string, string>; // Add this missing property
+  analogMappings: Record<string, AnalogMapping>; // MIDI CC identifier -> AnalogMapping
   deck1: {
     isPlaying: boolean;
     isCued: boolean;
@@ -68,7 +79,10 @@ type DJAction =
   | { type: 'TOGGLE_HEADPHONE_DECK'; payload: number }
   | { type: 'SET_CONNECTED_DEVICES'; payload: MediaDeviceInfo[] }
   | { type: 'SET_KEY_MAPPING'; payload: { key: string; buttonId: string } } // Add this
-  | { type: 'CLEAR_KEY_MAPPING'; payload: string }; // Add this
+  | { type: 'CLEAR_KEY_MAPPING'; payload: string } // Add this
+  | { type: 'SET_ANALOG_MAPPING'; payload: { key: string; mapping: AnalogMapping } } // Analog mapping
+  | { type: 'CLEAR_ANALOG_MAPPING'; payload: string } // Clear analog mapping
+  | { type: 'LOAD_CONFIG'; payload: Partial<DJState> }; // Load config from file
 
 // Initial state
 const initialState: DJState = {
@@ -83,6 +97,7 @@ const initialState: DJState = {
   },
   isConfigModalOpen: false, // Add missing property
   keyMappings: {}, // Add this missing property
+  analogMappings: {}, // Add analog mappings
   deck1: {
     isPlaying: false,
     isCued: false,
@@ -200,6 +215,26 @@ function djReducer(state: DJState, action: DJAction): DJState {
         ...state,
         keyMappings: newKeyMappings
       }; }
+    case 'SET_ANALOG_MAPPING':
+      return {
+        ...state,
+        analogMappings: {
+          ...state.analogMappings,
+          [action.payload.key]: action.payload.mapping
+        }
+      };
+    case 'CLEAR_ANALOG_MAPPING':
+      { const newAnalogMappings = { ...state.analogMappings };
+      delete newAnalogMappings[action.payload];
+      return {
+        ...state,
+        analogMappings: newAnalogMappings
+      }; }
+    case 'LOAD_CONFIG':
+      return {
+        ...state,
+        ...action.payload
+      };
     default:
       return state;
   }
@@ -214,6 +249,24 @@ const DJContext = createContext<{
 // Provider component
 export function DJProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(djReducer, initialState);
+
+  // Load config on startup
+  useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        const configService = ConfigService.getInstance();
+        const loadedConfig = await configService.loadConfigOnStartup();
+        if (loadedConfig) {
+          dispatch({ type: 'LOAD_CONFIG', payload: loadedConfig });
+          console.log('✅ Config loaded on startup');
+        }
+      } catch (error) {
+        console.warn('Failed to load config on startup:', error);
+      }
+    };
+
+    loadConfig();
+  }, []);
 
   return (
     <DJContext.Provider value={{ state, dispatch }}>

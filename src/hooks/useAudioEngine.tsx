@@ -30,6 +30,9 @@ declare global {
           dirPath: string
         ) => Promise<{ success: boolean; error?: string }>;
       };
+      path?: {
+        getDocumentsPath: () => Promise<{ success: boolean; path?: string; error?: string }>;
+      };
     };
   }
 }

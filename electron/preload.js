@@ -33,6 +33,12 @@ try {
         return ipcRenderer.invoke("fs:mkdir", dirPath);
       },
     },
+    path: {
+      getDocumentsPath: () => {
+        console.log("📡 IPC: getDocumentsPath");
+        return ipcRenderer.invoke("path:getDocumentsPath");
+      },
+    },
   });
 
   console.log("✅ Preload script completed successfully");

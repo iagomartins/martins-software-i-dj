@@ -15,10 +15,13 @@ import { KeyMappingSection } from "./KeyMappingSection";
 import { Settings, Volume2, Headphones, Mic, Speaker } from "lucide-react";
 import { useAudioEngine } from "@/hooks/useAudioEngine";
 import { AudioService } from "@/services/AudioService";
+import { ConfigService } from "@/services/ConfigService";
+import { useState } from "react";
 
 export const ConfigModal = () => {
   const { state, dispatch } = useDJ();
   const { audioDevices } = useAudioEngine();
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleAudioConfigChange = async (key: keyof typeof state.audioConfig, value: string) => {
     dispatch({
@@ -244,8 +247,35 @@ export const ConfigModal = () => {
               >
                 Restaurar Padrões
               </Button>
-              <Button onClick={() => dispatch({ type: 'TOGGLE_CONFIG_MODAL' })}>
-                Salvar Configurações
+              <Button 
+                onClick={async () => {
+                  setIsSaving(true);
+                  try {
+                    const configService = ConfigService.getInstance();
+                    const result = await configService.exportConfig({
+                      audioConfig: state.audioConfig,
+                      keyMappings: state.keyMappings,
+                      analogMappings: state.analogMappings,
+                    });
+                    
+                    if (result.success) {
+                      console.log('✅ Config saved successfully:', result.path);
+                      // Close modal after successful save
+                      dispatch({ type: 'TOGGLE_CONFIG_MODAL' });
+                    } else {
+                      console.error('❌ Failed to save config:', result.error);
+                      alert(`Erro ao salvar configurações: ${result.error}`);
+                    }
+                  } catch (error) {
+                    console.error('❌ Error saving config:', error);
+                    alert(`Erro ao salvar configurações: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+                  } finally {
+                    setIsSaving(false);
+                  }
+                }}
+                disabled={isSaving}
+              >
+                {isSaving ? 'Salvando...' : 'Salvar Configurações'}
               </Button>
             </div>
           </TabsContent>

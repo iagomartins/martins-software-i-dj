@@ -381,6 +381,7 @@ export const AudioWaveform = ({
         />
         <button
           type="button"
+          id={`deck${deckNumber}-load`}
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();

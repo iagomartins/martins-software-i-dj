@@ -90,6 +90,17 @@ ipcMain.handle("fs:mkdir", async (event, dirPath) => {
   }
 });
 
+// Get documents folder path
+ipcMain.handle("path:getDocumentsPath", async (event) => {
+  try {
+    const documentsPath = app.getPath('documents');
+    return { success: true, path: documentsPath };
+  } catch (error) {
+    console.error(`❌ Failed to get documents path: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+});
+
 app.whenReady().then(() => {
   createWindow();
 });
