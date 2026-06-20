@@ -144,8 +144,9 @@ float DelayLine::read(int delay) {
 }
 
 // AudioProcessor implementation
-AudioProcessor::AudioProcessor(int sampleRate) 
-    : sampleRate(sampleRate), 
+AudioProcessor::AudioProcessor(int sampleRate)
+    : sampleRate(sampleRate),
+      filterCutoff(0.0f),
       flangerPhase(0.0f),
       flangerDelay(0.0f),
       flangerDelayLine(static_cast<int>(sampleRate * 0.01f)), // 10ms max delay for flanger
@@ -160,14 +161,18 @@ AudioProcessor::AudioProcessor(int sampleRate)
     params.filterEnabled = false;
     params.echoEnabled = false;
     params.reverbEnabled = false;
-    
-    // Initialize EQ filters
-    lowFilter.setLowshelf(320.0f, 0.707f, 0.0f, sampleRate);
-    midFilter.setPeaking(1000.0f, 0.707f, 0.0f, sampleRate);
-    highFilter.setHighshelf(3200.0f, 0.707f, 0.0f, sampleRate);
-    
+
+    // Initialize EQ filters for both channels
+    lowFilterLeft.setLowshelf(320.0f, 0.707f, 0.0f, sampleRate);
+    midFilterLeft.setPeaking(1000.0f, 0.707f, 0.0f, sampleRate);
+    highFilterLeft.setHighshelf(3200.0f, 0.707f, 0.0f, sampleRate);
+    lowFilterRight.setLowshelf(320.0f, 0.707f, 0.0f, sampleRate);
+    midFilterRight.setPeaking(1000.0f, 0.707f, 0.0f, sampleRate);
+    highFilterRight.setHighshelf(3200.0f, 0.707f, 0.0f, sampleRate);
+
     // Initialize filter effect
-    filterEffect.setLowpass(1000.0f, 0.707f, sampleRate);
+    filterEffectLeft.setLowpass(20000.0f, 0.707f, sampleRate);
+    filterEffectRight.setLowpass(20000.0f, 0.707f, sampleRate);
 }
 
 void AudioProcessor::setVolume(float volume) {
@@ -182,15 +187,18 @@ void AudioProcessor::setEQ(int band, float value) {
     switch (band) {
         case 0: // Low
             params.lowEQ = value;
-            lowFilter.setLowshelf(320.0f, 0.707f, value * 12.0f, sampleRate);
+            lowFilterLeft.setLowshelf(320.0f, 0.707f, value * 12.0f, sampleRate);
+            lowFilterRight.setLowshelf(320.0f, 0.707f, value * 12.0f, sampleRate);
             break;
         case 1: // Mid
             params.midEQ = value;
-            midFilter.setPeaking(1000.0f, 0.707f, value * 12.0f, sampleRate);
+            midFilterLeft.setPeaking(1000.0f, 0.707f, value * 12.0f, sampleRate);
+            midFilterRight.setPeaking(1000.0f, 0.707f, value * 12.0f, sampleRate);
             break;
         case 2: // High
             params.highEQ = value;
-            highFilter.setHighshelf(3200.0f, 0.707f, value * 12.0f, sampleRate);
+            highFilterLeft.setHighshelf(3200.0f, 0.707f, value * 12.0f, sampleRate);
+            highFilterRight.setHighshelf(3200.0f, 0.707f, value * 12.0f, sampleRate);
             break;
     }
 }
@@ -204,39 +212,52 @@ void AudioProcessor::setEffect(int effect, bool enabled) {
     }
 }
 
-void AudioProcessor::process(float* input, float* output, int numSamples) {
+void AudioProcessor::setFilterCutoff(float cutoff) {
+    // cutoff is 0..1 (0 = off, 1 = max frequency)
+    filterCutoff = cutoff;
+    if (cutoff <= 0.0f) {
+        params.filterEnabled = false;
+        return;
+    }
+    params.filterEnabled = true;
+    // Map 0..1 to 200 Hz..10000 Hz
+    float frequency = 200.0f * powf(50.0f, cutoff);
+    filterEffectLeft.setLowpass(frequency, 0.707f, sampleRate);
+    filterEffectRight.setLowpass(frequency, 0.707f, sampleRate);
+}
+
+void AudioProcessor::processChannel(float* input, float* output, int numSamples,
+                                    BiquadFilter& low, BiquadFilter& mid, BiquadFilter& high,
+                                    BiquadFilter& filter) {
     for (int i = 0; i < numSamples; i++) {
         float sample = input[i];
-        
-        // Apply pitch (simple playback rate change - for real pitch shift, use time-stretch)
-        // For now, we'll just pass through as pitch is handled at source level
-        
+
         // Apply EQ
-        sample = lowFilter.process(sample);
-        sample = midFilter.process(sample);
-        sample = highFilter.process(sample);
-        
+        sample = low.process(sample);
+        sample = mid.process(sample);
+        sample = high.process(sample);
+
         // Apply effects
         if (params.flangerEnabled) {
             // Flanger: short delay with LFO modulation
             flangerPhase += 0.1f; // LFO rate
             if (flangerPhase > 2.0f * M_PI) flangerPhase -= 2.0f * M_PI;
-            
+
             float delayTime = 0.003f + 0.002f * sinf(flangerPhase); // 1-5ms delay
             int delaySamples = (int)(delayTime * sampleRate);
             int maxDelay = flangerDelayLine.getMaxDelay();
             delaySamples = std::min(delaySamples, maxDelay - 1);
             delaySamples = std::max(1, delaySamples); // Ensure at least 1 sample delay
-            
+
             float delayed = flangerDelayLine.read(delaySamples);
             flangerDelayLine.write(sample);
             sample = sample + delayed * 0.5f; // Mix original and delayed
         }
-        
+
         if (params.filterEnabled) {
-            sample = filterEffect.process(sample);
+            sample = filter.process(sample);
         }
-        
+
         if (params.echoEnabled) {
             // Echo: longer delay with feedback
             int delaySamples = (int)(0.3f * sampleRate); // 300ms delay
@@ -244,34 +265,39 @@ void AudioProcessor::process(float* input, float* output, int numSamples) {
             echoDelayLine.write(sample + delayed * 0.3f); // Feedback
             sample = sample + delayed * 0.4f; // Mix
         }
-        
+
         if (params.reverbEnabled) {
             // Simple reverb: multiple delays with feedback
             int delay1 = (int)(0.05f * sampleRate);
             int delay2 = (int)(0.1f * sampleRate);
             int delay3 = (int)(0.15f * sampleRate);
-            
+
             float rev1 = reverbDelayLine.read(delay1);
             float rev2 = reverbDelayLine.read(delay2);
             float rev3 = reverbDelayLine.read(delay3);
-            
+
             float reverbSum = (rev1 + rev2 + rev3) * 0.33f;
             reverbDelayLine.write(sample + reverbSum * 0.2f);
             sample = sample + reverbSum * 0.3f;
         }
-        
+
         // Apply volume
         sample *= params.volume;
-        
+
         output[i] = sample;
     }
 }
 
-void AudioProcessor::processStereo(float* inputLeft, float* inputRight, 
-                                   float* outputLeft, float* outputRight, 
+void AudioProcessor::process(float* input, float* output, int numSamples) {
+    // Legacy mono path - not used for stereo processing
+    processChannel(input, output, numSamples, lowFilterLeft, midFilterLeft, highFilterLeft, filterEffectLeft);
+}
+
+void AudioProcessor::processStereo(float* inputLeft, float* inputRight,
+                                   float* outputLeft, float* outputRight,
                                    int numSamples) {
-    // Process left and right channels separately
-    process(inputLeft, outputLeft, numSamples);
-    process(inputRight, outputRight, numSamples);
+    // Process left and right channels with independent filter states
+    processChannel(inputLeft, outputLeft, numSamples, lowFilterLeft, midFilterLeft, highFilterLeft, filterEffectLeft);
+    processChannel(inputRight, outputRight, numSamples, lowFilterRight, midFilterRight, highFilterRight, filterEffectRight);
 }
 

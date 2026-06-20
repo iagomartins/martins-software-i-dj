@@ -36,6 +36,7 @@ export interface DJState {
     lowEQ: number;
     midEQ: number;
     highEQ: number;
+    filter: number;
     effects: {
       flanger: boolean;
       filter: boolean;
@@ -55,6 +56,7 @@ export interface DJState {
     lowEQ: number;
     midEQ: number;
     highEQ: number;
+    filter: number;
     effects: {
       flanger: boolean;
       filter: boolean;
@@ -64,6 +66,8 @@ export interface DJState {
   };
   crossfader: number;
   headphoneVolume: number;
+  browsePosition: number;
+  selectedControllerPreset: string | null;
 }
 
 // Your DJ actions
@@ -82,6 +86,9 @@ type DJAction =
   | { type: 'CLEAR_KEY_MAPPING'; payload: string } // Add this
   | { type: 'SET_ANALOG_MAPPING'; payload: { key: string; mapping: AnalogMapping } } // Analog mapping
   | { type: 'CLEAR_ANALOG_MAPPING'; payload: string } // Clear analog mapping
+  | { type: 'SET_DECK_FILTER'; payload: { deck: 1 | 2; value: number } }
+  | { type: 'SET_BROWSE_POSITION'; payload: number }
+  | { type: 'SELECT_CONTROLLER_PRESET'; payload: string | null }
   | { type: 'LOAD_CONFIG'; payload: Partial<DJState> }; // Load config from file
 
 // Initial state
@@ -110,6 +117,7 @@ const initialState: DJState = {
     lowEQ: 0,
     midEQ: 0,
     highEQ: 0,
+    filter: 0,
     effects: {
       flanger: false,
       filter: false,
@@ -129,6 +137,7 @@ const initialState: DJState = {
     lowEQ: 0,
     midEQ: 0,
     highEQ: 0,
+    filter: 0,
     effects: {
       flanger: false,
       filter: false,
@@ -138,6 +147,8 @@ const initialState: DJState = {
   },
   crossfader: 0.5,
   headphoneVolume: 1,
+  browsePosition: 0,
+  selectedControllerPreset: null,
 };
 
 // Reducer function
@@ -230,10 +241,32 @@ function djReducer(state: DJState, action: DJAction): DJState {
         ...state,
         analogMappings: newAnalogMappings
       }; }
+    case 'SET_DECK_FILTER':
+      { const deckKey = action.payload.deck === 1 ? 'deck1' : 'deck2';
+      return {
+        ...state,
+        [deckKey]: {
+          ...state[deckKey],
+          filter: action.payload.value,
+        },
+      }; }
+    case 'SET_BROWSE_POSITION':
+      return {
+        ...state,
+        browsePosition: action.payload,
+      };
+    case 'SELECT_CONTROLLER_PRESET':
+      return {
+        ...state,
+        selectedControllerPreset: action.payload,
+      };
     case 'LOAD_CONFIG':
       return {
         ...state,
-        ...action.payload
+        ...action.payload,
+        activeHeadphoneDecks: action.payload.activeHeadphoneDecks
+          ? new Set(action.payload.activeHeadphoneDecks)
+          : state.activeHeadphoneDecks,
       };
     default:
       return state;

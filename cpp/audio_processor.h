@@ -58,6 +58,7 @@ public:
     void setPitch(float pitch);
     void setEQ(int band, float value); // 0=low, 1=mid, 2=high
     void setEffect(int effect, bool enabled); // 0=flanger, 1=filter, 2=echo, 3=reverb
+    void setFilterCutoff(float cutoff); // 0=off, 0..1 mapped to freq range
     
     void process(float* input, float* output, int numSamples);
     void processStereo(float* inputLeft, float* inputRight, 
@@ -67,14 +68,19 @@ public:
 private:
     int sampleRate;
     ProcessingParams params;
+    float filterCutoff;
     
-    // EQ filters
-    BiquadFilter lowFilter;
-    BiquadFilter midFilter;
-    BiquadFilter highFilter;
+    // EQ filters (one per stereo channel to avoid state cross-talk)
+    BiquadFilter lowFilterLeft;
+    BiquadFilter midFilterLeft;
+    BiquadFilter highFilterLeft;
+    BiquadFilter lowFilterRight;
+    BiquadFilter midFilterRight;
+    BiquadFilter highFilterRight;
     
-    // Effect filters
-    BiquadFilter filterEffect;
+    // Effect filters (one per stereo channel)
+    BiquadFilter filterEffectLeft;
+    BiquadFilter filterEffectRight;
     
     // Delay lines
     DelayLine flangerDelayLine;
@@ -84,5 +90,10 @@ private:
     // Flanger LFO
     float flangerPhase;
     float flangerDelay;
+    
+    // Helper to process one channel
+    void processChannel(float* input, float* output, int numSamples,
+                        BiquadFilter& low, BiquadFilter& mid, BiquadFilter& high,
+                        BiquadFilter& filter);
 };
 

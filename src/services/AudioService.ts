@@ -456,23 +456,18 @@ class AudioService {
       return;
     }
 
-    // Connect: source -> deckGain -> deckCrossfaderGain -> destination
+    // Route audio through the AudioWorklet/Wasm processor instead of bypassing it.
     sourceNode.connect(gainNode);
-    gainNode.connect(crossfaderGain);
-    crossfaderGain.connect(this.audioContext.destination);
-    console.log(
-      `🔗 Connected: source -> gain -> crossfaderGain -> destination for deck ${deckId}`
-    );
-    console.log(
-      `🎚️ Deck ${deckId} crossfader gain: ${crossfaderGain.gain.value}`
-    );
-
-    // Also connect to worklet for future processing (when worklet is working)
     const workletInputIndex = deckId - 1; // deckId 1 -> input 0, deckId 2 -> input 1
     gainNode.connect(this.workletNode, 0, workletInputIndex);
     console.log(
-      `🔗 Also connected gainNode -> workletNode input ${workletInputIndex} for deck ${deckId}`
+      `🔗 Connected: source -> gain -> worklet input ${workletInputIndex} for deck ${deckId}`
     );
+
+    // Keep the crossfader gain nodes available for optional direct fallback,
+    // but the main signal path is now the worklet output.
+    crossfaderGain.connect(this.audioContext.destination);
+
 
     // Also connect to headphone gain for pre-fader monitoring (if routing enabled)
     const headphoneGain = this.deckHeadphoneGains.get(deckId);
@@ -930,6 +925,22 @@ class AudioService {
       effect,
       enabled,
     });
+  }
+
+  setFilter(deckId: DeckId, cutoff: number): void {
+    if (!this.workletNode) return;
+
+    this.workletNode.port.postMessage({
+      type: "SET_DECK_FILTER",
+      deck: deckId,
+      cutoff,
+    });
+  }
+
+  setBrowsePosition(position: number): void {
+    // This is a UI-only state; audio does not directly change.
+    // Caller can use this to navigate a library list.
+    console.log(`Browse position set to: ${position}`);
   }
 
   setCrossfader(value: number): void {

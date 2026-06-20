@@ -281,6 +281,13 @@ export const useAudioEngine = () => {
     []
   );
 
+  // Update filter cutoff for a deck
+  const updateFilter = useCallback((deckNumber: 1 | 2, cutoff: number) => {
+    const audioService = audioServiceRef.current;
+    if (!audioService) return;
+    audioService.setFilter(deckNumber, cutoff);
+  }, []);
+
   // Update headphone volume
   const updateHeadphoneVolume = useCallback((volume: number) => {
     const audioService = audioServiceRef.current;
@@ -343,6 +350,11 @@ export const useAudioEngine = () => {
     audioService.setCrossfader(value);
   }, []);
 
+  // Set browse position
+  const setBrowsePosition = useCallback((delta: number) => {
+    dispatch({ type: 'SET_BROWSE_POSITION', payload: delta });
+  }, [dispatch]);
+
   // Set master volume
   const setMasterVolume = useCallback((volume: number) => {
     const audioService = audioServiceRef.current;
@@ -385,11 +397,14 @@ export const useAudioEngine = () => {
     updateVolume,
     updatePitch,
     updateEffects,
+    updateFilter,
     updateHeadphoneVolume,
     setDeckChain,
     setDeckPlaying,
     setCrossfader,
+    setBrowsePosition,
     setMasterVolume,
+    setHeadphoneVolume: updateHeadphoneVolume,
     setCuePoint,
     cue,
     seek,
