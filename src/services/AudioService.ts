@@ -23,6 +23,7 @@ interface DeckState {
 
 class AudioService {
   private static instance: AudioService;
+  private static initializationPromise: Promise<void> | null = null;
   private audioContext: AudioContext | null = null;
   private workletNode: AudioWorkletNode | null = null;
   private masterGain: GainNode | null = null;
@@ -89,7 +90,11 @@ class AudioService {
       return;
     }
 
-    try {
+    if (AudioService.initializationPromise) {
+      return AudioService.initializationPromise;
+    }
+
+    AudioService.initializationPromise = (async () => {
       // Create AudioContext
       this.audioContext = new AudioContext({
         latencyHint: "interactive",
@@ -298,7 +303,12 @@ class AudioService {
       this.initialized = true;
       console.log("✅ AudioService initialized successfully");
       console.log(`🔊 Final AudioContext state: ${this.audioContext.state}`);
+    })();
+
+    try {
+      await AudioService.initializationPromise;
     } catch (error) {
+      AudioService.initializationPromise = null;
       console.error("Failed to initialize AudioService:", error);
       throw error;
     }

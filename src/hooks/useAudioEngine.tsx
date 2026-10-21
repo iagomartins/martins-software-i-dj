@@ -79,26 +79,25 @@ export interface DeckAudioChain {
   pitchGain: GainNode;
 }
 
+let globalAudioEngineInitPromise: Promise<void> | null = null;
+
 export const useAudioEngine = () => {
   const audioServiceRef = useRef<AudioService | null>(null);
   const { dispatch, state } = useDJ();
   const devicesRef = useRef<MediaDeviceInfo[]>([]);
-  const initializedRef = useRef(false);
 
-  // Initialize AudioService
+  // Initialize AudioService (Absolute Singleton)
   const initAudioContext = useCallback(async () => {
-    if (initializedRef.current) {
+    const audioService = AudioService.getInstance();
+    audioServiceRef.current = audioService;
+
+    if (globalAudioEngineInitPromise) {
+      await globalAudioEngineInitPromise;
       return;
     }
 
-    try {
-      console.log("Initializing AudioService...");
-
-      // Get AudioService instance
-      const audioService = AudioService.getInstance();
-      audioServiceRef.current = audioService;
-
-      // Initialize AudioService
+    globalAudioEngineInitPromise = (async () => {
+      console.log("🔊 Initializing AudioService (Singleton)...");
       await audioService.initialize();
 
       // Get AudioContext for device enumeration
@@ -139,10 +138,12 @@ export const useAudioEngine = () => {
           }
         }
       }
+    })();
 
-      initializedRef.current = true;
-      console.log("AudioService initialized successfully");
+    try {
+      await globalAudioEngineInitPromise;
     } catch (error) {
+      globalAudioEngineInitPromise = null;
       console.error("Failed to initialize AudioService:", error);
       throw error;
     }
