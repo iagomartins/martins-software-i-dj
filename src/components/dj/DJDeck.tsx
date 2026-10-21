@@ -382,7 +382,7 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
   }, [deckNumber]);
 
   return (
-    <div className="bg-dj-console border border-border rounded-sm p-2 space-y-2 flex flex-col h-full relative z-10 overflow-hidden">
+    <div className="bg-dj-console border border-border rounded-lg p-2 space-y-2 flex flex-col h-full relative z-10 overflow-hidden">
       {/* Loading & Error Feedback Overlay */}
       <DeckLoadingOverlay
         isLoading={Boolean(deckData?.isLoadingTrack)}
@@ -418,13 +418,13 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
         <div className="flex items-center gap-2">
           {audioFile && (
             <>
-              <span className="text-[10px] text-neon-cyan bg-dj-panel px-1 py-0.5 rounded-sm">
+              <span className="text-[10px] text-neon-cyan bg-dj-panel px-1.5 py-0.5 rounded-lg border border-border/40">
                 {formatTime(currentTime)} / {formatTime(duration)}
               </span>
-              <span className="text-[10px] text-neon-magenta bg-dj-panel px-1 py-0.5 rounded-sm">
+              <span className="text-[10px] text-neon-magenta bg-dj-panel px-1.5 py-0.5 rounded-lg border border-border/40">
                 {bpm.toFixed(2)} BPM
               </span>
-              <span className="text-[10px] text-muted-foreground bg-dj-panel px-1 py-0.5 rounded-sm">
+              <span className="text-[10px] text-muted-foreground bg-dj-panel px-1.5 py-0.5 rounded-lg border border-border/40">
                 {isPlaying ? "▶ PLAY" : isCued ? "⏸ CUE" : "⏹ STOP"}
               </span>
             </>
@@ -437,7 +437,7 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
         {/* Top Row - EQ and Main Controls */}
         <div className="grid grid-cols-3 gap-2">
           {/* EQ Section */}
-          <div className="bg-dj-panel rounded-sm p-2">
+          <div className="bg-dj-panel rounded-lg p-2">
             <h3 className="text-[10px] font-bold text-dj-panel-foreground mb-1 text-center">
               EQ
             </h3>
@@ -499,7 +499,7 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
         {/* Bottom Row - Main Controls and Effects */}
         <div className="grid grid-cols-2 gap-2">
           {/* Main Controls */}
-          <div className="bg-dj-panel rounded-sm p-2 space-y-1">
+          <div className="bg-dj-panel rounded-lg p-2 space-y-1">
             <h3 className="text-[10px] font-bold text-dj-panel-foreground mb-1 text-center">
               CONTROLS
             </h3>
@@ -548,7 +548,7 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
           </div>
 
           {/* Effects Section */}
-          <div className="bg-dj-panel rounded-sm p-2">
+          <div className="bg-dj-panel rounded-lg p-2">
             <h3 className="text-[10px] font-bold text-dj-panel-foreground mb-1 text-center">
               EFFECTS
             </h3>

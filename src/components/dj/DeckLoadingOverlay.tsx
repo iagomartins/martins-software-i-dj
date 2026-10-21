@@ -24,7 +24,7 @@ export const DeckLoadingOverlay: React.FC<DeckLoadingOverlayProps> = ({
   if (!isLoading && !error) return null;
 
   return (
-    <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#101010]/85 backdrop-blur-md rounded-sm p-4 transition-all duration-300">
+    <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#101010]/90 backdrop-blur-md rounded-lg p-4 transition-all duration-300">
       {isLoading ? (
         <div className="flex flex-col items-center max-w-xs text-center space-y-3">
           {/* Neon Animated Spinner */}

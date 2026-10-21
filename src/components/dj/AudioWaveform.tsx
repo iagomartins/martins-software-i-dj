@@ -386,7 +386,7 @@ export const AudioWaveform = ({
   };
 
   return (
-    <div className="bg-dj-panel rounded-sm p-2 space-y-2 relative">
+    <div className="bg-dj-panel rounded-lg p-2 space-y-2 relative">
       {/* File input */}
       <div className="flex items-center gap-2 relative z-10">
         <input
@@ -405,7 +405,7 @@ export const AudioWaveform = ({
             e.stopPropagation();
             handleLoadClick();
           }}
-          className="px-3 py-1 bg-[hsl(var(--soft-dark))] border border-[hsl(var(--glow-blue)/0.3)] text-white rounded-sm text-xs font-semibold uppercase tracking-wide cursor-pointer hover:border-[hsl(var(--glow-blue)/0.6)] hover:shadow-[0_0_10px_hsl(var(--glow-blue)/0.3)] transition-all relative z-10"
+          className="px-3 py-1 bg-[hsl(var(--soft-dark))] border border-[hsl(var(--glow-blue)/0.3)] text-white rounded-lg text-xs font-semibold uppercase tracking-wide cursor-pointer hover:border-[hsl(var(--glow-blue)/0.6)] hover:shadow-[0_0_10px_hsl(var(--glow-blue)/0.3)] transition-all relative z-10"
         >
           {audioFile ? "Change Track" : "Load Track"}
         </button>
@@ -418,7 +418,7 @@ export const AudioWaveform = ({
           onClick={handleCanvasClick}
           onMouseMove={handleCanvasMouseMove}
           onMouseLeave={handleCanvasMouseLeave}
-          className="w-full h-16 bg-dj-panel border border-border rounded-sm cursor-pointer"
+          className="w-full h-16 bg-dj-panel border border-border rounded-lg cursor-pointer"
           style={{ imageRendering: "pixelated" }}
         />
 
