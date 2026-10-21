@@ -24,6 +24,8 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <DJProvider>
+            <Toaster />
+            <Sonner richColors position="top-right" />
             <Routes>
               <Route path="/" element={<Navigate to="/dj" replace />} />
               <Route path="/dj" element={<DJInterface />} />

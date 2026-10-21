@@ -149,15 +149,11 @@ export const useAudioEngine = () => {
     }
   }, [dispatch]);
 
-  // Load track from file buffer
+  // Load track from file buffer, Blob or URL
   const loadTrack = useCallback(
-    async (deckNumber: 1 | 2, fileBuffer: ArrayBuffer) => {
-      const audioService = audioServiceRef.current;
-      if (!audioService) {
-        throw new Error("AudioService not initialized");
-      }
-
-      await audioService.loadTrack(deckNumber, fileBuffer);
+    async (deckNumber: 1 | 2, source: ArrayBuffer | Blob | string): Promise<AudioBuffer> => {
+      const audioService = audioServiceRef.current || AudioService.getInstance();
+      return await audioService.loadTrack(deckNumber, source);
     },
     []
   );

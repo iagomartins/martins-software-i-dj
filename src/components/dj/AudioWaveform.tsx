@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 interface AudioWaveformProps {
   deckNumber: 1 | 2;
   audioFile: File | null;
+  audioBuffer?: AudioBuffer | null;
   isPlaying: boolean;
   currentTime: number;
   duration: number;
@@ -15,6 +16,7 @@ interface AudioWaveformProps {
 export const AudioWaveform = ({
   deckNumber,
   audioFile,
+  audioBuffer,
   isPlaying,
   currentTime,
   duration,
@@ -92,19 +94,12 @@ export const AudioWaveform = ({
     }
   };
 
-  // Generate waveform data from audio file (for visualization only)
-  const generateWaveform = useCallback(
-    async (file: File) => {
-      setIsLoading(true);
+  // Extract waveform peaks directly from decoded AudioBuffer without re-decoding
+  const extractWaveformFromBuffer = useCallback(
+    (buffer: AudioBuffer) => {
       try {
-        const arrayBuffer = await file.arrayBuffer();
-        const audioContext = new (window.AudioContext ||
-          (window as unknown as { webkitAudioContext: typeof AudioContext })
-            .webkitAudioContext)();
-        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-
-        const channelData = audioBuffer.getChannelData(0);
-        const samples = 800; // Reduced for better performance
+        const channelData = buffer.getChannelData(0);
+        const samples = 800; // Optimal resolution for canvas rendering
         const blockSize = Math.floor(channelData.length / samples);
         const waveform: number[] = [];
 
@@ -123,15 +118,33 @@ export const AudioWaveform = ({
         }
 
         setWaveformData(waveform);
-        onDurationLoad(audioBuffer.duration);
+        onDurationLoad(buffer.duration);
+      } catch (err) {
+        console.error("Error extracting waveform from AudioBuffer:", err);
+      }
+    },
+    [onDurationLoad]
+  );
+
+  // Fallback: Generate waveform data from audio file if no buffer provided
+  const generateWaveform = useCallback(
+    async (file: File) => {
+      setIsLoading(true);
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const audioContext = new (window.AudioContext ||
+          (window as unknown as { webkitAudioContext: typeof AudioContext })
+            .webkitAudioContext)();
+        const decodedBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        extractWaveformFromBuffer(decodedBuffer);
         audioContext.close();
       } catch (error) {
-        console.error("Error generating waveform:", error);
+        console.error("Error generating waveform fallback:", error);
       } finally {
         setIsLoading(false);
       }
     },
-    [onDurationLoad]
+    [extractWaveformFromBuffer]
   );
 
   // Draw waveform
@@ -305,12 +318,17 @@ export const AudioWaveform = ({
     [duration, onTimeUpdate, onSeek]
   );
 
-  // Effects
+  // React to audioBuffer changes first (fast path, zero duplicate decodes)
   useEffect(() => {
-    if (audioFile) {
+    if (audioBuffer) {
+      extractWaveformFromBuffer(audioBuffer);
+    } else if (!audioFile) {
+      setWaveformData([]);
+    } else {
+      // Only fallback to file decoding if audioBuffer was not provided
       generateWaveform(audioFile);
     }
-  }, [audioFile, generateWaveform]);
+  }, [audioBuffer, audioFile, extractWaveformFromBuffer, generateWaveform]);
 
   // Continuous animation loop for smooth updates
   useEffect(() => {

@@ -37,6 +37,10 @@ export interface DJState {
     midEQ: number;
     highEQ: number;
     filter: number;
+    isLoadingTrack: boolean;
+    loadingProgress: number;
+    trackLoadError: string | null;
+    trackName: string | null;
     effects: {
       flanger: boolean;
       filter: boolean;
@@ -57,6 +61,10 @@ export interface DJState {
     midEQ: number;
     highEQ: number;
     filter: number;
+    isLoadingTrack: boolean;
+    loadingProgress: number;
+    trackLoadError: string | null;
+    trackName: string | null;
     effects: {
       flanger: boolean;
       filter: boolean;
@@ -89,6 +97,16 @@ export type DJAction =
   | { type: 'SET_DECK_FILTER'; payload: { deck: 1 | 2; value: number } }
   | { type: 'SET_BROWSE_POSITION'; payload: number }
   | { type: 'SELECT_CONTROLLER_PRESET'; payload: string | null }
+  | {
+      type: 'SET_TRACK_LOADING';
+      payload: {
+        deck: 1 | 2;
+        isLoading: boolean;
+        progress?: number;
+        error?: string | null;
+        trackName?: string | null;
+      };
+    }
   | { type: 'LOAD_CONFIG'; payload: Partial<DJState> }; // Load config from file
 
 // Initial state
@@ -118,6 +136,10 @@ const initialState: DJState = {
     midEQ: 0,
     highEQ: 0,
     filter: 0,
+    isLoadingTrack: false,
+    loadingProgress: 0,
+    trackLoadError: null,
+    trackName: null,
     effects: {
       flanger: false,
       filter: false,
@@ -138,6 +160,10 @@ const initialState: DJState = {
     midEQ: 0,
     highEQ: 0,
     filter: 0,
+    isLoadingTrack: false,
+    loadingProgress: 0,
+    trackLoadError: null,
+    trackName: null,
     effects: {
       flanger: false,
       filter: false,
@@ -260,6 +286,19 @@ function djReducer(state: DJState, action: DJAction): DJState {
         ...state,
         selectedControllerPreset: action.payload,
       };
+    case 'SET_TRACK_LOADING': {
+      const deckKey = action.payload.deck === 1 ? 'deck1' : 'deck2';
+      return {
+        ...state,
+        [deckKey]: {
+          ...state[deckKey],
+          isLoadingTrack: action.payload.isLoading,
+          loadingProgress: action.payload.progress ?? (action.payload.isLoading ? 0 : 100),
+          trackLoadError: action.payload.error !== undefined ? action.payload.error : state[deckKey].trackLoadError,
+          trackName: action.payload.trackName !== undefined ? action.payload.trackName : state[deckKey].trackName,
+        },
+      };
+    }
     case 'LOAD_CONFIG':
       return {
         ...state,

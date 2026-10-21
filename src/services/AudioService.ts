@@ -363,16 +363,44 @@ class AudioService {
     }
   }
 
-  async loadTrack(deckId: DeckId, fileBuffer: ArrayBuffer): Promise<void> {
+  async loadTrack(
+    deckId: DeckId,
+    source: ArrayBuffer | Blob | string
+  ): Promise<AudioBuffer> {
     if (!this.audioContext) {
       throw new Error("AudioService not initialized");
     }
 
     try {
-      // Decode audio data
-      const audioBuffer = await this.audioContext.decodeAudioData(
-        fileBuffer.slice(0)
-      );
+      let arrayBuffer: ArrayBuffer;
+
+      if (source instanceof ArrayBuffer) {
+        arrayBuffer = source;
+      } else if (source instanceof Blob) {
+        // Blob or File: using URL.createObjectURL and fetch optimizes memory streaming in Chromium
+        const objectUrl = URL.createObjectURL(source);
+        try {
+          const res = await fetch(objectUrl);
+          if (!res.ok) throw new Error(`HTTP error reading audio: ${res.statusText}`);
+          arrayBuffer = await res.arrayBuffer();
+        } finally {
+          URL.revokeObjectURL(objectUrl);
+        }
+      } else if (typeof source === "string") {
+        const res = await fetch(source);
+        if (!res.ok) throw new Error(`HTTP error fetching audio: ${res.statusText}`);
+        arrayBuffer = await res.arrayBuffer();
+      } else {
+        throw new Error("Unsupported audio source type");
+      }
+
+      // Safeguard: Ensure AudioContext is running before decodeAudioData
+      if (this.audioContext.state === "suspended") {
+        await this.audioContext.resume();
+      }
+
+      // Decode audio data safely with try/catch
+      const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
 
       // Get deck state
       const deck = this.decks.get(deckId);
@@ -389,15 +417,21 @@ class AudioService {
       deck.audioBuffer = audioBuffer;
       deck.pauseTime = 0;
 
-      console.log(`Track loaded for deck ${deckId}:`, {
+      console.log(`✅ Track loaded for deck ${deckId}:`, {
         duration: audioBuffer.duration,
         sampleRate: audioBuffer.sampleRate,
         channels: audioBuffer.numberOfChannels,
       });
+
+      return audioBuffer;
     } catch (error) {
-      console.error(`Failed to load track for deck ${deckId}:`, error);
+      console.error(`❌ Failed to load track for deck ${deckId}:`, error);
       throw error;
     }
+  }
+
+  getDeckAudioBuffer(deckId: DeckId): AudioBuffer | null {
+    return this.decks.get(deckId)?.audioBuffer || null;
   }
 
   async play(deckId: DeckId): Promise<void> {

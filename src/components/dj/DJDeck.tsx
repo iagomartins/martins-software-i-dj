@@ -5,6 +5,8 @@ import { DJFader } from "./DJFader";
 import { ScratchWheel } from "./ScratchWheel";
 import { PitchFader } from "./PitchFader";
 import { AudioWaveform } from "./AudioWaveform";
+import { DeckLoadingOverlay } from "./DeckLoadingOverlay";
+import { toast } from "@/components/ui/sonner";
 import { useDJ } from "@/contexts/DJContext";
 import { AudioService } from "@/services/AudioService";
 import {
@@ -162,6 +164,7 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
 
   // Audio state
   const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [currentAudioBuffer, setCurrentAudioBuffer] = useState<AudioBuffer | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [bpm, setBpm] = useState(120);
@@ -197,37 +200,89 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
 
   const handleAudioLoad = async (file: File) => {
     setAudioFile(file);
+    setCurrentAudioBuffer(null);
     setCurrentTime(0);
     setDuration(0);
     setIsPlaying(false);
-    // Cue point is managed by AudioService
 
-    // Initialize audio context
-    await initAudioContext();
+    // Notify global state loading started
+    dispatch({
+      type: "SET_TRACK_LOADING",
+      deck: deckNumber,
+      payload: {
+        isLoading: true,
+        progress: 15,
+        trackName: file.name,
+        error: null,
+      },
+    });
 
     try {
-      // Read file as ArrayBuffer
-      const arrayBuffer = await file.arrayBuffer();
+      // Initialize audio context
+      await initAudioContext();
+      dispatch({
+        type: "SET_TRACK_LOADING",
+        deck: deckNumber,
+        payload: { progress: 35 },
+      });
 
-      // Load track into AudioService
-      await loadTrack(deckNumber, arrayBuffer);
+      // Stream & decode track into AudioService without redundant memory copies
+      const audioBuffer = await loadTrack(deckNumber, file);
 
-      // Detect BPM
-      const audioContext = new AudioContext();
-      const audioBuffer = await audioContext.decodeAudioData(
-        arrayBuffer.slice(0)
-      );
+      dispatch({
+        type: "SET_TRACK_LOADING",
+        deck: deckNumber,
+        payload: { progress: 75 },
+      });
+
+      // Detect BPM directly using the decoded AudioBuffer (zero redundant decoding)
       const detectedBPM = await detectBPM(audioBuffer);
       setBaseBpm(detectedBPM);
       setBaseBPM(deckNumber, detectedBPM);
       setBpm(detectedBPM);
       setDuration(audioBuffer.duration);
+      setCurrentAudioBuffer(audioBuffer);
 
-      audioContext.close();
+      dispatch({
+        type: "SET_TRACK_LOADING",
+        deck: deckNumber,
+        payload: {
+          isLoading: false,
+          progress: 100,
+          error: null,
+        },
+      });
 
-      console.log(`✅ Track loaded for deck ${deckNumber}`);
-    } catch (error) {
-      console.error("Failed to load track:", error);
+      toast.success(`Track carregada no Deck ${deckNumber}`, {
+        description: `${file.name} • ${detectedBPM.toFixed(1)} BPM`,
+      });
+
+      console.log(`✅ Track loaded for deck ${deckNumber}: ${file.name}`);
+    } catch (error: any) {
+      console.error(`❌ Failed to load track for deck ${deckNumber}:`, error);
+
+      // Reset deck state to prevent inconsistent playback
+      setAudioFile(null);
+      setCurrentAudioBuffer(null);
+      setCurrentTime(0);
+      setDuration(0);
+
+      const errorMessage =
+        error?.message || "O arquivo é muito grande ou não pôde ser decodificado.";
+
+      dispatch({
+        type: "SET_TRACK_LOADING",
+        deck: deckNumber,
+        payload: {
+          isLoading: false,
+          progress: 0,
+          error: errorMessage,
+        },
+      });
+
+      toast.error(`Deck ${deckNumber}: Falha no áudio`, {
+        description: "O arquivo é muito grande ou não pôde ser decodificado.",
+      });
     }
   };
 
@@ -327,11 +382,27 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
   }, [deckNumber]);
 
   return (
-    <div className="bg-dj-console border border-border rounded-sm p-2 space-y-2 flex flex-col h-full relative z-10">
+    <div className="bg-dj-console border border-border rounded-sm p-2 space-y-2 flex flex-col h-full relative z-10 overflow-hidden">
+      {/* Loading & Error Feedback Overlay */}
+      <DeckLoadingOverlay
+        isLoading={Boolean(deckData?.isLoadingTrack)}
+        progress={deckData?.loadingProgress ?? 0}
+        trackName={deckData?.trackName ?? audioFile?.name}
+        error={deckData?.trackLoadError}
+        onDismissError={() => {
+          dispatch({
+            type: "SET_TRACK_LOADING",
+            deck: deckNumber,
+            payload: { isLoading: false, error: null },
+          });
+        }}
+      />
+
       {/* Waveform Panel - Now purely visual */}
       <AudioWaveform
         deckNumber={deckNumber}
         audioFile={audioFile}
+        audioBuffer={currentAudioBuffer}
         isPlaying={isPlaying}
         currentTime={currentTime}
         duration={duration}
