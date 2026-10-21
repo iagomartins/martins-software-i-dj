@@ -71,7 +71,7 @@ export interface DJState {
 }
 
 // Your DJ actions
-type DJAction = 
+export type DJAction = 
   | { type: 'SET_DECK_1_STATE'; payload: Partial<DJState['deck1']> }
   | { type: 'SET_DECK_2_STATE'; payload: Partial<DJState['deck2']> }
   | { type: 'SET_CROSSFADER'; payload: number }

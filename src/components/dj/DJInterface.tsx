@@ -7,10 +7,12 @@ import { ConfigModal } from "./ConfigModal";
 // Import the logo directly
 import iDJLogo from "../../assets/iDJLogo.svg";
 import { useAudioEngine } from "@/hooks/useAudioEngine";
+import { useMIDI } from "@/hooks/useMIDI";
 
 export function DJInterface() {
   const { state, dispatch } = useDJ();
-  const { setCrossfader, updateHeadphoneVolume } = useAudioEngine(); // Add updateHeadphoneVolume
+  const { setCrossfader, updateHeadphoneVolume } = useAudioEngine();
+  const { devices, isMidiAvailable } = useMIDI();
 
   // Add null checks and default values
   if (!state) {
@@ -92,10 +94,26 @@ export function DJInterface() {
                 </div>
               )}
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3">
+              {/* MIDI Hardware Status Indicator */}
+              <div className="flex items-center gap-2 px-3 py-1 rounded bg-black/40 border border-white/10 text-xs">
+                <span
+                  className={`inline-block w-2.5 h-2.5 rounded-full ${
+                    isMidiAvailable
+                      ? "bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse"
+                      : "bg-zinc-600"
+                  }`}
+                />
+                <span className="text-zinc-300 font-mono text-[11px]">
+                  {devices.length > 0
+                    ? `MIDI: ${devices[0].name}`
+                    : "MIDI: Searching..."}
+                </span>
+              </div>
+
               <button
                 type="button"
-                className="px-4 bg-primary bg-accent-hover rounded-sm text-sm transition-colors relative z-10"
+                className="px-4 py-1 bg-primary bg-accent-hover rounded-sm text-sm transition-colors relative z-10"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();

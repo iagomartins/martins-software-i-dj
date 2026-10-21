@@ -48,19 +48,117 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
     reverb: false,
   });
 
-  // Control values
-  const [lowEQ, setLowEQ] = useState(0);
-  const [midEQ, setMidEQ] = useState(0);
-  const [highEQ, setHighEQ] = useState(0);
-  const [volume, setVolume] = useState(0.8);
-  const [pitch, setPitch] = useState(0);
+  const deckKey = deckNumber === 1 ? 'deck1' : 'deck2';
+  const deckData = state[deckKey];
+
+  // Control values (initialized from global state)
+  const [lowEQ, setLowEQ] = useState(deckData?.lowEQ ?? 0);
+  const [midEQ, setMidEQ] = useState(deckData?.midEQ ?? 0);
+  const [highEQ, setHighEQ] = useState(deckData?.highEQ ?? 0);
+  const [volume, setVolume] = useState(deckData?.volume ?? 0.8);
+  const [pitch, setPitch] = useState(deckData?.pitch ?? 0);
+
+  // Synchronize from global store (MIDI / controller presets) into local deck UI state
+  useEffect(() => {
+    if (deckData?.volume !== undefined && Math.abs(deckData.volume - volume) > 0.001) {
+      setVolume(deckData.volume);
+    }
+  }, [deckData?.volume, volume]);
+
+  useEffect(() => {
+    if (deckData?.pitch !== undefined && Math.abs(deckData.pitch - pitch) > 0.001) {
+      setPitch(deckData.pitch);
+    }
+  }, [deckData?.pitch, pitch]);
+
+  useEffect(() => {
+    if (deckData?.lowEQ !== undefined && Math.abs(deckData.lowEQ - lowEQ) > 0.001) {
+      setLowEQ(deckData.lowEQ);
+    }
+  }, [deckData?.lowEQ, lowEQ]);
+
+  useEffect(() => {
+    if (deckData?.midEQ !== undefined && Math.abs(deckData.midEQ - midEQ) > 0.001) {
+      setMidEQ(deckData.midEQ);
+    }
+  }, [deckData?.midEQ, midEQ]);
+
+  useEffect(() => {
+    if (deckData?.highEQ !== undefined && Math.abs(deckData.highEQ - highEQ) > 0.001) {
+      setHighEQ(deckData.highEQ);
+    }
+  }, [deckData?.highEQ, highEQ]);
+
+  useEffect(() => {
+    if (deckData?.isPlaying !== undefined && deckData.isPlaying !== isPlaying) {
+      setIsPlaying(deckData.isPlaying);
+    }
+  }, [deckData?.isPlaying, isPlaying]);
+
+  useEffect(() => {
+    if (deckData?.isCued !== undefined && deckData.isCued !== isCued) {
+      setIsCued(deckData.isCued);
+    }
+  }, [deckData?.isCued, isCued]);
+
+  useEffect(() => {
+    if (deckData?.effects) {
+      setEffectsActive(deckData.effects);
+    }
+  }, [deckData?.effects]);
+
+  // UI Handlers with bidirectional store update
+  const handleVolumeChange = (newVolume: number) => {
+    setVolume(newVolume);
+    updateVolume(deckNumber, newVolume);
+    dispatch({
+      type: deckNumber === 1 ? 'SET_DECK_1_STATE' : 'SET_DECK_2_STATE',
+      payload: { volume: newVolume },
+    });
+  };
+
+  const handleLowEQChange = (val: number) => {
+    setLowEQ(val);
+    updateEQ(deckNumber, { low: val, mid: midEQ, high: highEQ });
+    dispatch({
+      type: deckNumber === 1 ? 'SET_DECK_1_STATE' : 'SET_DECK_2_STATE',
+      payload: { lowEQ: val },
+    });
+  };
+
+  const handleMidEQChange = (val: number) => {
+    setMidEQ(val);
+    updateEQ(deckNumber, { low: lowEQ, mid: val, high: highEQ });
+    dispatch({
+      type: deckNumber === 1 ? 'SET_DECK_1_STATE' : 'SET_DECK_2_STATE',
+      payload: { midEQ: val },
+    });
+  };
+
+  const handleHighEQChange = (val: number) => {
+    setHighEQ(val);
+    updateEQ(deckNumber, { low: lowEQ, mid: midEQ, high: val });
+    dispatch({
+      type: deckNumber === 1 ? 'SET_DECK_1_STATE' : 'SET_DECK_2_STATE',
+      payload: { highEQ: val },
+    });
+  };
+
+  const handlePitchChange = (val: number) => {
+    setPitch(val);
+    updatePitch(deckNumber, val);
+    dispatch({
+      type: deckNumber === 1 ? 'SET_DECK_1_STATE' : 'SET_DECK_2_STATE',
+      payload: { pitch: val },
+    });
+  };
 
   // Reset functions for double-click
-  const resetLowEQ = () => setLowEQ(0);
-  const resetMidEQ = () => setMidEQ(0);
-  const resetHighEQ = () => setHighEQ(0);
-  const resetVolume = () => setVolume(1.0); // 100%
-  const resetPitch = () => setPitch(0); // 0%
+  const resetLowEQ = () => handleLowEQChange(0);
+  const resetMidEQ = () => handleMidEQChange(0);
+  const resetHighEQ = () => handleHighEQChange(0);
+  const resetVolume = () => handleVolumeChange(1.0); // 100%
+  const resetPitch = () => handlePitchChange(0); // 0%
 
   // Audio state
   const [audioFile, setAudioFile] = useState<File | null>(null);
@@ -79,6 +177,10 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
     };
     setEffectsActive(newEffects);
     updateEffects(deckNumber, newEffects);
+    dispatch({
+      type: deckNumber === 1 ? 'SET_DECK_1_STATE' : 'SET_DECK_2_STATE',
+      payload: { effects: newEffects },
+    });
   };
 
   const handleHeadphoneToggle = () => {
@@ -137,23 +239,13 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
   const handlePlayToggle = () => {
     if (!audioFile) return;
 
-    if (isPlaying) {
-      setIsPlaying(false);
-      // Remove this - C++ engine handles playback
-      // if (audioRef.current) {
-      //   audioRef.current.pause();
-      // }
-      // Update C++ audio engine
-      setDeckPlaying(deckNumber, false);
-    } else {
-      setIsPlaying(true);
-      // Remove this - C++ engine handles playback
-      // if (audioRef.current) {
-      //   audioRef.current.play();
-      // }
-      // Update C++ audio engine
-      setDeckPlaying(deckNumber, true);
-    }
+    const newPlaying = !isPlaying;
+    setIsPlaying(newPlaying);
+    setDeckPlaying(deckNumber, newPlaying);
+    dispatch({
+      type: deckNumber === 1 ? 'SET_DECK_1_STATE' : 'SET_DECK_2_STATE',
+      payload: { isPlaying: newPlaying },
+    });
   };
 
   const handleCue = (pressed: boolean) => {
@@ -161,6 +253,10 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
 
     setIsCued(pressed);
     cue(deckNumber, pressed);
+    dispatch({
+      type: deckNumber === 1 ? 'SET_DECK_1_STATE' : 'SET_DECK_2_STATE',
+      payload: { isCued: pressed },
+    });
   };
 
   // Duration is set when audio is loaded via handleDurationLoad
@@ -278,21 +374,21 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
               <DJKnob
                 label="HIGH"
                 value={highEQ}
-                onChange={setHighEQ}
+                onChange={handleHighEQChange}
                 color="magenta"
                 onDoubleClick={resetHighEQ}
               />
               <DJKnob
                 label="MID"
                 value={midEQ}
-                onChange={setMidEQ}
+                onChange={handleMidEQChange}
                 color="yellow"
                 onDoubleClick={resetMidEQ}
               />
               <DJKnob
                 label="LOW"
                 value={lowEQ}
-                onChange={setLowEQ}
+                onChange={handleLowEQChange}
                 color="green"
                 onDoubleClick={resetLowEQ}
               />
@@ -316,14 +412,14 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
           <div className="flex gap-2 justify-center">
             <PitchFader
               value={pitch}
-              onChange={setPitch}
+              onChange={handlePitchChange}
               deckNumber={deckNumber}
               onDoubleClick={resetPitch}
             />
             <DJFader
               label="VOLUME"
               value={volume}
-              onChange={setVolume}
+              onChange={handleVolumeChange}
               onDoubleClick={resetVolume}
             />
           </div>

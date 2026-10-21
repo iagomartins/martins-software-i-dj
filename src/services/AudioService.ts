@@ -857,6 +857,10 @@ class AudioService {
     }
   }
 
+  isDeckSynced(deckId: DeckId): boolean {
+    return this.decks.get(deckId)?.isSynced ?? false;
+  }
+
   private updateSync(syncedDeckId: DeckId): void {
     const syncedDeck = this.decks.get(syncedDeckId);
     if (!syncedDeck || !syncedDeck.isSynced) {
