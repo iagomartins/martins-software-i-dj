@@ -149,11 +149,10 @@ export const useKeyMapping = () => {
       } else if (controlId === 'deck2-volume') {
         updateVolume(2, Math.max(0, Math.min(1, targetValue)));
       } else if (controlId === 'crossfader') {
-        // Crossfader is stored as 0-1 in state, but setCrossfader expects -1 to +1
-        const crossfaderValue = (targetValue - 0.5) * 2; // Convert 0-1 to -1 to +1
-        setCrossfader(Math.max(-1, Math.min(1, crossfaderValue)));
+        const normValue = Math.max(0, Math.min(1, targetValue));
+        setCrossfader(normValue);
         // Also update state (0-1 range)
-        dispatch({ type: 'SET_CROSSFADER', payload: targetValue });
+        dispatch({ type: 'SET_CROSSFADER', payload: normValue });
       } else if (controlId === 'deck1-pitch') {
         updatePitch(1, Math.max(-1, Math.min(1, targetValue)));
       } else if (controlId === 'deck2-pitch') {

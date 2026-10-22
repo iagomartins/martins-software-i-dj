@@ -69,9 +69,8 @@ export class MidiRouter {
       // MIXER / CROSSFADER (CC 0x3A / 58)
       // ============================================
       case 'CROSSFADER': {
-        const norm01 = parsed.normalizedValue ?? 0.5; // 0.0 to 1.0 (UI slider)
-        const audioVal = parsed.bipolarValue ?? 0;   // -1.0 to +1.0 (Audio engine)
-        this.audioService.setCrossfader(audioVal);
+        const norm01 = parsed.normalizedValue ?? 0.5; // 0.0 to 1.0 (UI slider & Constant Power audio)
+        this.audioService.setCrossfader(norm01);
         this.scheduleDispatch('SET_CROSSFADER', {
           type: 'SET_CROSSFADER',
           payload: norm01,
@@ -312,9 +311,8 @@ export class MidiRouter {
       // ============================================
       case 'CROSSFADER': {
         const norm01 = MidiNormalizer.toLinear(event.data2); // 0.0 to 1.0
-        const audioVal = (norm01 - 0.5) * 2; // -1.0 to +1.0
-        // 0ms instant audio response
-        this.audioService.setCrossfader(audioVal);
+        // 0ms instant audio response with Constant Power curve
+        this.audioService.setCrossfader(norm01);
         // Throttled UI update
         this.scheduleDispatch('SET_CROSSFADER', { type: 'SET_CROSSFADER', payload: norm01 });
         break;
@@ -730,8 +728,7 @@ export class MidiRouter {
         this.audioService.setVolume(2, val);
         this.scheduleDispatch('DECK_2_VOL', { type: 'SET_DECK_2_STATE', payload: { volume: val } });
       } else if (mapping.controlId === 'crossfader') {
-        const audioVal = (norm01 - 0.5) * 2;
-        this.audioService.setCrossfader(audioVal);
+        this.audioService.setCrossfader(norm01);
         this.scheduleDispatch('SET_CROSSFADER', { type: 'SET_CROSSFADER', payload: norm01 });
       }
       return;

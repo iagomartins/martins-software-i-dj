@@ -38,7 +38,7 @@ class AudioService {
   private deckHeadphoneGains: Map<DeckId, GainNode> = new Map();
   private headphoneRouting: Map<DeckId, boolean> = new Map();
   private deckCrossfaderGains: Map<DeckId, GainNode> = new Map(); // Crossfader gain for each deck
-  private crossfaderValue: number = 0; // Current crossfader value (-1 to +1)
+  private crossfaderValue: number = 0.5; // Current crossfader position (0.0 = Deck A, 0.5 = Center, 1.0 = Deck B)
   private positionUpdateCallbacks: Map<
     DeckId,
     Set<(position: number) => void>
@@ -187,16 +187,17 @@ class AudioService {
       this.headphoneGain = this.audioContext.createGain();
       this.headphoneGain.gain.value = 0.7;
 
-      // Create crossfader gain nodes for each deck
+      // Create crossfader gain nodes for each deck (Constant Power Center ~0.7071)
+      const initialConstantPowerGain = Math.SQRT1_2; // cos(0.5 * 0.5 * PI) = sin(0.5 * 0.5 * PI) = 1/sqrt(2)
       const deck1CrossfaderGain = this.audioContext.createGain();
-      deck1CrossfaderGain.gain.value = 0.5; // Center position = 50% for both decks
+      deck1CrossfaderGain.gain.value = initialConstantPowerGain;
       this.deckCrossfaderGains.set(1, deck1CrossfaderGain);
 
       const deck2CrossfaderGain = this.audioContext.createGain();
-      deck2CrossfaderGain.gain.value = 0.5; // Center position = 50% for both decks
+      deck2CrossfaderGain.gain.value = initialConstantPowerGain;
       this.deckCrossfaderGains.set(2, deck2CrossfaderGain);
       console.log(
-        "🎚️ Crossfader gain nodes created for both decks (initialized to 0.5 = center)"
+        `🎚️ Crossfader gain nodes created for both decks (initialized to ${initialConstantPowerGain.toFixed(4)} = Constant Power Center)`
       );
 
       // Create MediaStream destinations for device selection
@@ -1007,34 +1008,53 @@ class AudioService {
   }
 
   setCrossfader(value: number): void {
-    // Store crossfader value (-1 to +1)
-    this.crossfaderValue = value;
+    // Incoming crossfader value ranges from 0.0 (Deck A only) to 1.0 (Deck B only), with 0.5 being center.
+    // Defensively handle bipolar values [-1.0, 1.0] by converting to [0.0, 1.0].
+    const normalizedValue = value < 0
+      ? Math.max(0, Math.min(1, (value + 1) * 0.5))
+      : Math.max(0, Math.min(1, value));
 
-    // Calculate gain values for each deck
-    // Crossfader value: -1 = full deck1, 0 = center, +1 = full deck2
-    // deck1Gain = (1 - crossfader) * 0.5, deck2Gain = (1 + crossfader) * 0.5
-    const deck1Gain = (1 - value) * 0.5;
-    const deck2Gain = (1 + value) * 0.5;
+    this.crossfaderValue = normalizedValue;
 
-    // Update crossfader gain nodes
+    // Constant Power Crossfader Curve (Equal Power Crossfade):
+    // - Deck A Gain: Math.cos(value * 0.5 * Math.PI)
+    // - Deck B Gain: Math.sin(value * 0.5 * Math.PI)
+    // At center (0.5), both gains are cos(pi/4) = sin(pi/4) = 1/sqrt(2) ≈ 0.7071.
+    // Sum of acoustic powers: cos²(θ) + sin²(θ) = 1.0 (eliminates center volume drop/hole).
+    const angle = normalizedValue * 0.5 * Math.PI;
+    const deck1Gain = Math.cos(angle);
+    const deck2Gain = Math.sin(angle);
+
+    // Update crossfader gain nodes with smooth transition to prevent zipper noise
     const deck1CrossfaderGain = this.deckCrossfaderGains.get(1);
     const deck2CrossfaderGain = this.deckCrossfaderGains.get(2);
 
+    const currentTime = this.audioContext?.currentTime ?? 0;
+    const timeConstant = 0.015; // 15ms exponential transition to eliminate clicks/zipper noise
+
     if (deck1CrossfaderGain) {
-      deck1CrossfaderGain.gain.value = deck1Gain;
-      console.log(`🎚️ Deck 1 crossfader gain set to: ${deck1Gain.toFixed(3)}`);
+      if (this.audioContext && this.audioContext.state === "running") {
+        deck1CrossfaderGain.gain.setTargetAtTime(deck1Gain, currentTime, timeConstant);
+      } else {
+        deck1CrossfaderGain.gain.value = deck1Gain;
+      }
+      console.log(`🎚️ Deck 1 crossfader gain set to: ${deck1Gain.toFixed(3)} (Constant Power)`);
     }
 
     if (deck2CrossfaderGain) {
-      deck2CrossfaderGain.gain.value = deck2Gain;
-      console.log(`🎚️ Deck 2 crossfader gain set to: ${deck2Gain.toFixed(3)}`);
+      if (this.audioContext && this.audioContext.state === "running") {
+        deck2CrossfaderGain.gain.setTargetAtTime(deck2Gain, currentTime, timeConstant);
+      } else {
+        deck2CrossfaderGain.gain.value = deck2Gain;
+      }
+      console.log(`🎚️ Deck 2 crossfader gain set to: ${deck2Gain.toFixed(3)} (Constant Power)`);
     }
 
-    // Also send to worklet (for Wasm processing when it's working)
+    // Also send to worklet (for Wasm processing when active)
     if (this.workletNode) {
       this.workletNode.port.postMessage({
         type: "SET_CROSSFADER",
-        value,
+        value: normalizedValue,
       });
     }
   }

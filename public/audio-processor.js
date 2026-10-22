@@ -330,11 +330,12 @@ class DJAudioProcessor extends AudioWorkletProcessor {
       (this.deck2OutputRightPtr / 4) + heapOffset + numSamples
     );
     
-    // Mix both decks with crossfader
-    // Crossfader value: -1 = full deck1, 0 = center, +1 = full deck2
-    // Convert to gain values: deck1Gain = (1 - crossfader) / 2, deck2Gain = (1 + crossfader) / 2
-    const deck1Gain = (1 - this.crossfader) * 0.5;
-    const deck2Gain = (1 + this.crossfader) * 0.5;
+    // Mix both decks with Constant Power crossfader curve
+    // Crossfader value: 0.0 = deck 1 only, 0.5 = center, 1.0 = deck 2 only (supports bipolar fallback)
+    const normCf = this.crossfader < 0 ? (this.crossfader + 1) * 0.5 : Math.max(0, Math.min(1, this.crossfader));
+    const angle = normCf * 0.5 * Math.PI;
+    const deck1Gain = Math.cos(angle);
+    const deck2Gain = Math.sin(angle);
     
     for (let i = 0; i < numSamples; i++) {
       output[0][i] = (deck1OutputLeft[i] * deck1Gain) + (deck2OutputLeft[i] * deck2Gain);

@@ -173,12 +173,12 @@ export function DJInterface() {
                       // Convert from -1..1 to 0..1 range and dispatch
                       const newValue = (value + 1) / 2;
                       dispatch({ type: "SET_CROSSFADER", payload: newValue });
-                      setCrossfader(value); // Add this line
+                      setCrossfader(newValue);
                     }}
                     onDoubleClick={() => {
                       // Reset crossfader to center
                       dispatch({ type: "SET_CROSSFADER", payload: 0.5 });
-                      setCrossfader(0); // Add this line
+                      setCrossfader(0.5);
                     }}
                   />
                 </div>
