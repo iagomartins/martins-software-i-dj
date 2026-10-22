@@ -207,6 +207,15 @@ describe('AudioService - 3-Band DJ Isolator EQ', () => {
       new MockAudioBuffer({ duration: 120, sampleRate: 44100, numberOfChannels: 2 })
     );
 
+    // Reset graph so setupDeckAudioGraph re-runs and we can observe workletNode.connect
+    const deckState = service.getDeckState(1);
+    (deckState as any).eqFilters = null;
+    (deckState as any).gainNode = null;
+    (deckState as any).graphConnected = false;
+    service.setupDeckAudioGraph(1);
+
+    const filters = service.getDeckEQFilters(1);
+
     const mockArrayBuffer = new Uint8Array([0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0]).buffer;
     const mockBlob = new Blob([mockArrayBuffer], { type: 'audio/wav' });
     vi.spyOn(mockBlob, 'arrayBuffer').mockResolvedValue(mockArrayBuffer);
@@ -214,28 +223,21 @@ describe('AudioService - 3-Band DJ Isolator EQ', () => {
 
     await service.play(1);
 
-    const deckState = service.getDeckState(1);
-    const filters = service.getDeckEQFilters(1);
-
     expect(deckState?.sourceNode).toBeDefined();
     expect(filters).toBeDefined();
 
-    // Source must connect to WorkletNode, which feeds LowFilter on play
+    // Source must connect to WorkletNode
     expect(deckState?.sourceNode?.connect).toHaveBeenCalledWith(deckState?.workletNode);
+    // Worklet must connect to LowFilter (wired during setupDeckAudioGraph)
     expect(deckState?.workletNode?.connect).toHaveBeenCalledWith(filters?.low);
 
-    // Verify filter chain wiring on setup
-    (deckState as any).eqFilters = null;
-    (deckState as any).gainNode = null;
-    service.setupDeckAudioGraph(1);
-    const newFilters = service.getDeckEQFilters(1);
-
+    // Verify filter chain internal wiring
     // LowFilter must connect to MidFilter
-    expect(newFilters?.low.connect).toHaveBeenCalledWith(newFilters?.mid);
+    expect(filters?.low.connect).toHaveBeenCalledWith(filters?.mid);
     // MidFilter must connect to HighFilter
-    expect(newFilters?.mid.connect).toHaveBeenCalledWith(newFilters?.high);
+    expect(filters?.mid.connect).toHaveBeenCalledWith(filters?.high);
     // HighFilter must connect to GainNode
-    expect(newFilters?.high.connect).toHaveBeenCalledWith(deckState?.gainNode);
+    expect(filters?.high.connect).toHaveBeenCalledWith(deckState?.gainNode);
 
     // Deck crossfader gain must connect to destination and masterDestination for audio output
     const crossfaderGain = (service as any).deckCrossfaderGains.get(1);
@@ -316,6 +318,7 @@ describe('AudioService - Strict Graph Separation & Routing Isolation', () => {
     const deck1 = service.getDeckState(1);
     (deck1 as any).eqFilters = null;
     (deck1 as any).gainNode = null;
+    (deck1 as any).graphConnected = false;
     service.setupDeckAudioGraph(1);
 
     const mockArrayBuffer = new Uint8Array([0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0]).buffer;
@@ -365,6 +368,7 @@ describe('AudioService - Strict Graph Separation & Routing Isolation', () => {
     const deck2 = service.getDeckState(2);
     (deck2 as any).eqFilters = null;
     (deck2 as any).gainNode = null;
+    (deck2 as any).graphConnected = false;
     service.setupDeckAudioGraph(2);
 
     const mockArrayBuffer = new Uint8Array([0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0]).buffer;

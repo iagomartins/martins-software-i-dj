@@ -28,6 +28,8 @@ export interface DeckState {
   currentBPM: number;
   pitch: number;
   isSynced: boolean;
+  /** True once the static audio graph (EQ chain → gain → crossfader) has been wired. Prevents duplicate connections. */
+  graphConnected: boolean;
 }
 
 class AudioService {
@@ -72,6 +74,7 @@ class AudioService {
       currentBPM: 120,
       pitch: 0,
       isSynced: false,
+      graphConnected: false,
     });
     this.decks.set(2, {
       sourceNode: null,
@@ -88,6 +91,7 @@ class AudioService {
       currentBPM: 120,
       pitch: 0,
       isSynced: false,
+      graphConnected: false,
     });
   }
 
@@ -224,29 +228,20 @@ class AudioService {
       this.headphoneStream = this.headphoneDestination.stream;
 
       // Create crossfader gain nodes for each deck (Constant Power Center ~0.7071)
-      const initialConstantPowerGain = Math.SQRT1_2; // cos(0.5 * 0.5 * PI) = sin(0.5 * 0.5 * PI) = 1/sqrt(2)
+      // NOTE: Do NOT connect to destinations here — setupDeckAudioGraph() below handles
+      // the full chain (worklet -> EQ -> gain -> crossfader -> destination).
+      // Connecting here AND in setupDeckAudioGraph would double the signal.
+      const initialConstantPowerGain = Math.SQRT1_2;
       for (const deckId of [1, 2] as const) {
         const deckCrossfaderGain = this.audioContext.createGain();
         deckCrossfaderGain.gain.value = initialConstantPowerGain;
         this.deckCrossfaderGains.set(deckId, deckCrossfaderGain);
-        deckCrossfaderGain.connect(this.audioContext.destination);
-        deckCrossfaderGain.connect(this.masterDestination);
       }
-      console.log(
-        `🎚️ Crossfader gain nodes created and connected to destinations for both decks (initialized to ${initialConstantPowerGain.toFixed(4)} = Constant Power Center)`
-      );
+      console.log(`✅ Crossfader gain nodes created (initial gain: ${initialConstantPowerGain.toFixed(4)})`);
 
-      // Initialize 3-band Isolator EQ chains and linear routing for both decks
+      // Initialize audio graph for both decks (EQ -> gain -> crossfader -> destination)
       this.setupDeckAudioGraph(1);
       this.setupDeckAudioGraph(2);
-      console.log(
-        "🎛️ 3-band Isolator EQ chains and audio routing initialized for both decks"
-      );
-
-      console.log(`🔊 Master gain value: ${this.masterGain.gain.value}`);
-      console.log(
-        `🔊 Crossfader gain value: ${this.crossfaderGain.gain.value}`
-      );
 
       // Create Audio element to play the master stream (REQUIRED for MediaStream to work)
       this.defaultAudioElement = new Audio();
@@ -492,16 +487,7 @@ class AudioService {
       return; // Already playing
     }
 
-    console.log(`▶️ Starting playback for deck ${deckId}`);
-    console.log(
-      `📊 Deck ${deckId} state before play: isPlaying=${deck.isPlaying
-      }, pauseTime=${deck.pauseTime.toFixed(
-        2
-      )}s, hasBuffer=${!!deck.audioBuffer}`
-    );
-    console.log(`🔊 AudioContext state: ${this.audioContext?.state}`);
-    console.log(`🔊 Master gain: ${this.masterGain?.gain.value}`);
-    console.log(`🔊 Crossfader gain: ${this.crossfaderGain?.gain.value}`);
+    console.log(`▶️ Play deck ${deckId} | offset=${deck.pauseTime.toFixed(2)}s`);
 
     // Ensure any existing source node is stopped and disconnected without firing onended
     if (deck.sourceNode) {
@@ -518,145 +504,56 @@ class AudioService {
     // Create new source node
     const sourceNode = this.audioContext.createBufferSource();
     sourceNode.buffer = deck.audioBuffer;
-    sourceNode.loop = true; // Enable looping for continuous playback (DJ standard)
-
-    // Explicitly set loop boundaries for reliable looping
+    sourceNode.loop = true;
     sourceNode.loopStart = 0;
     sourceNode.loopEnd = deck.audioBuffer.duration;
-    console.log(`🔊 Source node created with looping enabled`);
-    console.log(
-      `🔁 Loop properties: loopStart=${sourceNode.loopStart.toFixed(
-        2
-      )}s, loopEnd=${sourceNode.loopEnd.toFixed(2)}s, loop=${sourceNode.loop}`
-    );
 
-    // Ensure 3-band Isolator EQ graph, worklet, and channel gain node are ready
-    if (!deck.workletNode || !deck.eqFilters || !deck.gainNode) {
+    // Ensure 3-band Isolator EQ graph, worklet, and channel gain node are ready.
+    // setupDeckAudioGraph is idempotent — it only wires nodes once (guarded by graphConnected).
+    if (!deck.graphConnected) {
       this.setupDeckAudioGraph(deckId);
     }
 
-    // Connect: source -> Worklet (which feeds Low -> Mid -> High -> GainNode -> CrossfaderGain -> Destinations)
+    // Connect the newly-created source into the persistent static graph.
+    // Only source->worklet is re-connected each play (AudioBufferSourceNode is one-shot).
+    // All downstream nodes (worklet -> EQ -> gain -> crossfader -> destination) are permanent.
     if (deck.workletNode) {
       sourceNode.connect(deck.workletNode);
-      if (deck.eqFilters) {
-        try {
-          deck.workletNode.connect(deck.eqFilters.low);
-        } catch (e) {
-          // already connected
-        }
-      }
-      console.log(
-        `🔗 Connected: source -> Worklet -> Low -> Mid -> High -> GainNode -> CrossfaderGain for deck ${deckId}`
-      );
     } else if (deck.eqFilters) {
+      // Fallback when worklet is unavailable
       sourceNode.connect(deck.eqFilters.low);
-      console.log(
-        `🔗 Fallback connected: source -> LowFilter -> MidFilter -> HighFilter -> GainNode for deck ${deckId}`
-      );
-    }
-    // Defensively ensure full linear chain: HighFilter -> GainNode -> CrossfaderGain
-    if (deck.eqFilters && deck.gainNode) {
-      try {
-        deck.eqFilters.high.connect(deck.gainNode);
-      } catch (e) {
-        // already connected
-      }
     }
 
-    // Defensively ensure crossfaderGain is connected to destination and masterDestination
-    const crossfaderGain = this.deckCrossfaderGains.get(deckId);
-    if (deck.gainNode && crossfaderGain) {
-      try {
-        deck.gainNode.connect(crossfaderGain);
-      } catch (e) {
-        // already connected
-      }
-    }
-    if (crossfaderGain) {
-      try {
-        crossfaderGain.connect(this.audioContext.destination);
-      } catch (e) {
-        // already connected
-      }
-      if (this.masterDestination) {
-        try {
-          crossfaderGain.connect(this.masterDestination);
-        } catch (e) {
-          // already connected
-        }
-      }
-      console.log(
-        `🔗 Deck ${deckId} crossfaderGain connected to destination and masterDestination`
-      );
-    }
-
-    // Also connect to headphone gain for pre-fader monitoring (if routing enabled)
+    // Pre-fader headphone monitoring
     const headphoneGain = this.deckHeadphoneGains.get(deckId);
     if (headphoneGain) {
-      // Connect source directly to headphone gain (pre-fader)
       sourceNode.connect(headphoneGain);
     }
 
     // Calculate start offset
     const startOffset = deck.pauseTime;
 
-    // CRITICAL: Ensure default audio element is playing (REQUIRED for MediaStream in Electron)
-    if (this.defaultAudioElement) {
-      if (this.defaultAudioElement.paused) {
-        try {
-          await this.defaultAudioElement.play();
-          console.log("🔊 Default audio element resumed/started");
-        } catch (error) {
-          console.error(
-            "❌ CRITICAL: Could not play default audio element:",
-            error
-          );
-          console.error("❌ This will prevent audio from playing in Electron!");
-        }
-      } else {
-        console.log("✅ Default audio element is already playing");
+    // Ensure default audio element is playing (required for MediaStream in Electron)
+    if (this.defaultAudioElement?.paused) {
+      try {
+        await this.defaultAudioElement.play();
+      } catch (e) {
+        console.error(`❌ Could not play audio element:`, e);
       }
-
-      // Verify it's actually playing
-      console.log(
-        `🔊 Audio element state: paused=${this.defaultAudioElement.paused}, readyState=${this.defaultAudioElement.readyState}`
-      );
-    } else {
-      console.error("❌ CRITICAL: defaultAudioElement is null!");
     }
 
-    // Verify audio buffer has data
     if (!deck.audioBuffer) {
-      console.error("❌ No audio buffer!");
+      console.error(`❌ No audio buffer for deck ${deckId}!`);
       return;
     }
-    console.log(
-      `📊 Audio buffer: ${deck.audioBuffer.duration.toFixed(2)}s, ${deck.audioBuffer.sampleRate
-      }Hz, ${deck.audioBuffer.numberOfChannels} channels`
-    );
-    console.log(
-      `📊 Source node buffer: ${sourceNode.buffer?.duration.toFixed(2)}s`
-    );
 
-    // CRITICAL: Store source node in deck state BEFORE starting
     deck.sourceNode = sourceNode;
-    console.log(
-      `💾 Stored source node in deck ${deckId} state before start()`
-    );
 
     // Start playback
     try {
       sourceNode.start(0, startOffset);
-      console.log(`▶️ Playback started at offset ${startOffset.toFixed(2)}s`);
-      console.log(
-        `▶️ Source node state: loop=${sourceNode.loop
-        }, loopStart=${sourceNode.loopStart?.toFixed(
-          2
-        )}s, loopEnd=${sourceNode.loopEnd?.toFixed(2)}s`
-      );
     } catch (error) {
-      console.error("❌ Failed to start source node:", error);
-      // Clean up on error
+      console.error(`❌ Failed to start source node for deck ${deckId}:`, error);
       deck.sourceNode = null;
       throw error;
     }
@@ -721,16 +618,10 @@ class AudioService {
       }
     };
 
-    // Update deck state (sourceNode and gainNode already stored above before start())
+    // Update deck state
     deck.isPlaying = true;
-    // Set startTime accounting for the offset - this ensures position calculation is correct
     deck.startTime = this.audioContext.currentTime - startOffset;
-    console.log(
-      `✅ Deck ${deckId} state updated: isPlaying=${deck.isPlaying
-      }, startTime=${deck.startTime.toFixed(
-        2
-      )}s, startOffset=${startOffset.toFixed(2)}s`
-    );
+    console.log(`✅ Deck ${deckId} playing | startTime=${deck.startTime.toFixed(2)}s`);
 
     // Immediately emit position update to ensure UI is in sync
     const callbacks = this.positionUpdateCallbacks.get(deckId);
@@ -1063,6 +954,10 @@ class AudioService {
     const deck = this.decks.get(deckId);
     if (!deck) return;
 
+    // Guard: only wire the static graph once per deck to prevent duplicate connections
+    // which would cause audio duplication (signal summed N times).
+    if (deck.graphConnected) return;
+
     // 1. Ensure independent AudioWorkletNode exists for this deck
     if (!deck.workletNode) {
       try {
@@ -1082,7 +977,7 @@ class AudioService {
       }
     }
 
-    // 2. Create 3-band Isolator EQ BiquadFilterNodes if not yet created
+    // 2. Create 3-band Isolator EQ BiquadFilterNodes
     if (!deck.eqFilters) {
       // Low Shelf filter: 250 Hz
       const lowFilter = this.audioContext.createBiquadFilter();
@@ -1103,7 +998,7 @@ class AudioService {
       highFilter.frequency.value = 4000;
       highFilter.gain.value = 0; // 0 dB flat
 
-      // Chain: Low -> Mid -> High
+      // Internal EQ chain: Low -> Mid -> High
       lowFilter.connect(midFilter);
       midFilter.connect(highFilter);
 
@@ -1114,42 +1009,36 @@ class AudioService {
       };
     }
 
-    // 3. Connect Worklet -> LowFilter (Linear Chain Step 2)
+    // 3. Connect Worklet output -> EQ Low input
     if (deck.workletNode && deck.eqFilters) {
-      try {
-        deck.workletNode.connect(deck.eqFilters.low);
-      } catch (e) {
-        // already connected
-      }
+      deck.workletNode.connect(deck.eqFilters.low);
     }
 
-    // 4. Create or reuse persistent deck gain node (VolumeGain)
+    // 4. Create persistent deck volume GainNode
     if (!deck.gainNode) {
       const gainNode = this.audioContext.createGain();
       gainNode.gain.value = deck.volume ?? 1.0;
       deck.gainNode = gainNode;
     }
 
-    // 5. Connect HighFilter -> GainNode (VolumeGain)
-    deck.eqFilters.high.connect(deck.gainNode);
+    // 5. Connect EQ High output -> GainNode
+    if (deck.eqFilters) {
+      deck.eqFilters.high.connect(deck.gainNode);
+    }
 
     // 6. Connect GainNode -> CrossfaderGain -> Destinations
     const crossfaderGain = this.deckCrossfaderGains.get(deckId);
     if (crossfaderGain) {
       deck.gainNode.connect(crossfaderGain);
-      try {
-        crossfaderGain.connect(this.audioContext.destination);
-      } catch (e) {
-        // already connected
-      }
+      crossfaderGain.connect(this.audioContext.destination);
       if (this.masterDestination) {
-        try {
-          crossfaderGain.connect(this.masterDestination);
-        } catch (e) {
-          // already connected
-        }
+        crossfaderGain.connect(this.masterDestination);
       }
     }
+
+    // Mark graph as wired — never connect these static nodes again
+    deck.graphConnected = true;
+    console.log(`🔗 Audio graph wired for deck ${deckId}: worklet -> EQ(low->mid->high) -> gain -> crossfader -> output`);
   }
 
   getDeckEQFilters(deckId: string | number): DeckEQFilters | null {
