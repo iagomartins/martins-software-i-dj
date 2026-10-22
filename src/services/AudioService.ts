@@ -322,8 +322,8 @@ class AudioService {
         );
       }
 
-      // Initialize crossfader to center position
-      this.setCrossfader(0); // Center = 0, which gives 50% gain to both decks
+      // Initialize crossfader to center position (Constant Power Center = 0.5)
+      this.setCrossfader(0.5);
 
       this.initialized = true;
       console.log("✅ AudioService initialized successfully");
@@ -554,9 +554,24 @@ class AudioService {
         `🔗 Fallback connected: source -> LowFilter -> MidFilter -> HighFilter -> GainNode for deck ${deckId}`
       );
     }
+    // Defensively ensure full linear chain: HighFilter -> GainNode -> CrossfaderGain
+    if (deck.eqFilters && deck.gainNode) {
+      try {
+        deck.eqFilters.high.connect(deck.gainNode);
+      } catch (e) {
+        // already connected
+      }
+    }
 
     // Defensively ensure crossfaderGain is connected to destination and masterDestination
     const crossfaderGain = this.deckCrossfaderGains.get(deckId);
+    if (deck.gainNode && crossfaderGain) {
+      try {
+        deck.gainNode.connect(crossfaderGain);
+      } catch (e) {
+        // already connected
+      }
+    }
     if (crossfaderGain) {
       try {
         crossfaderGain.connect(this.audioContext.destination);

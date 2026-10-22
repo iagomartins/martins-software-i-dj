@@ -1,5 +1,5 @@
 ---
-trigger: always_on
+trigger: manual
 ---
 
 # 🛑 STRICT AUDIO ENGINE RULES (IMMUTABLE ARCHITECTURE)

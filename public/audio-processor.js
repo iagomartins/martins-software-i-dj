@@ -169,40 +169,28 @@ class DJAudioProcessor extends AudioWorkletProcessor {
   
   async loadWasmModule(wasmBytes, wasmJsCode) {
     try {
-      // Execute the Emscripten JS code in the worklet's global scope
-      // The JS code is already fetched in the main thread and passed as a string
-      // With MODULARIZE=1, Emscripten creates: var createAudioProcessorModule = function(...) {...}
-      // We need to execute it and capture the function assignment
       const globalScope = globalThis;
       
+      // Patch wasmJsCode so Emscripten exposes HEAPF32 and wasmMemory on the returned Module
+      let preparedJsCode = wasmJsCode;
+      if (!preparedJsCode.includes('Module["HEAPF32"]=HEAPF32')) {
+        preparedJsCode = preparedJsCode.replace(
+          'updateMemoryViews();return wasmExports',
+          'updateMemoryViews();Module["HEAPF32"]=HEAPF32;Module["wasmMemory"]=wasmMemory;return wasmExports'
+        );
+        preparedJsCode = preparedJsCode.replace(
+          'function updateMemoryViews(){',
+          'function updateMemoryViews(){Module["HEAPF32"]=HEAPF32;'
+        );
+      }
+
       // Create a scope where we can capture the function
-      // Execute the Emscripten code, which will create createAudioProcessorModule
-      const executeCode = new Function(wasmJsCode);
-      executeCode();
-      
-      // The function should now be in the current scope (not globalScope due to 'var')
-      // We need to access it from the function's scope
-      // Try to get it from the current scope using eval in a controlled way
-      let moduleFactory;
-      try {
-        // Try to access it directly (it might be in the function scope)
-        moduleFactory = typeof createAudioProcessorModule !== 'undefined' ? createAudioProcessorModule : null;
-      } catch (e) {
-        // createAudioProcessorModule is not in scope, need to extract it differently
-        moduleFactory = null;
-      }
-      
-      // If not found, try to extract it from the code string
-      if (!moduleFactory) {
-        // Emscripten MODULARIZE creates: var createAudioProcessorModule = (function() {...})();
-        // We need to execute it in a way that exposes it to globalScope
-        const extractCode = `
-          ${wasmJsCode}
-          return typeof createAudioProcessorModule !== 'undefined' ? createAudioProcessorModule : null;
-        `;
-        const extractFunc = new Function(extractCode);
-        moduleFactory = extractFunc();
-      }
+      const extractCode = `
+        ${preparedJsCode}
+        return typeof createAudioProcessorModule !== 'undefined' ? createAudioProcessorModule : null;
+      `;
+      const extractFunc = new Function(extractCode);
+      const moduleFactory = extractFunc();
       
       // Assign to globalScope for future access
       if (moduleFactory) {
@@ -215,6 +203,16 @@ class DJAudioProcessor extends AudioWorkletProcessor {
       this.wasmModule = await moduleFactory({ wasmBinary: wasmBytes });
       this.wasmInstance = this.wasmModule;
       this.wasm = this.wasmInstance;
+
+      // Ensure HEAPF32 is initialized and updateMemoryViews is functional
+      if (!this.wasmInstance.HEAPF32 && this.wasmInstance.wasmMemory) {
+        this.wasmInstance.HEAPF32 = new Float32Array(this.wasmInstance.wasmMemory.buffer);
+      }
+      if (!this.wasmInstance.updateMemoryViews && this.wasmInstance.wasmMemory) {
+        this.wasmInstance.updateMemoryViews = () => {
+          this.wasmInstance.HEAPF32 = new Float32Array(this.wasmInstance.wasmMemory.buffer);
+        };
+      }
 
       // Provide set_effect_param on wasm instance if not exported natively
       if (this.wasmInstance && !this.wasmInstance.set_effect_param) {
@@ -306,9 +304,11 @@ class DJAudioProcessor extends AudioWorkletProcessor {
       if (this.deckId) {
         // Dedicated worklet for a single deck (pass-through when Wasm not ready)
         const input = inputs[0];
-        if (input && input[0] && input[1]) {
-          output[0].set(input[0]);
-          output[1].set(input[1]);
+        const inLeft = (input && input[0]) ? input[0] : null;
+        const inRight = (input && input.length > 1 && input[1]) ? input[1] : inLeft;
+        if (inLeft) {
+          output[0].set(inLeft);
+          output[1].set(inRight);
         } else {
           output[0].fill(0);
           output[1].fill(0);
@@ -348,12 +348,21 @@ class DJAudioProcessor extends AudioWorkletProcessor {
     if (this.deckId) {
       // Dedicated worklet for a single deck
       const input = inputs[0];
-      const numSamples = (input && input[0]) ? input[0].length : 128;
+      const inLeft = (input && input[0]) ? input[0] : null;
+      const inRight = (input && input.length > 1 && input[1]) ? input[1] : inLeft;
+      const numSamples = inLeft ? inLeft.length : 128;
 
       if (!this.deck1InputLeftPtr || numSamples > this.bufferSize) {
         this.allocateBuffers(numSamples);
       }
       if (!this.deck1InputLeftPtr) {
+        if (inLeft) {
+          output[0].set(inLeft);
+          output[1].set(inRight);
+        } else {
+          output[0].fill(0);
+          output[1].fill(0);
+        }
         return true;
       }
 
@@ -362,15 +371,28 @@ class DJAudioProcessor extends AudioWorkletProcessor {
         if (typeof this.wasmInstance.updateMemoryViews === 'function') {
           this.wasmInstance.updateMemoryViews();
           heap = this.wasmInstance.HEAPF32;
+        } else if (this.wasmInstance.wasmMemory) {
+          heap = new Float32Array(this.wasmInstance.wasmMemory.buffer);
+          this.wasmInstance.HEAPF32 = heap;
         }
       }
-      if (!heap || heap.length === 0) return true;
+      if (!heap || heap.length === 0) {
+        // Fallback pass-through: NEVER silence audio!
+        if (inLeft) {
+          output[0].set(inLeft);
+          output[1].set(inRight);
+        } else {
+          output[0].fill(0);
+          output[1].fill(0);
+        }
+        return true;
+      }
 
       const heapOffset = heap.byteOffset / 4;
       const startIndex1L = (this.deck1InputLeftPtr / 4) + heapOffset;
       if (startIndex1L + numSamples > heap.length) {
         this.allocateBuffers(numSamples);
-        heap = this.wasmInstance.HEAPF32;
+        heap = this.wasmInstance.HEAPF32 || (this.wasmInstance.wasmMemory && new Float32Array(this.wasmInstance.wasmMemory.buffer));
       }
 
       if (this.deckId === 2) {
@@ -382,9 +404,9 @@ class DJAudioProcessor extends AudioWorkletProcessor {
           (this.deck2InputRightPtr / 4) + heapOffset,
           (this.deck2InputRightPtr / 4) + heapOffset + numSamples
         );
-        if (input && input[0] && input[1]) {
-          deck2InputLeft.set(input[0]);
-          deck2InputRight.set(input[1]);
+        if (inLeft) {
+          deck2InputLeft.set(inLeft);
+          deck2InputRight.set(inRight);
         } else {
           deck2InputLeft.fill(0);
           deck2InputRight.fill(0);
@@ -413,8 +435,15 @@ class DJAudioProcessor extends AudioWorkletProcessor {
           (this.deck2OutputRightPtr / 4) + heapOffset,
           (this.deck2OutputRightPtr / 4) + heapOffset + numSamples
         );
-        output[0].set(deck2OutputLeft);
-        output[1].set(deck2OutputRight);
+
+        // If Wasm produced pure silence from non-silent input, fallback to pass-through
+        if (inLeft && deck2OutputLeft[0] === 0 && deck2OutputLeft[1] === 0 && inLeft[0] !== 0) {
+          output[0].set(inLeft);
+          output[1].set(inRight);
+        } else {
+          output[0].set(deck2OutputLeft);
+          output[1].set(deck2OutputRight);
+        }
       } else {
         const deck1InputLeft = heap.subarray(
           (this.deck1InputLeftPtr / 4) + heapOffset,
@@ -424,9 +453,9 @@ class DJAudioProcessor extends AudioWorkletProcessor {
           (this.deck1InputRightPtr / 4) + heapOffset,
           (this.deck1InputRightPtr / 4) + heapOffset + numSamples
         );
-        if (input && input[0] && input[1]) {
-          deck1InputLeft.set(input[0]);
-          deck1InputRight.set(input[1]);
+        if (inLeft) {
+          deck1InputLeft.set(inLeft);
+          deck1InputRight.set(inRight);
         } else {
           deck1InputLeft.fill(0);
           deck1InputRight.fill(0);
@@ -455,8 +484,15 @@ class DJAudioProcessor extends AudioWorkletProcessor {
           (this.deck1OutputRightPtr / 4) + heapOffset,
           (this.deck1OutputRightPtr / 4) + heapOffset + numSamples
         );
-        output[0].set(deck1OutputLeft);
-        output[1].set(deck1OutputRight);
+
+        // If Wasm produced pure silence from non-silent input, fallback to pass-through
+        if (inLeft && deck1OutputLeft[0] === 0 && deck1OutputLeft[1] === 0 && inLeft[0] !== 0) {
+          output[0].set(inLeft);
+          output[1].set(inRight);
+        } else {
+          output[0].set(deck1OutputLeft);
+          output[1].set(deck1OutputRight);
+        }
       }
       return true;
     }
@@ -481,15 +517,30 @@ class DJAudioProcessor extends AudioWorkletProcessor {
       return true;
     }
     
-    // Get fresh Wasm memory views (protect against detached ArrayBuffer after memory growth)
     let heap = this.wasmInstance.HEAPF32;
     if (!heap || heap.buffer.byteLength === 0) {
       if (typeof this.wasmInstance.updateMemoryViews === 'function') {
         this.wasmInstance.updateMemoryViews();
         heap = this.wasmInstance.HEAPF32;
+      } else if (this.wasmInstance.wasmMemory) {
+        heap = new Float32Array(this.wasmInstance.wasmMemory.buffer);
+        this.wasmInstance.HEAPF32 = heap;
       }
     }
     if (!heap || heap.length === 0) {
+      if (deck1Input && deck1Input[0] && deck1Input[1]) {
+        output[0].set(deck1Input[0]);
+        output[1].set(deck1Input[1]);
+      } else {
+        output[0].fill(0);
+        output[1].fill(0);
+      }
+      if (deck2Input && deck2Input[0] && deck2Input[1]) {
+        for (let i = 0; i < output[0].length; i++) {
+          output[0][i] += deck2Input[0][i];
+          output[1][i] += deck2Input[1][i];
+        }
+      }
       return true;
     }
     const heapOffset = heap.byteOffset / 4;
@@ -498,7 +549,7 @@ class DJAudioProcessor extends AudioWorkletProcessor {
     const startIndex1L = (this.deck1InputLeftPtr / 4) + heapOffset;
     if (startIndex1L + numSamples > heap.length) {
       this.allocateBuffers(numSamples);
-      heap = this.wasmInstance.HEAPF32;
+      heap = this.wasmInstance.HEAPF32 || (this.wasmInstance.wasmMemory && new Float32Array(this.wasmInstance.wasmMemory.buffer));
     }
     
     // Copy deck1 input to Wasm memory
