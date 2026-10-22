@@ -55,7 +55,6 @@ class AudioService {
     Set<(position: number) => void>
   > = new Map();
   private positionUpdateInterval: number | null = null;
-  private defaultAudioElement: HTMLAudioElement | null = null;
 
   private constructor() {
     // Initialize deck states
@@ -243,40 +242,6 @@ class AudioService {
       this.setupDeckAudioGraph(1);
       this.setupDeckAudioGraph(2);
 
-      // Create Audio element to play the master stream (REQUIRED for MediaStream to work)
-      this.defaultAudioElement = new Audio();
-      this.defaultAudioElement.srcObject = this.masterStream;
-      this.defaultAudioElement.volume = 1.0;
-      this.defaultAudioElement.autoplay = true;
-
-      // Set up event handlers for debugging
-      this.defaultAudioElement.onplay = () => {
-        console.log("✅ Default audio element started playing");
-      };
-      this.defaultAudioElement.onpause = () => {
-        console.warn("⚠️ Default audio element paused");
-      };
-      this.defaultAudioElement.onerror = (error) => {
-        console.error("❌ Default audio element error:", error);
-      };
-      this.defaultAudioElement.onloadedmetadata = () => {
-        console.log("📊 Audio element metadata loaded");
-      };
-
-      // Try to start playing the master stream (required for audio output)
-      try {
-        const playPromise = this.defaultAudioElement.play();
-        if (playPromise !== undefined) {
-          await playPromise;
-          console.log("🔊 Default audio element started playing master stream");
-        }
-      } catch (error) {
-        console.warn(
-          "⚠️ Could not auto-play master stream (will try on user interaction):",
-          error
-        );
-        console.warn("⚠️ Audio will start when user clicks play button");
-      }
 
       // Create headphone gain nodes for each deck (pre-fader routing)
       const deck1HeadphoneGain = this.audioContext.createGain();
@@ -533,14 +498,6 @@ class AudioService {
     // Calculate start offset
     const startOffset = deck.pauseTime;
 
-    // Ensure default audio element is playing (required for MediaStream in Electron)
-    if (this.defaultAudioElement?.paused) {
-      try {
-        await this.defaultAudioElement.play();
-      } catch (e) {
-        console.error(`❌ Could not play audio element:`, e);
-      }
-    }
 
     if (!deck.audioBuffer) {
       console.error(`❌ No audio buffer for deck ${deckId}!`);
@@ -1240,7 +1197,6 @@ class AudioService {
       } else {
         deck1CrossfaderGain.gain.value = deck1Gain;
       }
-      console.log(`🎚️ Deck 1 crossfader gain set to: ${deck1Gain.toFixed(3)} (Constant Power)`);
     }
 
     if (deck2CrossfaderGain) {
@@ -1249,7 +1205,6 @@ class AudioService {
       } else {
         deck2CrossfaderGain.gain.value = deck2Gain;
       }
-      console.log(`🎚️ Deck 2 crossfader gain set to: ${deck2Gain.toFixed(3)} (Constant Power)`);
     }
 
     // Also send to all deck worklets
@@ -1362,11 +1317,6 @@ class AudioService {
                 );
               }
             });
-          } else if (deck.isPlaying) {
-            // Debug: Log when we have a playing deck but no callbacks
-            console.warn(
-              `⚠️ Deck ${deckId} is playing but has no position callbacks registered`
-            );
           }
         }
       }

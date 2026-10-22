@@ -143,6 +143,11 @@ describe('AudioService - Equal Power Crossfader', () => {
     expect(callRightA).toBeCloseTo(0.0, 4);
     expect(callRightB).toBeCloseTo(1.0, 4);
   });
+
+  it('guarantees zero duplicate audio output streams (no default HTMLAudioElement duplicating native destination)', () => {
+    // defaultAudioElement must not exist to prevent duplicate playback to default device
+    expect((service as any).defaultAudioElement).toBeUndefined();
+  });
 });
 
 describe('AudioService - 3-Band DJ Isolator EQ', () => {

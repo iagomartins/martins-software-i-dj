@@ -82,14 +82,21 @@ export interface DeckAudioChain {
 let globalAudioEngineInitPromise: Promise<void> | null = null;
 
 export const useAudioEngine = () => {
-  const audioServiceRef = useRef<AudioService | null>(null);
+  const audioServiceRef = useRef<AudioService>(AudioService.getInstance());
   const { dispatch, state } = useDJ();
   const devicesRef = useRef<MediaDeviceInfo[]>([]);
 
+  // Safe accessor guaranteeing singleton AudioService is always defined
+  const getAudioService = useCallback((): AudioService => {
+    if (!audioServiceRef.current) {
+      audioServiceRef.current = AudioService.getInstance();
+    }
+    return audioServiceRef.current;
+  }, []);
+
   // Initialize AudioService (Absolute Singleton)
   const initAudioContext = useCallback(async () => {
-    const audioService = AudioService.getInstance();
-    audioServiceRef.current = audioService;
+    const audioService = getAudioService();
 
     if (globalAudioEngineInitPromise) {
       await globalAudioEngineInitPromise;
@@ -148,28 +155,31 @@ export const useAudioEngine = () => {
     }
   }, [dispatch]);
 
+  // Auto-initialize AudioService on mount across all hook consumers (DJInterface, DJDeck, useKeyMapping)
+  useEffect(() => {
+    initAudioContext();
+  }, [initAudioContext]);
+
   // Load track from file buffer, Blob or URL
   const loadTrack = useCallback(
     async (deckNumber: 1 | 2, source: ArrayBuffer | Blob | string): Promise<AudioBuffer> => {
-      const audioService = audioServiceRef.current || AudioService.getInstance();
+      const audioService = getAudioService();
       return await audioService.loadTrack(deckNumber, source);
     },
-    []
+    [getAudioService]
   );
 
   // Set base BPM for a deck
   const setBaseBPM = useCallback((deckNumber: 1 | 2, bpm: number) => {
-    const audioService = audioServiceRef.current;
-    if (!audioService) return;
+    const audioService = getAudioService();
     audioService.setBaseBPM(deckNumber, bpm);
-  }, []);
+  }, [getAudioService]);
 
   // Set sync for a deck
   const setSync = useCallback((deckNumber: 1 | 2, enabled: boolean) => {
-    const audioService = audioServiceRef.current;
-    if (!audioService) return;
+    const audioService = getAudioService();
     audioService.setSync(deckNumber, enabled);
-  }, []);
+  }, [getAudioService]);
 
   // Detect BPM from audio buffer
   const detectBPM = useCallback(
@@ -237,38 +247,30 @@ export const useAudioEngine = () => {
   // Update EQ
   const updateEQ = useCallback(
     (deckNumber: 1 | 2, eq: { low: number; mid: number; high: number }) => {
-      const audioService = audioServiceRef.current;
-      if (!audioService) return;
-
+      const audioService = getAudioService();
       audioService.setDeckEQ(deckNumber, 'low', eq.low);
       audioService.setDeckEQ(deckNumber, 'mid', eq.mid);
       audioService.setDeckEQ(deckNumber, 'high', eq.high);
     },
-    []
+    [getAudioService]
   );
 
   // Update volume
   const updateVolume = useCallback((deckNumber: 1 | 2, volume: number) => {
-    const audioService = audioServiceRef.current;
-    if (!audioService) return;
-
+    const audioService = getAudioService();
     audioService.setVolume(deckNumber, volume);
-  }, []);
+  }, [getAudioService]);
 
   // Update pitch
   const updatePitch = useCallback((deckNumber: 1 | 2, pitch: number) => {
-    const audioService = audioServiceRef.current;
-    if (!audioService) return;
-
+    const audioService = getAudioService();
     audioService.setPitch(deckNumber, pitch);
-  }, []);
+  }, [getAudioService]);
 
   // Update effects
   const updateEffects = useCallback(
     (deckNumber: 1 | 2, effects: AudioEffects) => {
-      const audioService = audioServiceRef.current;
-      if (!audioService) return;
-
+      const audioService = getAudioService();
       audioService.setEffectState(deckNumber, 'flanger', effects.flanger, effects.flanger ? 1.0 : 0.0);
       audioService.setEffectState(deckNumber, 'filter', effects.filter, effects.filter ? 1.0 : 0.0);
       audioService.setEffectState(deckNumber, 'echo', effects.echo, effects.echo ? 1.0 : 0.0);
@@ -279,87 +281,74 @@ export const useAudioEngine = () => {
       audioService.setEffect(deckNumber, 2, effects.echo);
       audioService.setEffect(deckNumber, 3, effects.reverb);
     },
-    []
+    [getAudioService]
   );
 
   // Set individual effect state
   const setEffectState = useCallback(
     (deckId: string | number, effectName: string, isActive: boolean, amount: number = 1.0) => {
-      const audioService = audioServiceRef.current;
-      if (!audioService) return;
+      const audioService = getAudioService();
       audioService.setEffectState(deckId, effectName, isActive, amount);
     },
-    []
+    [getAudioService]
   );
 
   // Update filter cutoff for a deck
   const updateFilter = useCallback((deckNumber: 1 | 2, cutoff: number) => {
-    const audioService = audioServiceRef.current;
-    if (!audioService) return;
+    const audioService = getAudioService();
     audioService.setFilter(deckNumber, cutoff);
-  }, []);
+  }, [getAudioService]);
 
   // Update headphone volume
   const updateHeadphoneVolume = useCallback((volume: number) => {
-    const audioService = audioServiceRef.current;
-    if (!audioService) return;
-
+    const audioService = getAudioService();
     audioService.setHeadphoneVolume(volume);
-  }, []);
+  }, [getAudioService]);
 
   // Set deck playing state
   const setDeckPlaying = useCallback(async (deckNumber: 1 | 2, playing: boolean) => {
-    const audioService = audioServiceRef.current;
-    if (!audioService) return;
-
+    const audioService = getAudioService();
     if (playing) {
       await audioService.play(deckNumber);
     } else {
       audioService.pause(deckNumber);
     }
-  }, []);
+  }, [getAudioService]);
 
   // CUE functionality
   const setCuePoint = useCallback((deckNumber: 1 | 2, position: number) => {
-    const audioService = audioServiceRef.current;
-    if (!audioService) return;
+    const audioService = getAudioService();
     audioService.setCuePoint(deckNumber, position);
-  }, []);
+  }, [getAudioService]);
 
   const cue = useCallback((deckNumber: 1 | 2, pressed: boolean) => {
-    const audioService = audioServiceRef.current;
-    if (!audioService) return;
+    const audioService = getAudioService();
     audioService.cue(deckNumber, pressed);
-  }, []);
+  }, [getAudioService]);
 
   // Seek functionality
   const seek = useCallback((deckNumber: 1 | 2, position: number) => {
-    const audioService = audioServiceRef.current;
-    if (!audioService) return;
+    const audioService = getAudioService();
     audioService.seek(deckNumber, position);
-  }, []);
+  }, [getAudioService]);
 
   // Scratch functionality
   const scratch = useCallback((deckNumber: 1 | 2, delta: number) => {
-    const audioService = audioServiceRef.current;
-    if (!audioService) return;
+    const audioService = getAudioService();
     audioService.scratch(deckNumber, delta);
-  }, []);
+  }, [getAudioService]);
 
   // Headphone routing
   const setHeadphoneRouting = useCallback((deckNumber: 1 | 2, enabled: boolean) => {
-    const audioService = audioServiceRef.current;
-    if (!audioService) return;
+    const audioService = getAudioService();
     audioService.setHeadphoneRouting(deckNumber, enabled);
-  }, []);
+  }, [getAudioService]);
 
   // Set crossfader
   const setCrossfader = useCallback((value: number) => {
-    const audioService = audioServiceRef.current;
-    if (!audioService) return;
-
+    const audioService = getAudioService();
     audioService.setCrossfader(value);
-  }, []);
+  }, [getAudioService]);
 
   // Set browse position
   const setBrowsePosition = useCallback((delta: number) => {
@@ -368,11 +357,9 @@ export const useAudioEngine = () => {
 
   // Set master volume
   const setMasterVolume = useCallback((volume: number) => {
-    const audioService = audioServiceRef.current;
-    if (!audioService) return;
-
+    const audioService = getAudioService();
     audioService.setMasterVolume(volume);
-  }, []);
+  }, [getAudioService]);
 
   // Legacy function for compatibility (not used with AudioService)
   const createDeckChain = useCallback(

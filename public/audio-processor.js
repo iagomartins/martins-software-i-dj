@@ -441,12 +441,6 @@ class DJAudioProcessor extends AudioWorkletProcessor {
       output[1][i] = (deck1OutputRight[i] * deck1Gain) + (deck2OutputRight[i] * deck2Gain);
     }
     
-    // Debug: Log output values occasionally
-    if (this._processCallCount <= 5 || this._processCallCount % 1000 === 0) {
-      const firstOutputSample = output[0][0];
-      const maxOutput = Math.max(...output[0].slice(0, 10));
-      console.log(`[AudioWorklet] Wasm output: firstSample=${firstOutputSample.toFixed(4)}, maxSample=${maxOutput.toFixed(4)}, deck1Gain=${deck1Gain.toFixed(2)}, deck2Gain=${deck2Gain.toFixed(2)}`);
-    }
     
     return true;
   }
