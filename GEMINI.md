@@ -7,5 +7,7 @@ Please refer to:
 - **[Real-Time C++ Audio DSP Rules](file:///c:/Users/Avell/Documents/martins-software-i-dj/.agents/rules/audio-dsp-realtime.md)**
 - **[Electron Desktop & Security Rules](file:///c:/Users/Avell/Documents/martins-software-i-dj/.agents/rules/electron-desktop.md)**
 - **[Frontend UI & Audio Synchronization Rules](file:///c:/Users/Avell/Documents/martins-software-i-dj/.agents/rules/frontend-ui.md)**
+- **[Mandatory Test-Driven Development (TDD) Rules](file:///c:/Users/Avell/Documents/martins-software-i-dj/.agents/rules/tdd-mandatory.md)**
 - **[Audio Processing C++ Senior Skill](file:///c:/Users/Avell/Documents/martins-software-i-dj/.agents/skills/audio-processing-cpp/SKILL.md)**
 - **[Electron Desktop Senior Skill](file:///c:/Users/Avell/Documents/martins-software-i-dj/.agents/skills/electron-senior/SKILL.md)**
+- **[Test-Driven Development (TDD) Senior Skill](file:///c:/Users/Avell/Documents/martins-software-i-dj/.agents/skills/test-driven-development/SKILL.md)**

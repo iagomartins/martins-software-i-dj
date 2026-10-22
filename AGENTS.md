@@ -28,6 +28,8 @@ All agents working on this project must consult and comply with the dedicated ru
    - Context isolation, typed IPC bridges, input sanitization, Koffi native pointer lifecycles, and low-latency audio window flags.
 4. **[Frontend & Audio Synchronization Rules](file:///c:/Users/Avell/Documents/martins-software-i-dj/.agents/rules/frontend-ui.md)**:
    - Decoupling continuous playback position updates from React state tree; 60-120 FPS canvas waveform rendering; Web MIDI mapping.
+5. **[Mandatory Test-Driven Development (TDD) Rules](file:///c:/Users/Avell/Documents/martins-software-i-dj/.agents/rules/tdd-mandatory.md)**:
+   - Red-Green-Refactor sequence, strict mock boundaries (AudioContext, Web MIDI, Electron IPC, Canvas), and zero-regression commit gates.
 
 ---
 
@@ -36,14 +38,17 @@ All agents working on this project must consult and comply with the dedicated ru
 When executing complex tasks in this workspace, refer to the senior skill runbooks:
 - **Audio Processing C++ Senior Skill**: [.agents/skills/audio-processing-cpp/SKILL.md](file:///c:/Users/Avell/Documents/martins-software-i-dj/.agents/skills/audio-processing-cpp/SKILL.md)
 - **Electron Desktop Senior Skill**: [.agents/skills/electron-senior/SKILL.md](file:///c:/Users/Avell/Documents/martins-software-i-dj/.agents/skills/electron-senior/SKILL.md)
+- **Test-Driven Development (TDD) Senior Skill**: [.agents/skills/test-driven-development/SKILL.md](file:///c:/Users/Avell/Documents/martins-software-i-dj/.agents/skills/test-driven-development/SKILL.md)
 
 ---
 
 ## 🚀 Key Build & Test Commands
 
+- **Run Automated Tests**: `npm test`
+- **Run Tests in Watch Mode (TDD)**: `npm run test:watch`
 - **Start Web Dev Server**: `npm run dev`
 - **Start Electron in Dev**: `npm run electron:dev`
 - **Compile WebAssembly Audio Engine**: `cd cpp && .\build_wasm.bat` (or `.\build_wasm.ps1`)
 - **Compile Native C++ Engine (CMake)**: `.\scripts\build-auto.bat`
 - **Test Native C++ Engine via Koffi**: `node test-audio-engine.cjs`
-- **Typecheck & Lint**: `npm run lint`
+- **Typecheck & Lint**: `npx tsc --noEmit && npm run lint`
