@@ -5,6 +5,8 @@ import { DJFader } from "./DJFader";
 import { ScratchWheel } from "./ScratchWheel";
 import { PitchFader } from "./PitchFader";
 import { AudioWaveform } from "./AudioWaveform";
+import { DeckLoadingOverlay } from "./DeckLoadingOverlay";
+import { toast } from "@/components/ui/sonner";
 import { useDJ } from "@/contexts/DJContext";
 import { AudioService } from "@/services/AudioService";
 import {
@@ -26,6 +28,7 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
     updateVolume,
     updatePitch,
     updateEffects,
+    setEffectState,
     loadTrack,
     setDeckPlaying,
     setCuePoint,
@@ -48,22 +51,136 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
     reverb: false,
   });
 
-  // Control values
-  const [lowEQ, setLowEQ] = useState(0);
-  const [midEQ, setMidEQ] = useState(0);
-  const [highEQ, setHighEQ] = useState(0);
-  const [volume, setVolume] = useState(0.8);
-  const [pitch, setPitch] = useState(0);
+  const deckKey = deckNumber === 1 ? 'deck1' : 'deck2';
+  const deckData = state[deckKey];
+
+  // Control values (initialized from global state)
+  const [lowEQ, setLowEQ] = useState(deckData?.lowEQ ?? 0.5);
+  const [midEQ, setMidEQ] = useState(deckData?.midEQ ?? 0.5);
+  const [highEQ, setHighEQ] = useState(deckData?.highEQ ?? 0.5);
+  const [volume, setVolume] = useState(deckData?.volume ?? 0.8);
+  const [pitch, setPitch] = useState(deckData?.pitch ?? 0);
+
+  // Synchronize from global store (MIDI / controller presets) into local deck UI state
+  useEffect(() => {
+    if (deckData?.volume !== undefined && Math.abs(deckData.volume - volume) > 0.001) {
+      setVolume(deckData.volume);
+    }
+  }, [deckData?.volume, volume]);
+
+  useEffect(() => {
+    if (deckData?.pitch !== undefined && Math.abs(deckData.pitch - pitch) > 0.001) {
+      setPitch(deckData.pitch);
+    }
+  }, [deckData?.pitch, pitch]);
+
+  useEffect(() => {
+    if (deckData?.lowEQ !== undefined && Math.abs(deckData.lowEQ - lowEQ) > 0.001) {
+      setLowEQ(deckData.lowEQ);
+    }
+  }, [deckData?.lowEQ, lowEQ]);
+
+  useEffect(() => {
+    if (deckData?.midEQ !== undefined && Math.abs(deckData.midEQ - midEQ) > 0.001) {
+      setMidEQ(deckData.midEQ);
+    }
+  }, [deckData?.midEQ, midEQ]);
+
+  useEffect(() => {
+    if (deckData?.highEQ !== undefined && Math.abs(deckData.highEQ - highEQ) > 0.001) {
+      setHighEQ(deckData.highEQ);
+    }
+  }, [deckData?.highEQ, highEQ]);
+
+  useEffect(() => {
+    if (deckData?.isPlaying !== undefined && deckData.isPlaying !== isPlaying) {
+      setIsPlaying(deckData.isPlaying);
+    }
+  }, [deckData?.isPlaying, isPlaying]);
+
+  useEffect(() => {
+    if (deckData?.isCued !== undefined && deckData.isCued !== isCued) {
+      setIsCued(deckData.isCued);
+    }
+  }, [deckData?.isCued, isCued]);
+
+  // Synchronize effect state from global store without unnecessary DOM re-renders
+  useEffect(() => {
+    if (!deckData?.effects) return;
+    setEffectsActive((prev) => {
+      if (
+        prev.flanger === deckData.effects.flanger &&
+        prev.filter === deckData.effects.filter &&
+        prev.echo === deckData.effects.echo &&
+        prev.reverb === deckData.effects.reverb
+      ) {
+        return prev; // Identical values - retain identity to avoid re-renders
+      }
+      return deckData.effects;
+    });
+  }, [
+    deckData?.effects?.flanger,
+    deckData?.effects?.filter,
+    deckData?.effects?.echo,
+    deckData?.effects?.reverb,
+  ]);
+
+  // UI Handlers with bidirectional store update
+  const handleVolumeChange = (newVolume: number) => {
+    setVolume(newVolume);
+    updateVolume(deckNumber, newVolume);
+    dispatch({
+      type: deckNumber === 1 ? 'SET_DECK_1_STATE' : 'SET_DECK_2_STATE',
+      payload: { volume: newVolume },
+    });
+  };
+
+  const handleLowEQChange = (val: number) => {
+    setLowEQ(val);
+    updateEQ(deckNumber, { low: val, mid: midEQ, high: highEQ });
+    dispatch({
+      type: deckNumber === 1 ? 'SET_DECK_1_STATE' : 'SET_DECK_2_STATE',
+      payload: { lowEQ: val },
+    });
+  };
+
+  const handleMidEQChange = (val: number) => {
+    setMidEQ(val);
+    updateEQ(deckNumber, { low: lowEQ, mid: val, high: highEQ });
+    dispatch({
+      type: deckNumber === 1 ? 'SET_DECK_1_STATE' : 'SET_DECK_2_STATE',
+      payload: { midEQ: val },
+    });
+  };
+
+  const handleHighEQChange = (val: number) => {
+    setHighEQ(val);
+    updateEQ(deckNumber, { low: lowEQ, mid: midEQ, high: val });
+    dispatch({
+      type: deckNumber === 1 ? 'SET_DECK_1_STATE' : 'SET_DECK_2_STATE',
+      payload: { highEQ: val },
+    });
+  };
+
+  const handlePitchChange = (val: number) => {
+    setPitch(val);
+    updatePitch(deckNumber, val);
+    dispatch({
+      type: deckNumber === 1 ? 'SET_DECK_1_STATE' : 'SET_DECK_2_STATE',
+      payload: { pitch: val },
+    });
+  };
 
   // Reset functions for double-click
-  const resetLowEQ = () => setLowEQ(0);
-  const resetMidEQ = () => setMidEQ(0);
-  const resetHighEQ = () => setHighEQ(0);
-  const resetVolume = () => setVolume(1.0); // 100%
-  const resetPitch = () => setPitch(0); // 0%
+  const resetLowEQ = () => handleLowEQChange(0.5);
+  const resetMidEQ = () => handleMidEQChange(0.5);
+  const resetHighEQ = () => handleHighEQChange(0.5);
+  const resetVolume = () => handleVolumeChange(1.0); // 100%
+  const resetPitch = () => handlePitchChange(0); // 0%
 
   // Audio state
   const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [currentAudioBuffer, setCurrentAudioBuffer] = useState<AudioBuffer | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [bpm, setBpm] = useState(120);
@@ -73,12 +190,18 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
   // Audio playback is now handled by AudioService
 
   const toggleEffect = (effectType: keyof AudioEffects) => {
+    const nextActive = !effectsActive[effectType];
     const newEffects = {
       ...effectsActive,
-      [effectType]: !effectsActive[effectType],
+      [effectType]: nextActive,
     };
     setEffectsActive(newEffects);
+    setEffectState(deckNumber, effectType, nextActive, nextActive ? 1.0 : 0.0);
     updateEffects(deckNumber, newEffects);
+    dispatch({
+      type: deckNumber === 1 ? 'SET_DECK_1_STATE' : 'SET_DECK_2_STATE',
+      payload: { effects: newEffects },
+    });
   };
 
   const handleHeadphoneToggle = () => {
@@ -93,40 +216,95 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
 
   // Audio handling functions
 
-  const handleAudioLoad = async (file: File) => {
+  const handleAudioLoad = (file: File) => {
     setAudioFile(file);
+    setCurrentAudioBuffer(null);
     setCurrentTime(0);
     setDuration(0);
     setIsPlaying(false);
-    // Cue point is managed by AudioService
 
-    // Initialize audio context
-    await initAudioContext();
+    // 1. Tell UI to show loading overlay FIRST (update global store)
+    dispatch({
+      type: "SET_TRACK_LOADING",
+      deck: deckNumber,
+      payload: {
+        isLoading: true,
+        progress: 15,
+        trackName: file.name,
+        error: null,
+      },
+    });
 
-    try {
-      // Read file as ArrayBuffer
-      const arrayBuffer = await file.arrayBuffer();
+    // 2. Yield to the browser's render pipeline so React can commit and paint the DOM
+    setTimeout(async () => {
+      try {
+        // 3. Do the heavy lifting (init context, fetch, decodeAudioData, Wasm allocation)
+        await initAudioContext();
+        dispatch({
+          type: "SET_TRACK_LOADING",
+          deck: deckNumber,
+          payload: { progress: 35 },
+        });
 
-      // Load track into AudioService
-      await loadTrack(deckNumber, arrayBuffer);
+        // Stream & decode track into AudioService without redundant memory copies
+        const audioBuffer = await loadTrack(deckNumber, file);
 
-      // Detect BPM
-      const audioContext = new AudioContext();
-      const audioBuffer = await audioContext.decodeAudioData(
-        arrayBuffer.slice(0)
-      );
-      const detectedBPM = await detectBPM(audioBuffer);
-      setBaseBpm(detectedBPM);
-      setBaseBPM(deckNumber, detectedBPM);
-      setBpm(detectedBPM);
-      setDuration(audioBuffer.duration);
+        dispatch({
+          type: "SET_TRACK_LOADING",
+          deck: deckNumber,
+          payload: { progress: 75 },
+        });
 
-      audioContext.close();
+        // Detect BPM directly using the decoded AudioBuffer (zero redundant decoding)
+        const detectedBPM = await detectBPM(audioBuffer);
+        setBaseBpm(detectedBPM);
+        setBaseBPM(deckNumber, detectedBPM);
+        setBpm(detectedBPM);
+        setDuration(audioBuffer.duration);
+        setCurrentAudioBuffer(audioBuffer);
 
-      console.log(`✅ Track loaded for deck ${deckNumber}`);
-    } catch (error) {
-      console.error("Failed to load track:", error);
-    }
+        dispatch({
+          type: "SET_TRACK_LOADING",
+          deck: deckNumber,
+          payload: {
+            isLoading: false,
+            progress: 100,
+            error: null,
+          },
+        });
+
+        toast.success(`Track carregada no Deck ${deckNumber}`, {
+          description: `${file.name} • ${detectedBPM.toFixed(1)} BPM`,
+        });
+
+        console.log(`✅ Track loaded for deck ${deckNumber}: ${file.name}`);
+      } catch (error: any) {
+        console.error(`❌ Failed to load track for deck ${deckNumber}:`, error);
+
+        // Reset deck state to prevent inconsistent playback
+        setAudioFile(null);
+        setCurrentAudioBuffer(null);
+        setCurrentTime(0);
+        setDuration(0);
+
+        const errorMessage =
+          error?.message || "O arquivo é muito grande ou não pôde ser decodificado.";
+
+        dispatch({
+          type: "SET_TRACK_LOADING",
+          deck: deckNumber,
+          payload: {
+            isLoading: false,
+            progress: 0,
+            error: errorMessage,
+          },
+        });
+
+        toast.error(`Deck ${deckNumber}: Falha no áudio`, {
+          description: errorMessage,
+        });
+      }
+    }, 50); // 50ms is enough for React to commit and paint the DOM
   };
 
   const handleTimeUpdate = (time: number) => {
@@ -137,23 +315,13 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
   const handlePlayToggle = () => {
     if (!audioFile) return;
 
-    if (isPlaying) {
-      setIsPlaying(false);
-      // Remove this - C++ engine handles playback
-      // if (audioRef.current) {
-      //   audioRef.current.pause();
-      // }
-      // Update C++ audio engine
-      setDeckPlaying(deckNumber, false);
-    } else {
-      setIsPlaying(true);
-      // Remove this - C++ engine handles playback
-      // if (audioRef.current) {
-      //   audioRef.current.play();
-      // }
-      // Update C++ audio engine
-      setDeckPlaying(deckNumber, true);
-    }
+    const newPlaying = !isPlaying;
+    setIsPlaying(newPlaying);
+    setDeckPlaying(deckNumber, newPlaying);
+    dispatch({
+      type: deckNumber === 1 ? 'SET_DECK_1_STATE' : 'SET_DECK_2_STATE',
+      payload: { isPlaying: newPlaying },
+    });
   };
 
   const handleCue = (pressed: boolean) => {
@@ -161,6 +329,10 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
 
     setIsCued(pressed);
     cue(deckNumber, pressed);
+    dispatch({
+      type: deckNumber === 1 ? 'SET_DECK_1_STATE' : 'SET_DECK_2_STATE',
+      payload: { isCued: pressed },
+    });
   };
 
   // Duration is set when audio is loaded via handleDurationLoad
@@ -231,11 +403,27 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
   }, [deckNumber]);
 
   return (
-    <div className="bg-dj-console border border-border rounded-sm p-2 space-y-2 flex flex-col h-full relative z-10">
+    <div className="bg-dj-console border border-border rounded-lg p-2 space-y-2 flex flex-col h-full relative z-10 overflow-hidden">
+      {/* Loading & Error Feedback Overlay */}
+      <DeckLoadingOverlay
+        isLoading={Boolean(deckData?.isLoadingTrack)}
+        progress={deckData?.loadingProgress ?? 0}
+        trackName={deckData?.trackName ?? audioFile?.name}
+        error={deckData?.trackLoadError}
+        onDismissError={() => {
+          dispatch({
+            type: "SET_TRACK_LOADING",
+            deck: deckNumber,
+            payload: { isLoading: false, error: null },
+          });
+        }}
+      />
+
       {/* Waveform Panel - Now purely visual */}
       <AudioWaveform
         deckNumber={deckNumber}
         audioFile={audioFile}
+        audioBuffer={currentAudioBuffer}
         isPlaying={isPlaying}
         currentTime={currentTime}
         duration={duration}
@@ -251,13 +439,13 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
         <div className="flex items-center gap-2">
           {audioFile && (
             <>
-              <span className="text-[10px] text-neon-cyan bg-dj-panel px-1 py-0.5 rounded-sm">
+              <span className="text-[10px] text-neon-cyan bg-dj-panel px-1.5 py-0.5 rounded-lg border border-border/40">
                 {formatTime(currentTime)} / {formatTime(duration)}
               </span>
-              <span className="text-[10px] text-neon-magenta bg-dj-panel px-1 py-0.5 rounded-sm">
+              <span className="text-[10px] text-neon-magenta bg-dj-panel px-1.5 py-0.5 rounded-lg border border-border/40">
                 {bpm.toFixed(2)} BPM
               </span>
-              <span className="text-[10px] text-muted-foreground bg-dj-panel px-1 py-0.5 rounded-sm">
+              <span className="text-[10px] text-muted-foreground bg-dj-panel px-1.5 py-0.5 rounded-lg border border-border/40">
                 {isPlaying ? "▶ PLAY" : isCued ? "⏸ CUE" : "⏹ STOP"}
               </span>
             </>
@@ -270,7 +458,7 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
         {/* Top Row - EQ and Main Controls */}
         <div className="grid grid-cols-3 gap-2">
           {/* EQ Section */}
-          <div className="bg-dj-panel rounded-sm p-2">
+          <div className="bg-dj-panel rounded-lg p-2">
             <h3 className="text-[10px] font-bold text-dj-panel-foreground mb-1 text-center">
               EQ
             </h3>
@@ -278,21 +466,30 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
               <DJKnob
                 label="HIGH"
                 value={highEQ}
-                onChange={setHighEQ}
+                onChange={handleHighEQChange}
+                min={0}
+                max={1}
+                step={0.01}
                 color="magenta"
                 onDoubleClick={resetHighEQ}
               />
               <DJKnob
                 label="MID"
                 value={midEQ}
-                onChange={setMidEQ}
+                onChange={handleMidEQChange}
+                min={0}
+                max={1}
+                step={0.01}
                 color="yellow"
                 onDoubleClick={resetMidEQ}
               />
               <DJKnob
                 label="LOW"
                 value={lowEQ}
-                onChange={setLowEQ}
+                onChange={handleLowEQChange}
+                min={0}
+                max={1}
+                step={0.01}
                 color="green"
                 onDoubleClick={resetLowEQ}
               />
@@ -316,14 +513,14 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
           <div className="flex gap-2 justify-center">
             <PitchFader
               value={pitch}
-              onChange={setPitch}
+              onChange={handlePitchChange}
               deckNumber={deckNumber}
               onDoubleClick={resetPitch}
             />
             <DJFader
               label="VOLUME"
               value={volume}
-              onChange={setVolume}
+              onChange={handleVolumeChange}
               onDoubleClick={resetVolume}
             />
           </div>
@@ -332,7 +529,7 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
         {/* Bottom Row - Main Controls and Effects */}
         <div className="grid grid-cols-2 gap-2">
           {/* Main Controls */}
-          <div className="bg-dj-panel rounded-sm p-2 space-y-1">
+          <div className="bg-dj-panel rounded-lg p-2 space-y-1">
             <h3 className="text-[10px] font-bold text-dj-panel-foreground mb-1 text-center">
               CONTROLS
             </h3>
@@ -381,7 +578,7 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
           </div>
 
           {/* Effects Section */}
-          <div className="bg-dj-panel rounded-sm p-2">
+          <div className="bg-dj-panel rounded-lg p-2">
             <h3 className="text-[10px] font-bold text-dj-panel-foreground mb-1 text-center">
               EFFECTS
             </h3>

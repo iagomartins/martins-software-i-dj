@@ -36,6 +36,11 @@ export interface DJState {
     lowEQ: number;
     midEQ: number;
     highEQ: number;
+    filter: number;
+    isLoadingTrack: boolean;
+    loadingProgress: number;
+    trackLoadError: string | null;
+    trackName: string | null;
     effects: {
       flanger: boolean;
       filter: boolean;
@@ -55,6 +60,11 @@ export interface DJState {
     lowEQ: number;
     midEQ: number;
     highEQ: number;
+    filter: number;
+    isLoadingTrack: boolean;
+    loadingProgress: number;
+    trackLoadError: string | null;
+    trackName: string | null;
     effects: {
       flanger: boolean;
       filter: boolean;
@@ -64,10 +74,12 @@ export interface DJState {
   };
   crossfader: number;
   headphoneVolume: number;
+  browsePosition: number;
+  selectedControllerPreset: string | null;
 }
 
 // Your DJ actions
-type DJAction = 
+export type DJAction = 
   | { type: 'SET_DECK_1_STATE'; payload: Partial<DJState['deck1']> }
   | { type: 'SET_DECK_2_STATE'; payload: Partial<DJState['deck2']> }
   | { type: 'SET_CROSSFADER'; payload: number }
@@ -82,6 +94,19 @@ type DJAction =
   | { type: 'CLEAR_KEY_MAPPING'; payload: string } // Add this
   | { type: 'SET_ANALOG_MAPPING'; payload: { key: string; mapping: AnalogMapping } } // Analog mapping
   | { type: 'CLEAR_ANALOG_MAPPING'; payload: string } // Clear analog mapping
+  | { type: 'SET_DECK_FILTER'; payload: { deck: 1 | 2; value: number } }
+  | { type: 'SET_BROWSE_POSITION'; payload: number }
+  | { type: 'SELECT_CONTROLLER_PRESET'; payload: string | null }
+  | {
+      type: 'SET_TRACK_LOADING';
+      payload: {
+        deck: 1 | 2;
+        isLoading: boolean;
+        progress?: number;
+        error?: string | null;
+        trackName?: string | null;
+      };
+    }
   | { type: 'LOAD_CONFIG'; payload: Partial<DJState> }; // Load config from file
 
 // Initial state
@@ -107,9 +132,14 @@ const initialState: DJState = {
     baseBpm: 120,
     pitch: 0,
     volume: 1,
-    lowEQ: 0,
-    midEQ: 0,
-    highEQ: 0,
+    lowEQ: 0.5,
+    midEQ: 0.5,
+    highEQ: 0.5,
+    filter: 0,
+    isLoadingTrack: false,
+    loadingProgress: 0,
+    trackLoadError: null,
+    trackName: null,
     effects: {
       flanger: false,
       filter: false,
@@ -126,9 +156,14 @@ const initialState: DJState = {
     baseBpm: 120,
     pitch: 0,
     volume: 1,
-    lowEQ: 0,
-    midEQ: 0,
-    highEQ: 0,
+    lowEQ: 0.5,
+    midEQ: 0.5,
+    highEQ: 0.5,
+    filter: 0,
+    isLoadingTrack: false,
+    loadingProgress: 0,
+    trackLoadError: null,
+    trackName: null,
     effects: {
       flanger: false,
       filter: false,
@@ -138,6 +173,8 @@ const initialState: DJState = {
   },
   crossfader: 0.5,
   headphoneVolume: 1,
+  browsePosition: 0,
+  selectedControllerPreset: null,
 };
 
 // Reducer function
@@ -230,10 +267,45 @@ function djReducer(state: DJState, action: DJAction): DJState {
         ...state,
         analogMappings: newAnalogMappings
       }; }
+    case 'SET_DECK_FILTER':
+      { const deckKey = action.payload.deck === 1 ? 'deck1' : 'deck2';
+      return {
+        ...state,
+        [deckKey]: {
+          ...state[deckKey],
+          filter: action.payload.value,
+        },
+      }; }
+    case 'SET_BROWSE_POSITION':
+      return {
+        ...state,
+        browsePosition: action.payload,
+      };
+    case 'SELECT_CONTROLLER_PRESET':
+      return {
+        ...state,
+        selectedControllerPreset: action.payload,
+      };
+    case 'SET_TRACK_LOADING': {
+      const deckKey = action.payload.deck === 1 ? 'deck1' : 'deck2';
+      return {
+        ...state,
+        [deckKey]: {
+          ...state[deckKey],
+          isLoadingTrack: action.payload.isLoading,
+          loadingProgress: action.payload.progress ?? (action.payload.isLoading ? 0 : 100),
+          trackLoadError: action.payload.error !== undefined ? action.payload.error : state[deckKey].trackLoadError,
+          trackName: action.payload.trackName !== undefined ? action.payload.trackName : state[deckKey].trackName,
+        },
+      };
+    }
     case 'LOAD_CONFIG':
       return {
         ...state,
-        ...action.payload
+        ...action.payload,
+        activeHeadphoneDecks: action.payload.activeHeadphoneDecks
+          ? new Set(action.payload.activeHeadphoneDecks)
+          : state.activeHeadphoneDecks,
       };
     default:
       return state;

@@ -7,10 +7,12 @@ import { ConfigModal } from "./ConfigModal";
 // Import the logo directly
 import iDJLogo from "../../assets/iDJLogo.svg";
 import { useAudioEngine } from "@/hooks/useAudioEngine";
+import { useMIDI } from "@/hooks/useMIDI";
 
 export function DJInterface() {
   const { state, dispatch } = useDJ();
-  const { setCrossfader, updateHeadphoneVolume } = useAudioEngine(); // Add updateHeadphoneVolume
+  const { setCrossfader, updateHeadphoneVolume } = useAudioEngine();
+  const { devices, isMidiAvailable } = useMIDI();
 
   // Add null checks and default values
   if (!state) {
@@ -34,9 +36,9 @@ export function DJInterface() {
     baseBpm: 120,
     pitch: 0,
     volume: 1,
-    lowEQ: 0,
-    midEQ: 0,
-    highEQ: 0,
+    lowEQ: 0.5,
+    midEQ: 0.5,
+    highEQ: 0.5,
     effects: { flanger: false, filter: false, echo: false, reverb: false },
   };
 
@@ -49,9 +51,9 @@ export function DJInterface() {
     baseBpm: 120,
     pitch: 0,
     volume: 1,
-    lowEQ: 0,
-    midEQ: 0,
-    highEQ: 0,
+    lowEQ: 0.5,
+    midEQ: 0.5,
+    highEQ: 0.5,
     effects: { flanger: false, filter: false, echo: false, reverb: false },
   };
 
@@ -69,33 +71,49 @@ export function DJInterface() {
         </div>
       }
     >
-      <div className="min-h-screen text-white relative overflow-hidden" style={{
-        background: 'linear-gradient(135deg, hsl(240, 35%, 12%) 0%, hsl(240, 30%, 15%) 50%, hsl(240, 35%, 12%) 100%)'
-      }}>
-        {/* Subtle star pattern background */}
-        <div className="absolute inset-0 opacity-20 pointer-events-none" style={{
-          backgroundImage: `radial-gradient(circle at 20% 80%, hsl(217, 91%, 60%) 1px, transparent 1px),
-                           radial-gradient(circle at 80% 20%, hsl(217, 91%, 60%) 1px, transparent 1px),
-                           radial-gradient(circle at 40% 40%, hsl(217, 91%, 60%) 1px, transparent 1px)`,
-          backgroundSize: '200px 200px, 150px 150px, 100px 100px'
-        }} />
+      <div className="min-h-screen bg-[#101010] text-[#F8FAFC] relative overflow-hidden">
+        {/* Subtle radial glow background */}
+        <div
+          className="absolute inset-0 opacity-20 pointer-events-none"
+          style={{
+            backgroundImage: `radial-gradient(circle at 50% 0%, #3B82F6 0%, transparent 45%),
+                             radial-gradient(circle at 10% 90%, #1b1b1b 0%, transparent 40%),
+                             radial-gradient(circle at 90% 90%, #1b1b1b 0%, transparent 40%)`,
+          }}
+        />
         {/* Header */}
-        <header className="relative bg-[hsl(var(--soft-darker))]/50 backdrop-blur-sm border-b border-[hsl(var(--glow-blue)/0.2)] p-2">
+        <header className="relative bg-[#1b1b1b]/90 backdrop-blur-md border-b border-[#2e2e2e] p-2.5 z-20">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
             <div className="flex items-center space-x-4">
               {/* Use imported logo or fallback text */}
               {iDJLogo ? (
-                <img src={iDJLogo} alt="iDJ Logo" className="h-12 w-auto" />
+                <img src={iDJLogo} alt="iDJ Logo" className="h-10 w-auto" />
               ) : (
-                <div className="h-12 w-12 bg-gradient-to-r from-cyan-400 to-gr-400 rounded-lg flex items-center justify-center text-white font-bold text-xl">
+                <div className="h-10 px-3 bg-[#3B82F6] rounded-lg flex items-center justify-center text-white font-bold text-lg tracking-wider">
                   iDJ
                 </div>
               )}
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3">
+              {/* MIDI Hardware Status Indicator */}
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#101010] border border-[#2e2e2e] text-xs">
+                <span
+                  className={`inline-block w-2.5 h-2.5 rounded-full ${
+                    isMidiAvailable
+                      ? "bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse"
+                      : "bg-zinc-600"
+                  }`}
+                />
+                <span className="text-zinc-300 font-mono text-[11px]">
+                  {devices.length > 0
+                    ? `MIDI: ${devices[0].name}`
+                    : "MIDI: Searching..."}
+                </span>
+              </div>
+
               <button
                 type="button"
-                className="px-4 bg-primary bg-accent-hover rounded-sm text-sm transition-colors relative z-10"
+                className="px-4 py-1.5 bg-[#3B82F6] hover:bg-blue-600 text-[#F8FAFC] rounded-lg text-xs font-semibold tracking-wider uppercase transition-colors shadow-sm relative z-10"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -112,7 +130,7 @@ export function DJInterface() {
         <main className="flex-1 p-8">
           <div className="max-w-7xl mx-auto">
             {/* DJ Console Header */}
-            <div className="bg-[hsl(var(--soft-darker))]/30 backdrop-blur-sm rounded-t-xl border border-[hsl(var(--glow-blue)/0.2)] p-4 mb-8">
+            <div className="bg-[#1b1b1b] rounded-lg border border-[#2e2e2e] p-3 mb-6 shadow-md">
               <div className="grid grid-cols-3 gap-8 text-center">
                 <div>
                   <h3 className="text-md font-semibold text-light">DECK 1</h3>
@@ -155,12 +173,12 @@ export function DJInterface() {
                       // Convert from -1..1 to 0..1 range and dispatch
                       const newValue = (value + 1) / 2;
                       dispatch({ type: "SET_CROSSFADER", payload: newValue });
-                      setCrossfader(value); // Add this line
+                      setCrossfader(newValue);
                     }}
                     onDoubleClick={() => {
                       // Reset crossfader to center
                       dispatch({ type: "SET_CROSSFADER", payload: 0.5 });
-                      setCrossfader(0); // Add this line
+                      setCrossfader(0.5);
                     }}
                   />
                 </div>

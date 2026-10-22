@@ -18,15 +18,27 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				sans: ['Inter', 'Roboto', 'system-ui', '-apple-system', 'sans-serif'],
+			},
 			colors: {
+				/* iDJ Standard Professional Dark Palette */
+				idj: {
+					bg: '#101010',
+					surface: '#1b1b1b',
+					card: '#1b1b1b',
+					text: '#F8FAFC',
+					accent: '#3B82F6',
+					destructive: '#7F1D1D',
+				},
 				/* New Soft Color Palette */
 				soft: {
-					primary: 'hsl(var(--soft-primary))',      /* #6C6DBA */
+					primary: 'hsl(var(--soft-primary))',      /* #3B82F6 */
 					secondary: 'hsl(var(--soft-secondary))',  /* #6C6C91 */
-					accent: 'hsl(var(--soft-accent))',        /* #5E60E6 */
+					accent: 'hsl(var(--soft-accent))',        /* #3B82F6 */
 					muted: 'hsl(var(--soft-muted))',          /* #5B5B66 */
-					dark: 'hsl(var(--soft-dark))',            /* #2A2B3B */
-					darker: 'hsl(var(--soft-darker))',        /* #1C1D33 */
+					dark: 'hsl(var(--soft-dark))',            /* #1b1b1b */
+					darker: 'hsl(var(--soft-darker))',        /* #101010 */
 				},
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',

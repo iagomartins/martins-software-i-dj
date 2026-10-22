@@ -1,36 +1,38 @@
 import { useEffect, useCallback, useRef, useState } from 'react';
 import { useDJ, AnalogMapping } from '@/contexts/DJContext';
 import { useAudioEngine } from '@/hooks/useAudioEngine';
+import { findPresetForDevice } from '@/services/ControllerPresetService';
 
 // MIDI message types
 type MIDIMessageType = 'note' | 'cc' | 'program';
 
-// Helper to create MIDI identifier
-const createMIDIIdentifier = (type: MIDIMessageType, number: number, value?: number): string => {
+// Helper to create MIDI identifier (channel-aware)
+const createMIDIIdentifier = (type: MIDIMessageType, channel: number, number: number, value?: number): string => {
   if (type === 'note') {
-    return `midi:note:${number}`;
+    return `midi:note:${channel}:${number}`;
   } else if (type === 'cc') {
-    return `midi:cc:${number}${value !== undefined ? `:${value}` : ''}`;
+    return `midi:cc:${channel}:${number}${value !== undefined ? `:${value}` : ''}`;
   } else {
-    return `midi:program:${number}`;
+    return `midi:program:${channel}:${number}`;
   }
 };
 
 // Helper to parse MIDI identifier
-const parseMIDIIdentifier = (identifier: string): { type: MIDIMessageType; number: number; value?: number } | null => {
+const parseMIDIIdentifier = (identifier: string): { type: MIDIMessageType; channel: number; number: number; value?: number } | null => {
   const parts = identifier.split(':');
-  if (parts.length < 3 || parts[0] !== 'midi') return null;
-  
+  if (parts.length < 4 || parts[0] !== 'midi') return null;
+
   const type = parts[1] as MIDIMessageType;
-  const number = parseInt(parts[2], 10);
-  const value = parts[3] ? parseInt(parts[3], 10) : undefined;
-  
-  return { type, number, value };
+  const channel = parseInt(parts[2], 10);
+  const number = parseInt(parts[3], 10);
+  const value = parts[4] ? parseInt(parts[4], 10) : undefined;
+
+  return { type, channel, number, value };
 };
 
 export const useKeyMapping = () => {
   const { state, dispatch } = useDJ();
-  const { updateVolume, updatePitch, scratch, setCrossfader } = useAudioEngine();
+  const { updateVolume, updatePitch, updateEQ, updateFilter, scratch, setCrossfader, setMasterVolume, setHeadphoneVolume, setBrowsePosition } = useAudioEngine();
   const isCapturingRef = useRef(false);
   const midiAccessRef = useRef<WebMidi.MIDIAccess | null>(null);
   const midiInputsRef = useRef<Map<string, WebMidi.MIDIInput>>(new Map());
@@ -102,9 +104,29 @@ export const useKeyMapping = () => {
     triggerButtonRef.current = triggerButton;
   }, [triggerButton]);
 
+  // Apply a controller preset if no preset is currently selected and no custom mappings exist
+  const maybeApplyPreset = useCallback((deviceName: string) => {
+    if (state.selectedControllerPreset) return;
+    if (Object.keys(state.keyMappings).length > 0 || Object.keys(state.analogMappings).length > 0) {
+      // User has saved custom mappings; do not overwrite them.
+      return;
+    }
+    const preset = findPresetForDevice(deviceName);
+    if (!preset) return;
+
+    console.log(`🎛️ Applying controller preset: ${preset.name}`);
+    dispatch({ type: 'SELECT_CONTROLLER_PRESET', payload: preset.name });
+    Object.entries(preset.keyMappings).forEach(([key, buttonId]) => {
+      dispatch({ type: 'SET_KEY_MAPPING', payload: { key, buttonId } });
+    });
+    Object.entries(preset.analogMappings).forEach(([key, mapping]) => {
+      dispatch({ type: 'SET_ANALOG_MAPPING', payload: { key, mapping } });
+    });
+  }, [state.selectedControllerPreset, state.keyMappings, state.analogMappings, dispatch]);
+
   // Handle analog control from MIDI CC
-  const handleAnalogControl = useCallback((ccNumber: number, ccValue: number) => {
-    const identifier = createMIDIIdentifier('cc', ccNumber);
+  const handleAnalogControl = useCallback((channel: number, ccNumber: number, ccValue: number) => {
+    const identifier = createMIDIIdentifier('cc', channel, ccNumber);
     const mapping = analogMappingsRef.current[identifier];
     
     if (!mapping) {
@@ -127,18 +149,46 @@ export const useKeyMapping = () => {
       } else if (controlId === 'deck2-volume') {
         updateVolume(2, Math.max(0, Math.min(1, targetValue)));
       } else if (controlId === 'crossfader') {
-        // Crossfader is stored as 0-1 in state, but setCrossfader expects -1 to +1
-        const crossfaderValue = (targetValue - 0.5) * 2; // Convert 0-1 to -1 to +1
-        setCrossfader(Math.max(-1, Math.min(1, crossfaderValue)));
+        const normValue = Math.max(0, Math.min(1, targetValue));
+        setCrossfader(normValue);
         // Also update state (0-1 range)
-        dispatch({ type: 'SET_CROSSFADER', payload: targetValue });
+        dispatch({ type: 'SET_CROSSFADER', payload: normValue });
       } else if (controlId === 'deck1-pitch') {
         updatePitch(1, Math.max(-1, Math.min(1, targetValue)));
       } else if (controlId === 'deck2-pitch') {
         updatePitch(2, Math.max(-1, Math.min(1, targetValue)));
+      } else if (controlId === 'deck1-eq-high') {
+        updateEQ(1, { low: state.deck1.lowEQ, mid: state.deck1.midEQ, high: targetValue });
+        dispatch({ type: 'SET_DECK_1_STATE', payload: { highEQ: targetValue } });
+      } else if (controlId === 'deck1-eq-mid') {
+        updateEQ(1, { low: state.deck1.lowEQ, mid: targetValue, high: state.deck1.highEQ });
+        dispatch({ type: 'SET_DECK_1_STATE', payload: { midEQ: targetValue } });
+      } else if (controlId === 'deck1-eq-low') {
+        updateEQ(1, { low: targetValue, mid: state.deck1.midEQ, high: state.deck1.highEQ });
+        dispatch({ type: 'SET_DECK_1_STATE', payload: { lowEQ: targetValue } });
+      } else if (controlId === 'deck2-eq-high') {
+        updateEQ(2, { low: state.deck2.lowEQ, mid: state.deck2.midEQ, high: targetValue });
+        dispatch({ type: 'SET_DECK_2_STATE', payload: { highEQ: targetValue } });
+      } else if (controlId === 'deck2-eq-mid') {
+        updateEQ(2, { low: state.deck2.lowEQ, mid: targetValue, high: state.deck2.highEQ });
+        dispatch({ type: 'SET_DECK_2_STATE', payload: { midEQ: targetValue } });
+      } else if (controlId === 'deck2-eq-low') {
+        updateEQ(2, { low: targetValue, mid: state.deck2.midEQ, high: state.deck2.highEQ });
+        dispatch({ type: 'SET_DECK_2_STATE', payload: { lowEQ: targetValue } });
+      } else if (controlId === 'deck1-filter') {
+        updateFilter(1, targetValue);
+        dispatch({ type: 'SET_DECK_FILTER', payload: { deck: 1, value: targetValue } });
+      } else if (controlId === 'deck2-filter') {
+        updateFilter(2, targetValue);
+        dispatch({ type: 'SET_DECK_FILTER', payload: { deck: 2, value: targetValue } });
+      } else if (controlId === 'master-volume') {
+        setMasterVolume(Math.max(0, Math.min(1, targetValue)));
+      } else if (controlId === 'headphones-volume') {
+        setHeadphoneVolume(Math.max(0, Math.min(1, targetValue)));
+        dispatch({ type: 'SET_HEADPHONE_VOLUME', payload: targetValue });
       }
     } else if (type === 'relative') {
-      // Relative control for jog wheels
+      // Relative control for jog wheels and encoders
       const previousValue = previousCCValuesRef.current[identifier] ?? 64; // Default to center
       let delta = ccValue - previousValue;
       
@@ -155,12 +205,14 @@ export const useKeyMapping = () => {
         scratch(1, deltaRadians);
       } else if (controlId === 'deck2-jog') {
         scratch(2, deltaRadians);
+      } else if (controlId === 'browse-encoder') {
+        setBrowsePosition(delta);
       }
       
       // Update previous value
       previousCCValuesRef.current[identifier] = ccValue;
     }
-  }, [updateVolume, updatePitch, scratch, setCrossfader, dispatch]);
+  }, [updateVolume, updatePitch, updateEQ, updateFilter, scratch, setCrossfader, setMasterVolume, setHeadphoneVolume, setBrowsePosition, dispatch, state.deck1, state.deck2]);
 
   // Set up MIDI input handler
   const setupMIDIInput = useCallback(async (input: WebMidi.MIDIInput) => {
@@ -183,6 +235,7 @@ export const useKeyMapping = () => {
 
       const [status, data1, data2] = event.data;
       const command = status & 0xf0;
+      const channel = status & 0x0f;
 
       // Handle Note On (0x90) and Note Off (0x80)
       if (command === 0x90 || command === 0x80) {
@@ -191,7 +244,7 @@ export const useKeyMapping = () => {
         
         // Only trigger on note on with velocity > 0
         if (command === 0x90 && velocity > 0) {
-          const identifier = createMIDIIdentifier('note', noteNumber);
+          const identifier = createMIDIIdentifier('note', channel, noteNumber);
           const buttonId = keyMappingsRef.current[identifier];
           
           if (buttonId) {
@@ -205,12 +258,12 @@ export const useKeyMapping = () => {
         const ccValue = data2 || 0;
         
         // Check for analog mapping first
-        const identifier = createMIDIIdentifier('cc', ccNumber);
+        const identifier = createMIDIIdentifier('cc', channel, ccNumber);
         const analogMapping = analogMappingsRef.current[identifier];
         
         if (analogMapping) {
           // Handle as analog control
-          handleAnalogControl(ccNumber, ccValue);
+          handleAnalogControl(channel, ccNumber, ccValue);
         } else {
           // Check for button mapping (threshold-based)
           if (ccValue > 64) {
@@ -257,11 +310,14 @@ export const useKeyMapping = () => {
         for (const [id, input] of access.inputs) {
           midiInputsRef.current.set(id, input);
           await setupMIDIInput(input);
+          // Apply default controller preset if this is a known device and no preset is active
+          maybeApplyPreset(input.name);
         }
 
         // Listen for new MIDI devices
         access.addEventListener('statechange', async (e) => {
-          const port = e.port as WebMidi.MIDIInput;
+          const event = e as WebMidi.MIDIConnectionEvent;
+          const port = event.port as WebMidi.MIDIInput;
           console.log(`🔄 MIDI port state changed: ${port.name} (${port.type}) - ${port.state}`);
           
           if (port.type === 'input' && port.state === 'connected') {
@@ -366,6 +422,7 @@ export const useKeyMapping = () => {
     const handleMIDICapture = (event: WebMidi.MIDIMessageEvent) => {
       const [status, data1, data2] = event.data;
       const command = status & 0xf0;
+      const channel = status & 0x0f;
       
       let identifier: string | null = null;
 
@@ -376,7 +433,7 @@ export const useKeyMapping = () => {
         
         // Only capture on note on with velocity > 0
         if (command === 0x90 && velocity > 0) {
-          identifier = createMIDIIdentifier('note', noteNumber);
+          identifier = createMIDIIdentifier('note', channel, noteNumber);
         }
       }
       // Handle Control Change (0xB0)
@@ -386,7 +443,7 @@ export const useKeyMapping = () => {
         
         // Capture on button press (typically CC value > 64)
         if (ccValue > 64) {
-          identifier = createMIDIIdentifier('cc', ccNumber);
+          identifier = createMIDIIdentifier('cc', channel, ccNumber);
         }
       }
 
@@ -515,10 +572,13 @@ export const useKeyMapping = () => {
 
       // Listen for new MIDI devices
       access.addEventListener('statechange', async (e) => {
-        const port = e.port as WebMidi.MIDIInput;
+        const event = e as WebMidi.MIDIConnectionEvent;
+        const port = event.port as WebMidi.MIDIInput;
         if (port.type === 'input' && port.state === 'connected') {
           midiInputsRef.current.set(port.id, port);
           await setupMIDIInput(port);
+          // Apply default controller preset if this is a known device and no preset is active
+          maybeApplyPreset(port.name);
         } else if (port.type === 'input' && port.state === 'disconnected') {
           midiInputsRef.current.delete(port.id);
         }
@@ -547,8 +607,9 @@ export const useKeyMapping = () => {
       
       // Only capture CC messages for analog controls
       if (command === 0xb0) {
+        const channel = status & 0x0f;
         const ccNumber = data1;
-        const identifier = createMIDIIdentifier('cc', ccNumber);
+        const identifier = createMIDIIdentifier('cc', channel, ccNumber);
         
         dispatch({ 
           type: 'SET_ANALOG_MAPPING', 

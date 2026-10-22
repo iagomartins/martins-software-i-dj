@@ -53,7 +53,8 @@ ipcMain.handle("fs:writeFile", async (event, filePath, data) => {
 ipcMain.handle("fs:readFile", async (event, filePath) => {
   try {
     const data = await fs.readFile(filePath);
-    return { success: true, data: Array.from(data) }; // Convert to array for transfer
+    // Return typed Uint8Array directly to allow fast zero-copy IPC and avoid "Invalid array length" on large files
+    return { success: true, data: new Uint8Array(data.buffer, data.byteOffset, data.byteLength) };
   } catch (error) {
     console.error(`❌ Failed to read file: ${error.message}`);
     return { success: false, error: error.message };

@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 interface AudioWaveformProps {
   deckNumber: 1 | 2;
   audioFile: File | null;
+  audioBuffer?: AudioBuffer | null;
   isPlaying: boolean;
   currentTime: number;
   duration: number;
@@ -15,6 +16,7 @@ interface AudioWaveformProps {
 export const AudioWaveform = ({
   deckNumber,
   audioFile,
+  audioBuffer,
   isPlaying,
   currentTime,
   duration,
@@ -65,17 +67,25 @@ export const AudioWaveform = ({
           if (window.electronAPI?.fs) {
             const readResult = await window.electronAPI.fs.readFile(filePath);
             if (readResult.success && readResult.data) {
-              // Convert number array to ArrayBuffer
-              const arrayBuffer = new ArrayBuffer(readResult.data.length);
-              const view = new Uint8Array(arrayBuffer);
-              readResult.data.forEach((byte, index) => {
-                view[index] = byte;
-              });
+              const fileName = filePath.split(/[/\\]/).pop() || "audio";
+              let arrayBuffer: ArrayBuffer;
+              if (readResult.data instanceof Uint8Array) {
+                arrayBuffer = readResult.data.buffer.slice(
+                  readResult.data.byteOffset,
+                  readResult.data.byteOffset + readResult.data.byteLength
+                );
+              } else if (Array.isArray(readResult.data)) {
+                const uint8 = new Uint8Array(readResult.data);
+                arrayBuffer = uint8.buffer;
+              } else if ((readResult.data as any).buffer instanceof ArrayBuffer) {
+                arrayBuffer = (readResult.data as any).buffer;
+              } else {
+                arrayBuffer = readResult.data as unknown as ArrayBuffer;
+              }
 
               // Create File object from ArrayBuffer
-              const fileName = filePath.split(/[/\\]/).pop() || "audio";
               const file = new File([arrayBuffer], fileName, {
-                type: "audio/mpeg",
+                type: fileName.toLowerCase().endsWith(".wav") ? "audio/wav" : "audio/mpeg",
               });
               onLoad(file);
             }
@@ -92,19 +102,12 @@ export const AudioWaveform = ({
     }
   };
 
-  // Generate waveform data from audio file (for visualization only)
-  const generateWaveform = useCallback(
-    async (file: File) => {
-      setIsLoading(true);
+  // Extract waveform peaks directly from decoded AudioBuffer without re-decoding
+  const extractWaveformFromBuffer = useCallback(
+    (buffer: AudioBuffer) => {
       try {
-        const arrayBuffer = await file.arrayBuffer();
-        const audioContext = new (window.AudioContext ||
-          (window as unknown as { webkitAudioContext: typeof AudioContext })
-            .webkitAudioContext)();
-        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-
-        const channelData = audioBuffer.getChannelData(0);
-        const samples = 800; // Reduced for better performance
+        const channelData = buffer.getChannelData(0);
+        const samples = 800; // Optimal resolution for canvas rendering
         const blockSize = Math.floor(channelData.length / samples);
         const waveform: number[] = [];
 
@@ -123,15 +126,33 @@ export const AudioWaveform = ({
         }
 
         setWaveformData(waveform);
-        onDurationLoad(audioBuffer.duration);
+        onDurationLoad(buffer.duration);
+      } catch (err) {
+        console.error("Error extracting waveform from AudioBuffer:", err);
+      }
+    },
+    [onDurationLoad]
+  );
+
+  // Fallback: Generate waveform data from audio file if no buffer provided
+  const generateWaveform = useCallback(
+    async (file: File) => {
+      setIsLoading(true);
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const audioContext = new (window.AudioContext ||
+          (window as unknown as { webkitAudioContext: typeof AudioContext })
+            .webkitAudioContext)();
+        const decodedBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        extractWaveformFromBuffer(decodedBuffer);
         audioContext.close();
       } catch (error) {
-        console.error("Error generating waveform:", error);
+        console.error("Error generating waveform fallback:", error);
       } finally {
         setIsLoading(false);
       }
     },
-    [onDurationLoad]
+    [extractWaveformFromBuffer]
   );
 
   // Draw waveform
@@ -305,12 +326,17 @@ export const AudioWaveform = ({
     [duration, onTimeUpdate, onSeek]
   );
 
-  // Effects
+  // React to audioBuffer changes first (fast path, zero duplicate decodes)
   useEffect(() => {
-    if (audioFile) {
+    if (audioBuffer) {
+      extractWaveformFromBuffer(audioBuffer);
+    } else if (!audioFile) {
+      setWaveformData([]);
+    } else {
+      // Only fallback to file decoding if audioBuffer was not provided
       generateWaveform(audioFile);
     }
-  }, [audioFile, generateWaveform]);
+  }, [audioBuffer, audioFile, extractWaveformFromBuffer, generateWaveform]);
 
   // Continuous animation loop for smooth updates
   useEffect(() => {
@@ -368,7 +394,7 @@ export const AudioWaveform = ({
   };
 
   return (
-    <div className="bg-dj-panel rounded-sm p-2 space-y-2 relative">
+    <div className="bg-dj-panel rounded-lg p-2 space-y-2 relative">
       {/* File input */}
       <div className="flex items-center gap-2 relative z-10">
         <input
@@ -387,7 +413,7 @@ export const AudioWaveform = ({
             e.stopPropagation();
             handleLoadClick();
           }}
-          className="px-3 py-1 bg-[hsl(var(--soft-dark))] border border-[hsl(var(--glow-blue)/0.3)] text-white rounded-sm text-xs font-semibold uppercase tracking-wide cursor-pointer hover:border-[hsl(var(--glow-blue)/0.6)] hover:shadow-[0_0_10px_hsl(var(--glow-blue)/0.3)] transition-all relative z-10"
+          className="px-3 py-1 bg-[hsl(var(--soft-dark))] border border-[hsl(var(--glow-blue)/0.3)] text-white rounded-lg text-xs font-semibold uppercase tracking-wide cursor-pointer hover:border-[hsl(var(--glow-blue)/0.6)] hover:shadow-[0_0_10px_hsl(var(--glow-blue)/0.3)] transition-all relative z-10"
         >
           {audioFile ? "Change Track" : "Load Track"}
         </button>
@@ -400,7 +426,7 @@ export const AudioWaveform = ({
           onClick={handleCanvasClick}
           onMouseMove={handleCanvasMouseMove}
           onMouseLeave={handleCanvasMouseLeave}
-          className="w-full h-16 bg-dj-panel border border-border rounded-sm cursor-pointer"
+          className="w-full h-16 bg-dj-panel border border-border rounded-lg cursor-pointer"
           style={{ imageRendering: "pixelated" }}
         />
 

@@ -23,6 +23,7 @@ emcc audio_processor.cpp wasm_bindings.cpp \
     -s EXPORTED_FUNCTIONS='["_init_processors","_set_deck1_volume","_set_deck1_pitch","_set_deck1_eq","_set_deck1_effect","_set_deck2_volume","_set_deck2_pitch","_set_deck2_eq","_set_deck2_effect","_set_crossfader","_set_master_volume","_process_deck_audio","_malloc","_free"]' \
     -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","UTF8ToString","stringToUTF8"]' \
     -s ALLOW_MEMORY_GROWTH=1 \
+    -s MAXIMUM_MEMORY=2GB \
     -s MODULARIZE=1 \
     -s EXPORT_NAME="createAudioProcessorModule" \
     -s ENVIRONMENT='web,worker' \

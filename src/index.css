@@ -23,73 +23,80 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* New Soft Color Palette - Dark Blue/Purple Theme */
-    --soft-primary: 217 91% 60%;      /* Bright Blue for glows */
-    --soft-secondary: 240 20% 55%;    /* #6C6C91 */
-    --soft-accent: 217 100% 75%;      /* #85b5f9 - Light Blue */
-    --soft-muted: 240 15% 40%;        /* Muted blue-grey */
-    --soft-dark: 240 30% 18%;         /* Dark blue-grey panels */
-    --soft-darker: 240 35% 12%;       /* Darker background */
-    --soft-light: 0 0% 95%;           /* #f2f2f2 - White text */
-    --glow-blue: 217 91% 60%;         /* Glowing blue accent */
+    /* iDJ Professional Dark Design System (Design Tokens) */
+    --idj-bg: 0 0% 6.3%;            /* #101010 - Background Principal */
+    --idj-surface: 0 0% 10.6%;       /* #1b1b1b - Superfícies/Decks (Cards) */
+    --idj-surface-card: 0 0% 13%;    /* #212121 - Subcards/Inputs/Controls */
+    --idj-text: 210 40% 98%;         /* #F8FAFC - Texto Principal (Branco gelo) */
+    --idj-accent: 217 91% 60%;       /* #3B82F6 - Ação / Azul Vibrante */
+    --idj-destructive: 0 63% 31%;    /* #7F1D1D - Ações Destrutivas / Erros */
+    --idj-destructive-foreground: 210 40% 98%;
+    --idj-border: 0 0% 18%;          /* #2e2e2e - Bordas sutis */
+    --idj-muted: 215 16% 55%;        /* #8B949E - Texto atenuado */
 
-    /* DJ Interface Base Colors - Updated with new palette */
-    --background: var(--soft-darker);
-    --foreground: 0 0% 95%;
+    /* Standard Design System Mappings */
+    --background: var(--idj-bg);
+    --foreground: var(--idj-text);
+    --card: var(--idj-surface);
+    --card-foreground: var(--idj-text);
+    --popover: var(--idj-surface);
+    --popover-foreground: var(--idj-text);
+    --primary: var(--idj-accent);
+    --primary-foreground: 210 40% 98%;
+    --secondary: var(--idj-surface-card);
+    --secondary-foreground: var(--idj-text);
+    --muted: var(--idj-surface-card);
+    --muted-foreground: var(--idj-muted);
+    --accent: var(--idj-accent);
+    --accent-foreground: 210 40% 98%;
+    --destructive: var(--idj-destructive);
+    --destructive-foreground: var(--idj-destructive-foreground);
+    --border: var(--idj-border);
+    --input: var(--idj-surface-card);
+    --ring: var(--idj-accent);
+    --radius: 0.5rem; /* 8px standardized radius */
 
-    /* DJ Console Colors - Updated with new palette */
-    --dj-console: var(--soft-dark);
-    --dj-console-foreground: 0 0% 90%;
-    --dj-panel: var(--soft-darker);
-    --dj-panel-foreground: 0 0% 85%;
+    /* DJ Specific Tokens */
+    --dj-console: var(--idj-surface);
+    --dj-console-foreground: var(--idj-text);
+    --dj-panel: var(--idj-bg);
+    --dj-panel-foreground: var(--idj-text);
 
-    /* Neon Accent Colors - Updated with new palette */
-    --neon-cyan: var(--soft-primary);
-    --neon-magenta: var(--soft-accent);
-    --neon-yellow: var(--soft-secondary);
-    --neon-green: var(--soft-primary);
-    --neon-dark: var(--soft-dark);
-    --neon-light: var(--soft-secondary);
+    /* Knobs & Controls */
+    --knob-chrome: var(--idj-accent);
+    --knob-shadow: 0 0% 14%;
+    --fader-track: 0 0% 12%;
+    --fader-handle: var(--idj-accent);
 
-    /* Control Colors - Updated with new palette */
-    --knob-chrome: var(--soft-secondary);
-    --knob-shadow: var(--soft-muted);
-    --fader-track: var(--soft-dark);
-    --fader-handle: var(--soft-primary);
+    /* Button States */
+    --button-off: var(--idj-surface-card);
+    --button-on: var(--idj-accent);
+    --button-cue: 38 92% 50%;
+    --button-play: 142 71% 45%;
+    --button-sync: var(--idj-accent);
 
-    /* Button States - Updated with new palette */
-    --button-off: var(--soft-darker);
-    --button-on: var(--soft-light);
-    --button-cue: var(--soft-accent);
-    --button-play: var(--soft-secondary);
-    --button-sync: var(--soft-primary);
+    /* Glow Effects */
+    --glow-blue: var(--idj-accent);
+    --glow-cyan: 0 0 20px hsl(var(--idj-accent) / 0.8), 0 0 40px hsl(var(--idj-accent) / 0.4);
+    --glow-magenta: 0 0 20px hsl(38 92% 50% / 0.8), 0 0 40px hsl(38 92% 50% / 0.4);
+    --glow-yellow: 0 0 20px hsl(var(--idj-accent) / 0.8), 0 0 40px hsl(var(--idj-accent) / 0.4);
+    --glow-green: 0 0 20px hsl(142 71% 45% / 0.8), 0 0 40px hsl(142 71% 45% / 0.4);
+    --glow-blue-ring: 0 0 15px hsl(var(--idj-accent) / 0.6), inset 0 0 10px hsl(var(--idj-accent) / 0.3);
 
-    /* Glow Effects - Bright blue glows */
-    --glow-cyan: 0 0 20px hsl(var(--glow-blue) / 0.8), 0 0 40px hsl(var(--glow-blue) / 0.4);
-    --glow-magenta: 0 0 20px hsl(var(--soft-accent) / 0.8), 0 0 40px hsl(var(--soft-accent) / 0.4);
-    --glow-yellow: 0 0 20px hsl(var(--soft-secondary) / 0.8), 0 0 40px hsl(var(--soft-secondary) / 0.4);
-    --glow-green: 0 0 20px hsl(var(--soft-primary) / 0.8), 0 0 40px hsl(var(--soft-primary) / 0.4);
-    --glow-blue-ring: 0 0 15px hsl(var(--glow-blue) / 0.6), inset 0 0 10px hsl(var(--glow-blue) / 0.3);
-
-    /* Legacy mappings for compatibility */
-    --card: var(--dj-panel);
-    --card-foreground: var(--dj-panel-foreground);
-    --popover: var(--dj-console);
-    --popover-foreground: var(--dj-console-foreground);
-    --primary: var(--neon-cyan);
-    --primary-foreground: var(--background);
-    --secondary: var(--button-off);
-    --secondary-foreground: var(--foreground);
-    --muted: var(--fader-track);
-    --muted-foreground: 0 0% 60%;
-    --accent: var(--neon-magenta);
-    --accent-foreground: var(--background);
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
-    --border: var(--soft-muted);
-    --input: var(--fader-track);
-    --ring: var(--neon-cyan);
-    --radius: 0.5rem;
+    /* Compatibility Mappings */
+    --neon-cyan: var(--idj-accent);
+    --neon-magenta: 280 84% 65%;
+    --neon-yellow: 38 92% 50%;
+    --neon-green: 142 71% 45%;
+    --neon-dark: var(--idj-bg);
+    --neon-light: var(--idj-text);
+    --soft-primary: var(--idj-accent);
+    --soft-secondary: 215 16% 55%;
+    --soft-accent: var(--idj-accent);
+    --soft-muted: var(--idj-border);
+    --soft-dark: var(--idj-surface);
+    --soft-darker: var(--idj-bg);
+    --soft-light: var(--idj-text);
   }
 }
 
@@ -148,12 +155,12 @@ All colors MUST be HSL.
 
   /* Fader Styles */
   .dj-fader {
-    @apply relative w-6 h-24 bg-dj-panel border border-border rounded-sm cursor-pointer;
+    @apply relative w-6 h-24 bg-dj-panel border border-border rounded-lg cursor-pointer;
     padding: 1rem 0;
   }
 
   .dj-fader-handle {
-    @apply absolute left-1/2 transform -translate-x-1/2 w-8 h-3 rounded-sm transition-all duration-150;
+    @apply absolute left-1/2 transform -translate-x-1/2 w-8 h-3 rounded-lg transition-all duration-150;
     background: hsl(var(--soft-dark));
     border: 2px solid hsl(var(--glow-blue) / 0.6);
     box-shadow: var(--glow-cyan);
@@ -161,18 +168,18 @@ All colors MUST be HSL.
 
   /* Horizontal Fader Styles */
   .dj-fader-horizontal {
-    @apply relative w-32 h-6 bg-dj-panel border border-border rounded-sm cursor-pointer;
+    @apply relative w-32 h-6 bg-dj-panel border border-border rounded-lg cursor-pointer;
   }
 
   .dj-fader-handle-horizontal {
-    @apply absolute top-1/2 transform -translate-y-1/2 w-3 h-8 rounded-sm transition-all duration-150;
+    @apply absolute top-1/2 transform -translate-y-1/2 w-3 h-8 rounded-lg transition-all duration-150;
     background: hsl(var(--soft-dark));
     border: 2px solid hsl(var(--glow-blue) / 0.6);
     box-shadow: var(--glow-cyan);
   }
 
   .dj-button {
-    @apply px-4 py-0 rounded-sm font-semibold text-sm uppercase tracking-wide transition-all duration-150 border-2 select-none cursor-pointer;
+    @apply px-4 py-0 rounded-lg font-semibold text-sm uppercase tracking-wide transition-all duration-150 border-2 select-none cursor-pointer;
     background: linear-gradient(145deg, hsl(var(--button-off)), hsl(var(--button-off)) 60%);
     border-color: hsl(var(--glow-blue) / 0.3);
   }
@@ -222,7 +229,7 @@ All colors MUST be HSL.
   }
 
   .pitch-fader {
-    @apply relative w-6 h-48 rounded-sm cursor-pointer select-none;
+    @apply relative w-6 h-48 rounded-lg cursor-pointer select-none;
     background: linear-gradient(to bottom, 
       hsl(var(--neon-light)) 0%, 
       hsl(var(--fader-track)) 48%,
@@ -233,7 +240,7 @@ All colors MUST be HSL.
   }
 
   .pitch-fader-handle {
-    @apply absolute left-0 w-full h-3 rounded-sm transition-all duration-75;
+    @apply absolute left-0 w-full h-3 rounded-lg transition-all duration-75;
     background: hsl(var(--soft-dark));
     border: 2px solid hsl(var(--glow-blue) / 0.6);
     box-shadow: var(--glow-cyan);
@@ -241,11 +248,11 @@ All colors MUST be HSL.
 
   /* Waveform Panel Styles */
   .waveform-panel {
-    @apply bg-dj-panel rounded-sm p-4 space-y-3;
+    @apply bg-dj-panel rounded-lg p-4 space-y-3;
   }
 
   .waveform-canvas {
-    @apply w-full h-20 rounded-sm cursor-pointer;
+    @apply w-full h-20 rounded-lg cursor-pointer;
     background: hsl(var(--soft-darker));
     border: 1px solid hsl(var(--glow-blue) / 0.2);
     transition: border-color 0.2s ease;
@@ -257,7 +264,7 @@ All colors MUST be HSL.
   }
 
   .waveform-load-button {
-    @apply px-3 py-1 bg-neon-cyan/20 text-neon-cyan border border-neon-cyan/30 rounded-sm text-xs font-medium cursor-pointer hover:bg-neon-cyan/30 transition-colors;
+    @apply px-3 py-1 bg-neon-cyan/20 text-neon-cyan border border-neon-cyan/30 rounded-lg text-xs font-medium cursor-pointer hover:bg-neon-cyan/30 transition-colors;
   }
 
   .waveform-progress-bar {
@@ -313,5 +320,6 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
 }

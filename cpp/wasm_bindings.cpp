@@ -1,6 +1,7 @@
 #include "audio_processor.h"
 #include <emscripten.h>
 #include <memory>
+#include <cmath>
 
 // Global processor instances for two decks
 static std::unique_ptr<AudioProcessor> deck1Processor;
@@ -111,8 +112,9 @@ extern "C" {
                 numSamples
             );
             
-            // Apply crossfader to deck 1
-            float deck1Gain = (crossfaderValue <= 0.0f) ? 1.0f : (1.0f - crossfaderValue);
+            // Apply crossfader to deck 1 (Constant Power: cos(value * 0.5 * PI))
+            float angle = crossfaderValue * 0.5f * 3.14159265358979323846f;
+            float deck1Gain = std::cos(angle);
             for (int i = 0; i < numSamples; i++) {
                 deck1OutputLeft[i] *= deck1Gain;
                 deck1OutputRight[i] *= deck1Gain;
@@ -133,8 +135,9 @@ extern "C" {
                 numSamples
             );
             
-            // Apply crossfader to deck 2
-            float deck2Gain = (crossfaderValue >= 0.0f) ? 1.0f : (1.0f + crossfaderValue);
+            // Apply crossfader to deck 2 (Constant Power: sin(value * 0.5 * PI))
+            float angle = crossfaderValue * 0.5f * 3.14159265358979323846f;
+            float deck2Gain = std::sin(angle);
             for (int i = 0; i < numSamples; i++) {
                 deck2OutputLeft[i] *= deck2Gain;
                 deck2OutputRight[i] *= deck2Gain;
