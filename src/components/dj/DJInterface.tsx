@@ -36,9 +36,9 @@ export function DJInterface() {
     baseBpm: 120,
     pitch: 0,
     volume: 1,
-    lowEQ: 0,
-    midEQ: 0,
-    highEQ: 0,
+    lowEQ: 0.5,
+    midEQ: 0.5,
+    highEQ: 0.5,
     effects: { flanger: false, filter: false, echo: false, reverb: false },
   };
 
@@ -51,9 +51,9 @@ export function DJInterface() {
     baseBpm: 120,
     pitch: 0,
     volume: 1,
-    lowEQ: 0,
-    midEQ: 0,
-    highEQ: 0,
+    lowEQ: 0.5,
+    midEQ: 0.5,
+    highEQ: 0.5,
     effects: { flanger: false, filter: false, echo: false, reverb: false },
   };
 

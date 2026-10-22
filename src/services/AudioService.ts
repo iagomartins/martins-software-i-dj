@@ -4,11 +4,19 @@
  * Replaces the Electron IPC audio bridge with native Web Audio API
  */
 
-type DeckId = 1 | 2;
+export type DeckId = 1 | 2;
+export type EQBand = 'low' | 'mid' | 'high';
 
-interface DeckState {
+export interface DeckEQFilters {
+  low: BiquadFilterNode;
+  mid: BiquadFilterNode;
+  high: BiquadFilterNode;
+}
+
+export interface DeckState {
   sourceNode: AudioBufferSourceNode | null;
   gainNode: GainNode | null;
+  eqFilters: DeckEQFilters | null;
   audioBuffer: AudioBuffer | null;
   isPlaying: boolean;
   startTime: number;
@@ -51,6 +59,7 @@ class AudioService {
     this.decks.set(1, {
       sourceNode: null,
       gainNode: null,
+      eqFilters: null,
       audioBuffer: null,
       isPlaying: false,
       startTime: 0,
@@ -65,6 +74,7 @@ class AudioService {
     this.decks.set(2, {
       sourceNode: null,
       gainNode: null,
+      eqFilters: null,
       audioBuffer: null,
       isPlaying: false,
       startTime: 0,
@@ -187,6 +197,13 @@ class AudioService {
       this.headphoneGain = this.audioContext.createGain();
       this.headphoneGain.gain.value = 0.7;
 
+      // Create MediaStream destinations for device selection
+      this.masterDestination = this.audioContext.createMediaStreamDestination();
+      this.headphoneDestination =
+        this.audioContext.createMediaStreamDestination();
+      this.masterStream = this.masterDestination.stream;
+      this.headphoneStream = this.headphoneDestination.stream;
+
       // Create crossfader gain nodes for each deck (Constant Power Center ~0.7071)
       const initialConstantPowerGain = Math.SQRT1_2; // cos(0.5 * 0.5 * PI) = sin(0.5 * 0.5 * PI) = 1/sqrt(2)
       const deck1CrossfaderGain = this.audioContext.createGain();
@@ -200,12 +217,21 @@ class AudioService {
         `🎚️ Crossfader gain nodes created for both decks (initialized to ${initialConstantPowerGain.toFixed(4)} = Constant Power Center)`
       );
 
-      // Create MediaStream destinations for device selection
-      this.masterDestination = this.audioContext.createMediaStreamDestination();
-      this.headphoneDestination =
-        this.audioContext.createMediaStreamDestination();
-      this.masterStream = this.masterDestination.stream;
-      this.headphoneStream = this.headphoneDestination.stream;
+      // Connect deck crossfader gains to audio output destinations
+      deck1CrossfaderGain.connect(this.audioContext.destination);
+      deck1CrossfaderGain.connect(this.masterDestination);
+      deck2CrossfaderGain.connect(this.audioContext.destination);
+      deck2CrossfaderGain.connect(this.masterDestination);
+      console.log(
+        "🔗 Connected: deckCrossfaderGains -> destination & masterDestination"
+      );
+
+      // Initialize 3-band Isolator EQ chains for both decks
+      this.setupDeckAudioGraph(1);
+      this.setupDeckAudioGraph(2);
+      console.log(
+        "🎛️ 3-band Isolator EQ chains (Low 250Hz, Mid 1000Hz, High 4000Hz) initialized for both decks"
+      );
 
       // Connect audio graph: worklet -> masterGain -> crossfaderGain -> destinations
       this.workletNode.connect(this.masterGain);
@@ -494,37 +520,36 @@ class AudioService {
       )}s, loopEnd=${sourceNode.loopEnd.toFixed(2)}s, loop=${sourceNode.loop}`
     );
 
-    // Create gain node for this deck (for volume control)
-    const gainNode = this.audioContext.createGain();
-    gainNode.gain.value = deck?.volume ?? 1.0;
-    console.log(
-      `🔊 Deck ${deckId} gain node created with volume: ${gainNode.gain.value}`
-    );
-
-    // Get crossfader gain node for this deck
-    const crossfaderGain = this.deckCrossfaderGains.get(deckId);
-    if (!crossfaderGain) {
-      console.error(`❌ No crossfader gain node for deck ${deckId}`);
-      return;
+    // Ensure 3-band Isolator EQ graph and channel gain node are ready
+    if (!deck.eqFilters || !deck.gainNode) {
+      this.setupDeckAudioGraph(deckId);
     }
 
-    // Connect: source -> deckGain -> deckCrossfaderGain -> destination
-    sourceNode.connect(gainNode);
-    gainNode.connect(crossfaderGain);
-    crossfaderGain.connect(this.audioContext.destination);
+    // Connect: source -> LowFilter (which feeds Mid -> High -> GainNode -> CrossfaderGain -> Destinations)
+    sourceNode.connect(deck.eqFilters!.low);
     console.log(
-      `🔗 Connected: source -> gain -> crossfaderGain -> destination for deck ${deckId}`
-    );
-    console.log(
-      `🎚️ Deck ${deckId} crossfader gain: ${crossfaderGain.gain.value}`
+      `🔗 Connected: source -> LowFilter -> MidFilter -> HighFilter -> GainNode for deck ${deckId}`
     );
 
-    // Also connect to worklet for future processing (when worklet is working)
-    const workletInputIndex = deckId - 1; // deckId 1 -> input 0, deckId 2 -> input 1
-    gainNode.connect(this.workletNode, 0, workletInputIndex);
-    console.log(
-      `🔗 Also connected gainNode -> workletNode input ${workletInputIndex} for deck ${deckId}`
-    );
+    // Defensively ensure crossfaderGain is connected to destination and masterDestination
+    const crossfaderGain = this.deckCrossfaderGains.get(deckId);
+    if (crossfaderGain) {
+      try {
+        crossfaderGain.connect(this.audioContext.destination);
+      } catch (e) {
+        // already connected
+      }
+      if (this.masterDestination) {
+        try {
+          crossfaderGain.connect(this.masterDestination);
+        } catch (e) {
+          // already connected
+        }
+      }
+      console.log(
+        `🔗 Deck ${deckId} crossfaderGain connected to destination and masterDestination`
+      );
+    }
 
 
     // Also connect to headphone gain for pre-fader monitoring (if routing enabled)
@@ -576,12 +601,10 @@ class AudioService {
       `📊 Source node buffer: ${sourceNode.buffer?.duration.toFixed(2)}s`
     );
 
-    // CRITICAL: Store source node and gain node in deck state BEFORE starting
-    // This prevents garbage collection and ensures proper lifecycle management
+    // CRITICAL: Store source node in deck state BEFORE starting
     deck.sourceNode = sourceNode;
-    deck.gainNode = gainNode;
     console.log(
-      `💾 Stored source node and gain node in deck ${deckId} state before start()`
+      `💾 Stored source node in deck ${deckId} state before start()`
     );
 
     // Start playback
@@ -599,7 +622,6 @@ class AudioService {
       console.error("❌ Failed to start source node:", error);
       // Clean up on error
       deck.sourceNode = null;
-      deck.gainNode = null;
       throw error;
     }
 
@@ -717,18 +739,6 @@ class AudioService {
       );
     }
 
-    if (deck.gainNode) {
-      try {
-        deck.gainNode.disconnect();
-        console.log(`⏸️ Disconnected gain node for deck ${deckId}`);
-      } catch (error) {
-        console.warn(
-          `⚠️ Error disconnecting gain node for deck ${deckId}:`,
-          error
-        );
-      }
-    }
-
     // Set deck inactive in worklet
     this.workletNode?.port.postMessage({
       type: "SET_DECK_ACTIVE",
@@ -738,7 +748,6 @@ class AudioService {
 
     // Update state
     deck.sourceNode = null;
-    deck.gainNode = null;
     deck.isPlaying = false;
     deck.startTime = 0;
 
@@ -969,15 +978,167 @@ class AudioService {
     }
   }
 
-  setEQ(deckId: DeckId, band: number, value: number): void {
-    if (!this.workletNode) return;
+  public normalizeDeckId(deckId: string | number): DeckId {
+    if (typeof deckId === "number") {
+      return deckId === 2 ? 2 : 1;
+    }
+    const clean = String(deckId).toLowerCase().trim();
+    if (
+      clean === "deck2" ||
+      clean === "2" ||
+      clean === "deck_b" ||
+      clean === "b"
+    ) {
+      return 2;
+    }
+    return 1;
+  }
 
-    this.workletNode.port.postMessage({
-      type: "SET_DECK_EQ",
-      deck: deckId,
-      band,
-      value,
-    });
+  public setupDeckAudioGraph(deckId: DeckId): void {
+    if (!this.audioContext) return;
+    const deck = this.decks.get(deckId);
+    if (!deck) return;
+
+    // Create 3-band Isolator EQ BiquadFilterNodes if not yet created
+    if (!deck.eqFilters) {
+      // Low Shelf filter: 250 Hz
+      const lowFilter = this.audioContext.createBiquadFilter();
+      lowFilter.type = "lowshelf";
+      lowFilter.frequency.value = 250;
+      lowFilter.gain.value = 0; // 0 dB flat
+
+      // Mid Peaking filter: 1000 Hz, Q = 1.0
+      const midFilter = this.audioContext.createBiquadFilter();
+      midFilter.type = "peaking";
+      midFilter.frequency.value = 1000;
+      midFilter.Q.value = 1.0;
+      midFilter.gain.value = 0; // 0 dB flat
+
+      // High Shelf filter: 4000 Hz
+      const highFilter = this.audioContext.createBiquadFilter();
+      highFilter.type = "highshelf";
+      highFilter.frequency.value = 4000;
+      highFilter.gain.value = 0; // 0 dB flat
+
+      // Chain: Low -> Mid -> High
+      lowFilter.connect(midFilter);
+      midFilter.connect(highFilter);
+
+      deck.eqFilters = {
+        low: lowFilter,
+        mid: midFilter,
+        high: highFilter,
+      };
+    }
+
+    // Create or reuse persistent deck gain node
+    if (!deck.gainNode) {
+      const gainNode = this.audioContext.createGain();
+      gainNode.gain.value = deck.volume ?? 1.0;
+      deck.gainNode = gainNode;
+    }
+
+    // Connect HighFilter -> GainNode
+    deck.eqFilters.high.connect(deck.gainNode);
+
+    // Connect GainNode -> CrossfaderGain
+    const crossfaderGain = this.deckCrossfaderGains.get(deckId);
+    if (crossfaderGain) {
+      deck.gainNode.connect(crossfaderGain);
+      try {
+        crossfaderGain.connect(this.audioContext.destination);
+      } catch (e) {
+        // already connected
+      }
+      if (this.masterDestination) {
+        try {
+          crossfaderGain.connect(this.masterDestination);
+        } catch (e) {
+          // already connected
+        }
+      }
+    }
+
+    // Connect GainNode -> WorkletNode (if initialized)
+    if (this.workletNode) {
+      const workletInputIndex = deckId - 1;
+      deck.gainNode.connect(this.workletNode, 0, workletInputIndex);
+    }
+  }
+
+  getDeckEQFilters(deckId: string | number): DeckEQFilters | null {
+    const id = this.normalizeDeckId(deckId);
+    return this.decks.get(id)?.eqFilters ?? null;
+  }
+
+  setDeckEQ(
+    deckId: string | number,
+    band: EQBand,
+    value: number
+  ): void {
+    const id = this.normalizeDeckId(deckId);
+    const deck = this.decks.get(id);
+    if (!deck?.eqFilters) return;
+
+    // Normalizing incoming value:
+    // UI value comes in as 0.0 to 1.0 (0.5 flat / center).
+    // Defensively handle bipolar [-1.0, 1.0] if negative:
+    const normVal =
+      value < 0
+        ? Math.max(0, Math.min(1, (value + 1) * 0.5))
+        : Math.max(0, Math.min(1, value));
+
+    // Map [0.0, 1.0] to decibels (dB):
+    // 0.0 = -40dB (kill)
+    // 0.5 = 0dB (flat)
+    // 1.0 = +6dB (boost)
+    let targetDb: number;
+    if (normVal <= 0.5) {
+      targetDb = -40 + (normVal / 0.5) * 40; // (normVal - 0.5) * 80
+    } else {
+      targetDb = ((normVal - 0.5) / 0.5) * 6; // (normVal - 0.5) * 12
+    }
+
+    const filter = deck.eqFilters[band];
+    if (!filter) return;
+
+    const currentTime = this.audioContext?.currentTime ?? 0;
+    const timeConstant = 0.015; // 15ms exponential transition to eliminate clicks/zipper noise
+
+    if (this.audioContext && this.audioContext.state === "running") {
+      filter.gain.setTargetAtTime(targetDb, currentTime, timeConstant);
+    } else {
+      filter.gain.value = targetDb;
+    }
+
+    // Forward to AudioWorklet (for Wasm DSP)
+    const bandIndex = band === "low" ? 0 : band === "mid" ? 1 : 2;
+    if (this.workletNode) {
+      this.workletNode.port.postMessage({
+        type: "SET_DECK_EQ",
+        deck: id,
+        band: bandIndex,
+        value: normVal,
+      });
+    }
+  }
+
+  setEQ(
+    deckId: DeckId | string,
+    band: number | EQBand,
+    value: number
+  ): void {
+    let bandName: EQBand;
+    if (typeof band === "string") {
+      bandName = band;
+    } else if (band === 0) {
+      bandName = "low";
+    } else if (band === 1) {
+      bandName = "mid";
+    } else {
+      bandName = "high";
+    }
+    this.setDeckEQ(deckId, bandName, value);
   }
 
   setEffect(deckId: DeckId, effect: number, enabled: boolean): void {

@@ -54,9 +54,9 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
   const deckData = state[deckKey];
 
   // Control values (initialized from global state)
-  const [lowEQ, setLowEQ] = useState(deckData?.lowEQ ?? 0);
-  const [midEQ, setMidEQ] = useState(deckData?.midEQ ?? 0);
-  const [highEQ, setHighEQ] = useState(deckData?.highEQ ?? 0);
+  const [lowEQ, setLowEQ] = useState(deckData?.lowEQ ?? 0.5);
+  const [midEQ, setMidEQ] = useState(deckData?.midEQ ?? 0.5);
+  const [highEQ, setHighEQ] = useState(deckData?.highEQ ?? 0.5);
   const [volume, setVolume] = useState(deckData?.volume ?? 0.8);
   const [pitch, setPitch] = useState(deckData?.pitch ?? 0);
 
@@ -156,9 +156,9 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
   };
 
   // Reset functions for double-click
-  const resetLowEQ = () => handleLowEQChange(0);
-  const resetMidEQ = () => handleMidEQChange(0);
-  const resetHighEQ = () => handleHighEQChange(0);
+  const resetLowEQ = () => handleLowEQChange(0.5);
+  const resetMidEQ = () => handleMidEQChange(0.5);
+  const resetHighEQ = () => handleHighEQChange(0.5);
   const resetVolume = () => handleVolumeChange(1.0); // 100%
   const resetPitch = () => handlePitchChange(0); // 0%
 
@@ -446,6 +446,9 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
                 label="HIGH"
                 value={highEQ}
                 onChange={handleHighEQChange}
+                min={0}
+                max={1}
+                step={0.01}
                 color="magenta"
                 onDoubleClick={resetHighEQ}
               />
@@ -453,6 +456,9 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
                 label="MID"
                 value={midEQ}
                 onChange={handleMidEQChange}
+                min={0}
+                max={1}
+                step={0.01}
                 color="yellow"
                 onDoubleClick={resetMidEQ}
               />
@@ -460,6 +466,9 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
                 label="LOW"
                 value={lowEQ}
                 onChange={handleLowEQChange}
+                min={0}
+                max={1}
+                step={0.01}
                 color="green"
                 onDoubleClick={resetLowEQ}
               />

@@ -135,3 +135,102 @@ describe('AudioService - Equal Power Crossfader', () => {
     expect(callRightB).toBeCloseTo(1.0, 4);
   });
 });
+
+describe('AudioService - 3-Band DJ Isolator EQ', () => {
+  let service: AudioService;
+
+  beforeEach(async () => {
+    service = AudioService.getInstance();
+    await service.initialize();
+  });
+
+  it('initializes 3-band BiquadFilter EQ chain with exact DJ filter specifications for each deck', () => {
+    const deck1Filters = service.getDeckEQFilters(1);
+    const deck2Filters = service.getDeckEQFilters(2);
+
+    expect(deck1Filters).toBeDefined();
+    expect(deck2Filters).toBeDefined();
+
+    // Deck 1 filter specs
+    expect(deck1Filters?.low.type).toBe('lowshelf');
+    expect(deck1Filters?.low.frequency.value).toBe(250);
+
+    expect(deck1Filters?.mid.type).toBe('peaking');
+    expect(deck1Filters?.mid.frequency.value).toBe(1000);
+    expect(deck1Filters?.mid.Q.value).toBe(1.0);
+
+    expect(deck1Filters?.high.type).toBe('highshelf');
+    expect(deck1Filters?.high.frequency.value).toBe(4000);
+
+    // Initial state must be flat (0 dB)
+    expect(deck1Filters?.low.gain.value).toBe(0);
+    expect(deck1Filters?.mid.gain.value).toBe(0);
+    expect(deck1Filters?.high.gain.value).toBe(0);
+  });
+
+  it('maps UI value [0.0, 1.0] to dB with 0.0=-40dB (kill), 0.5=0dB (flat), and 1.0=+6dB (boost)', () => {
+    const deck1Filters = service.getDeckEQFilters(1);
+
+    // Low Kill: value = 0.0 -> -40 dB
+    service.setDeckEQ('1', 'low', 0.0);
+    const lowCall = deck1Filters?.low.gain.setTargetAtTime.mock.calls.at(-1);
+    expect(lowCall?.[0]).toBeCloseTo(-40, 1);
+
+    // Mid Flat: value = 0.5 -> 0 dB
+    service.setDeckEQ(1, 'mid', 0.5);
+    const midCall = deck1Filters?.mid.gain.setTargetAtTime.mock.calls.at(-1);
+    expect(midCall?.[0]).toBeCloseTo(0, 1);
+
+    // High Boost: value = 1.0 -> +6 dB
+    service.setDeckEQ('deck1', 'high', 1.0);
+    const highCall = deck1Filters?.high.gain.setTargetAtTime.mock.calls.at(-1);
+    expect(highCall?.[0]).toBeCloseTo(6, 1);
+
+    // Intermediate position: 0.25 -> -20 dB
+    service.setDeckEQ('1', 'low', 0.25);
+    const lowMidCall = deck1Filters?.low.gain.setTargetAtTime.mock.calls.at(-1);
+    expect(lowMidCall?.[0]).toBeCloseTo(-20, 1);
+  });
+
+  it('connects audio graph in sequence: Source -> Low -> Mid -> High -> GainNode on playback', async () => {
+    const ctx = (service as any).audioContext;
+    ctx.decodeAudioData = vi.fn().mockResolvedValue(
+      new MockAudioBuffer({ duration: 120, sampleRate: 44100, numberOfChannels: 2 })
+    );
+
+    const mockArrayBuffer = new Uint8Array([0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0]).buffer;
+    const mockBlob = new Blob([mockArrayBuffer], { type: 'audio/wav' });
+    vi.spyOn(mockBlob, 'arrayBuffer').mockResolvedValue(mockArrayBuffer);
+    await service.loadTrack(1, mockBlob);
+
+    await service.play(1);
+
+    const deckState = service.getDeckState(1);
+    const filters = service.getDeckEQFilters(1);
+
+    expect(deckState?.sourceNode).toBeDefined();
+    expect(filters).toBeDefined();
+
+    // Source must connect to LowFilter on play
+    expect(deckState?.sourceNode?.connect).toHaveBeenCalledWith(filters?.low);
+
+    // Verify filter chain wiring on setup
+    (deckState as any).eqFilters = null;
+    (deckState as any).gainNode = null;
+    service.setupDeckAudioGraph(1);
+    const newFilters = service.getDeckEQFilters(1);
+
+    // LowFilter must connect to MidFilter
+    expect(newFilters?.low.connect).toHaveBeenCalledWith(newFilters?.mid);
+    // MidFilter must connect to HighFilter
+    expect(newFilters?.mid.connect).toHaveBeenCalledWith(newFilters?.high);
+    // HighFilter must connect to GainNode
+    expect(newFilters?.high.connect).toHaveBeenCalledWith(deckState?.gainNode);
+
+    // Deck crossfader gain must connect to destination and masterDestination for audio output
+    const crossfaderGain = (service as any).deckCrossfaderGains.get(1);
+    expect(crossfaderGain.connect).toHaveBeenCalledWith(ctx.destination);
+    expect(crossfaderGain.connect).toHaveBeenCalledWith((service as any).masterDestination);
+  });
+});
+

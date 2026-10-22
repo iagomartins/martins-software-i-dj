@@ -41,6 +41,22 @@ export class MockAudioParam {
   cancelScheduledValues = vi.fn(() => this);
 }
 
+export class MockBiquadFilterNode {
+  public type: BiquadFilterType = 'lowpass';
+  public frequency = new MockAudioParam(350);
+  public detune = new MockAudioParam(0);
+  public Q = new MockAudioParam(1);
+  public gain = new MockAudioParam(0);
+  public context: any;
+
+  constructor(context?: any) {
+    this.context = context;
+  }
+
+  connect = vi.fn((dest: any) => dest);
+  disconnect = vi.fn();
+}
+
 export class MockGainNode {
   public gain = new MockAudioParam(1.0);
   public context: any;
@@ -99,6 +115,7 @@ export function createMockAudioContext(_options?: any) {
       addModule: vi.fn().mockResolvedValue(undefined),
     },
     createGain: vi.fn(() => new MockGainNode(ctx)),
+    createBiquadFilter: vi.fn(() => new MockBiquadFilterNode(ctx)),
     createBufferSource: vi.fn(() => new MockAudioBufferSourceNode()),
     createMediaStreamDestination: vi.fn(() => ({
       stream: { id: 'mock-stream', getAudioTracks: () => [] },
@@ -136,6 +153,7 @@ export const MockAudioWorkletNode = vi.fn().mockImplementation(() => ({
 (globalThis as any).webkitAudioContext = MockAudioContext;
 (globalThis as any).AudioWorkletNode = MockAudioWorkletNode;
 (globalThis as any).AudioBuffer = MockAudioBuffer;
+(globalThis as any).BiquadFilterNode = MockBiquadFilterNode;
 
 // Mock window.Audio constructor
 export const MockAudioElement = vi.fn().mockImplementation(() => ({

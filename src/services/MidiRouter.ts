@@ -105,8 +105,8 @@ export class MidiRouter {
       // DECK A EQ (CC 0x37 / 55, CC 0x38 / 56, CC 0x39 / 57)
       // ============================================
       case 'DECK_A_EQ_HIGH': {
-        const eqVal = parsed.bipolarValue ?? 0;
-        this.audioService.setEQ(1, 2, eqVal);
+        const eqVal = parsed.normalizedValue ?? 0.5;
+        this.audioService.setDeckEQ(1, 'high', eqVal);
         this.scheduleDispatch('DECK_1_EQ_HIGH', {
           type: 'SET_DECK_1_STATE',
           payload: { highEQ: eqVal },
@@ -115,8 +115,8 @@ export class MidiRouter {
       }
 
       case 'DECK_A_EQ_MID': {
-        const eqVal = parsed.bipolarValue ?? 0;
-        this.audioService.setEQ(1, 1, eqVal);
+        const eqVal = parsed.normalizedValue ?? 0.5;
+        this.audioService.setDeckEQ(1, 'mid', eqVal);
         this.scheduleDispatch('DECK_1_EQ_MID', {
           type: 'SET_DECK_1_STATE',
           payload: { midEQ: eqVal },
@@ -125,8 +125,8 @@ export class MidiRouter {
       }
 
       case 'DECK_A_EQ_LOW': {
-        const eqVal = parsed.bipolarValue ?? 0;
-        this.audioService.setEQ(1, 0, eqVal);
+        const eqVal = parsed.normalizedValue ?? 0.5;
+        this.audioService.setDeckEQ(1, 'low', eqVal);
         this.scheduleDispatch('DECK_1_EQ_LOW', {
           type: 'SET_DECK_1_STATE',
           payload: { lowEQ: eqVal },
@@ -138,8 +138,8 @@ export class MidiRouter {
       // DECK B EQ (CC 0x3C / 60, CC 0x3D / 61, CC 0x3E / 62)
       // ============================================
       case 'DECK_B_EQ_HIGH': {
-        const eqVal = parsed.bipolarValue ?? 0;
-        this.audioService.setEQ(2, 2, eqVal);
+        const eqVal = parsed.normalizedValue ?? 0.5;
+        this.audioService.setDeckEQ(2, 'high', eqVal);
         this.scheduleDispatch('DECK_2_EQ_HIGH', {
           type: 'SET_DECK_2_STATE',
           payload: { highEQ: eqVal },
@@ -148,8 +148,8 @@ export class MidiRouter {
       }
 
       case 'DECK_B_EQ_MID': {
-        const eqVal = parsed.bipolarValue ?? 0;
-        this.audioService.setEQ(2, 1, eqVal);
+        const eqVal = parsed.normalizedValue ?? 0.5;
+        this.audioService.setDeckEQ(2, 'mid', eqVal);
         this.scheduleDispatch('DECK_2_EQ_MID', {
           type: 'SET_DECK_2_STATE',
           payload: { midEQ: eqVal },
@@ -158,8 +158,8 @@ export class MidiRouter {
       }
 
       case 'DECK_B_EQ_LOW': {
-        const eqVal = parsed.bipolarValue ?? 0;
-        this.audioService.setEQ(2, 0, eqVal);
+        const eqVal = parsed.normalizedValue ?? 0.5;
+        this.audioService.setDeckEQ(2, 'low', eqVal);
         this.scheduleDispatch('DECK_2_EQ_LOW', {
           type: 'SET_DECK_2_STATE',
           payload: { lowEQ: eqVal },
@@ -356,8 +356,8 @@ export class MidiRouter {
       }
 
       case 'DECK_1_EQ_HIGH': {
-        const eqVal = MidiNormalizer.toBipolar(event.data2);
-        this.audioService.setEQ(1, 2, eqVal);
+        const eqVal = MidiNormalizer.toLinear(event.data2);
+        this.audioService.setDeckEQ(1, 'high', eqVal);
         this.scheduleDispatch('DECK_1_EQ_HIGH', {
           type: 'SET_DECK_1_STATE',
           payload: { highEQ: eqVal }
@@ -366,8 +366,8 @@ export class MidiRouter {
       }
 
       case 'DECK_1_EQ_MID': {
-        const eqVal = MidiNormalizer.toBipolar(event.data2);
-        this.audioService.setEQ(1, 1, eqVal);
+        const eqVal = MidiNormalizer.toLinear(event.data2);
+        this.audioService.setDeckEQ(1, 'mid', eqVal);
         this.scheduleDispatch('DECK_1_EQ_MID', {
           type: 'SET_DECK_1_STATE',
           payload: { midEQ: eqVal }
@@ -376,8 +376,8 @@ export class MidiRouter {
       }
 
       case 'DECK_1_EQ_LOW': {
-        const eqVal = MidiNormalizer.toBipolar(event.data2);
-        this.audioService.setEQ(1, 0, eqVal);
+        const eqVal = MidiNormalizer.toLinear(event.data2);
+        this.audioService.setDeckEQ(1, 'low', eqVal);
         this.scheduleDispatch('DECK_1_EQ_LOW', {
           type: 'SET_DECK_1_STATE',
           payload: { lowEQ: eqVal }
@@ -419,8 +419,8 @@ export class MidiRouter {
       }
 
       case 'DECK_2_EQ_HIGH': {
-        const eqVal = MidiNormalizer.toBipolar(event.data2);
-        this.audioService.setEQ(2, 2, eqVal);
+        const eqVal = MidiNormalizer.toLinear(event.data2);
+        this.audioService.setDeckEQ(2, 'high', eqVal);
         this.scheduleDispatch('DECK_2_EQ_HIGH', {
           type: 'SET_DECK_2_STATE',
           payload: { highEQ: eqVal }
@@ -429,8 +429,8 @@ export class MidiRouter {
       }
 
       case 'DECK_2_EQ_MID': {
-        const eqVal = MidiNormalizer.toBipolar(event.data2);
-        this.audioService.setEQ(2, 1, eqVal);
+        const eqVal = MidiNormalizer.toLinear(event.data2);
+        this.audioService.setDeckEQ(2, 'mid', eqVal);
         this.scheduleDispatch('DECK_2_EQ_MID', {
           type: 'SET_DECK_2_STATE',
           payload: { midEQ: eqVal }
@@ -439,8 +439,8 @@ export class MidiRouter {
       }
 
       case 'DECK_2_EQ_LOW': {
-        const eqVal = MidiNormalizer.toBipolar(event.data2);
-        this.audioService.setEQ(2, 0, eqVal);
+        const eqVal = MidiNormalizer.toLinear(event.data2);
+        this.audioService.setDeckEQ(2, 'low', eqVal);
         this.scheduleDispatch('DECK_2_EQ_LOW', {
           type: 'SET_DECK_2_STATE',
           payload: { lowEQ: eqVal }

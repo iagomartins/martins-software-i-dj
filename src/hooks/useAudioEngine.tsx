@@ -240,9 +240,9 @@ export const useAudioEngine = () => {
       const audioService = audioServiceRef.current;
       if (!audioService) return;
 
-      audioService.setEQ(deckNumber, 0, eq.low);
-      audioService.setEQ(deckNumber, 1, eq.mid);
-      audioService.setEQ(deckNumber, 2, eq.high);
+      audioService.setDeckEQ(deckNumber, 'low', eq.low);
+      audioService.setDeckEQ(deckNumber, 'mid', eq.mid);
+      audioService.setDeckEQ(deckNumber, 'high', eq.high);
     },
     []
   );

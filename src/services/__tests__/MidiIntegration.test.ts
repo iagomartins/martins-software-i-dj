@@ -283,4 +283,22 @@ describe('MidiRouter - State & Audio Routing Integration', () => {
     expect(deckId).toBe(1);
     expect(radians).toBeCloseTo((5 / 127) * Math.PI * 0.2, 4);
   });
+
+  it('routes Deck A EQ High CC to AudioService.setDeckEQ and schedules state update', () => {
+    const eqSpy = vi.spyOn(audioService, 'setDeckEQ');
+
+    const event: RawMidiEvent = {
+      status: 176,
+      data1: 0x37, // Deck A EQ High (55)
+      data2: 64,   // Center
+      channel: 0,
+      command: 'CONTROL_CHANGE',
+      timestamp: performance.now(),
+      raw: new Uint8Array([176, 0x37, 64]),
+    };
+
+    router.route(event);
+
+    expect(eqSpy).toHaveBeenCalledWith(1, 'high', expect.closeTo(64 / 127, 3));
+  });
 });
