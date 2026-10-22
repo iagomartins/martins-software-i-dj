@@ -5,6 +5,7 @@
 
 import { RawMidiEvent } from '@/types/midi';
 import { resolveHerculesAction, MidiNormalizer } from './hercules-instinct-map';
+import { parseRawMidiEvent, ParsedMidiMessage } from './MidiParser';
 import AudioService from './AudioService';
 import { DJState, DJAction } from '@/contexts/DJContext';
 
@@ -36,7 +37,14 @@ export class MidiRouter {
   public route(event: RawMidiEvent): void {
     if (!this.deps) return;
 
-    // 1. Resolve action via Hercules hardware map
+    // 1. Strict Mixxx hardware translation layer for Hercules DJ Control Instinct
+    const parsed = parseRawMidiEvent(event);
+    if (parsed) {
+      this.executeHerculesParsedAction(parsed);
+      return;
+    }
+
+    // 2. Resolve action via extended Hercules hardware map
     const mapping = resolveHerculesAction(event);
 
     if (mapping) {
@@ -44,8 +52,251 @@ export class MidiRouter {
       return;
     }
 
-    // 2. Fallback to custom mapped identifiers (e.g. midi:note:0:1 or midi:cc:0:14)
+    // 3. Fallback to custom mapped identifiers (e.g. midi:note:0:1 or midi:cc:0:14)
     this.executeCustomMapping(event);
+  }
+
+  /**
+   * Executes strictly translated actions from MidiParser
+   */
+  private executeHerculesParsedAction(parsed: ParsedMidiMessage): void {
+    if (!this.deps) return;
+    const { getState, dispatch } = this.deps;
+    const currentState = getState();
+
+    switch (parsed.action) {
+      // ============================================
+      // MIXER / CROSSFADER (CC 0x3A / 58)
+      // ============================================
+      case 'CROSSFADER': {
+        const norm01 = parsed.normalizedValue ?? 0.5; // 0.0 to 1.0 (UI slider)
+        const audioVal = parsed.bipolarValue ?? 0;   // -1.0 to +1.0 (Audio engine)
+        this.audioService.setCrossfader(audioVal);
+        this.scheduleDispatch('SET_CROSSFADER', {
+          type: 'SET_CROSSFADER',
+          payload: norm01,
+        });
+        break;
+      }
+
+      // ============================================
+      // DECK VOLUMES (CC 0x36 / 54 & CC 0x3B / 59)
+      // ============================================
+      case 'DECK_A_VOLUME': {
+        const vol = parsed.normalizedValue ?? 1;
+        this.audioService.setVolume(1, vol);
+        this.scheduleDispatch('DECK_1_VOL', {
+          type: 'SET_DECK_1_STATE',
+          payload: { volume: vol },
+        });
+        break;
+      }
+
+      case 'DECK_B_VOLUME': {
+        const vol = parsed.normalizedValue ?? 1;
+        this.audioService.setVolume(2, vol);
+        this.scheduleDispatch('DECK_2_VOL', {
+          type: 'SET_DECK_2_STATE',
+          payload: { volume: vol },
+        });
+        break;
+      }
+
+      // ============================================
+      // DECK A EQ (CC 0x37 / 55, CC 0x38 / 56, CC 0x39 / 57)
+      // ============================================
+      case 'DECK_A_EQ_HIGH': {
+        const eqVal = parsed.bipolarValue ?? 0;
+        this.audioService.setEQ(1, 2, eqVal);
+        this.scheduleDispatch('DECK_1_EQ_HIGH', {
+          type: 'SET_DECK_1_STATE',
+          payload: { highEQ: eqVal },
+        });
+        break;
+      }
+
+      case 'DECK_A_EQ_MID': {
+        const eqVal = parsed.bipolarValue ?? 0;
+        this.audioService.setEQ(1, 1, eqVal);
+        this.scheduleDispatch('DECK_1_EQ_MID', {
+          type: 'SET_DECK_1_STATE',
+          payload: { midEQ: eqVal },
+        });
+        break;
+      }
+
+      case 'DECK_A_EQ_LOW': {
+        const eqVal = parsed.bipolarValue ?? 0;
+        this.audioService.setEQ(1, 0, eqVal);
+        this.scheduleDispatch('DECK_1_EQ_LOW', {
+          type: 'SET_DECK_1_STATE',
+          payload: { lowEQ: eqVal },
+        });
+        break;
+      }
+
+      // ============================================
+      // DECK B EQ (CC 0x3C / 60, CC 0x3D / 61, CC 0x3E / 62)
+      // ============================================
+      case 'DECK_B_EQ_HIGH': {
+        const eqVal = parsed.bipolarValue ?? 0;
+        this.audioService.setEQ(2, 2, eqVal);
+        this.scheduleDispatch('DECK_2_EQ_HIGH', {
+          type: 'SET_DECK_2_STATE',
+          payload: { highEQ: eqVal },
+        });
+        break;
+      }
+
+      case 'DECK_B_EQ_MID': {
+        const eqVal = parsed.bipolarValue ?? 0;
+        this.audioService.setEQ(2, 1, eqVal);
+        this.scheduleDispatch('DECK_2_EQ_MID', {
+          type: 'SET_DECK_2_STATE',
+          payload: { midEQ: eqVal },
+        });
+        break;
+      }
+
+      case 'DECK_B_EQ_LOW': {
+        const eqVal = parsed.bipolarValue ?? 0;
+        this.audioService.setEQ(2, 0, eqVal);
+        this.scheduleDispatch('DECK_2_EQ_LOW', {
+          type: 'SET_DECK_2_STATE',
+          payload: { lowEQ: eqVal },
+        });
+        break;
+      }
+
+      // ============================================
+      // JOG WHEELS & SCRATCH (CC 0x32 / 50 & CC 0x33 / 51)
+      // ============================================
+      case 'DECK_A_JOG': {
+        const delta = parsed.delta ?? 0;
+        if (delta !== 0) {
+          const deltaRadians = (delta / 127) * Math.PI * 0.2;
+          this.audioService.scratch(1, deltaRadians);
+        }
+        break;
+      }
+
+      case 'DECK_B_JOG': {
+        const delta = parsed.delta ?? 0;
+        if (delta !== 0) {
+          const deltaRadians = (delta / 127) * Math.PI * 0.2;
+          this.audioService.scratch(2, deltaRadians);
+        }
+        break;
+      }
+
+      // ============================================
+      // TRANSPORT BUTTONS: PLAY / PAUSE (Note 0x16 / 22 & Note 0x30 / 48)
+      // ============================================
+      case 'DECK_A_PLAY_PAUSE': {
+        const nextPlaying = !currentState.deck1.isPlaying;
+        if (nextPlaying) {
+          this.audioService.play(1);
+        } else {
+          this.audioService.pause(1);
+        }
+        dispatch({
+          type: 'SET_DECK_1_STATE',
+          payload: { isPlaying: nextPlaying },
+        });
+        break;
+      }
+
+      case 'DECK_B_PLAY_PAUSE': {
+        const nextPlaying = !currentState.deck2.isPlaying;
+        if (nextPlaying) {
+          this.audioService.play(2);
+        } else {
+          this.audioService.pause(2);
+        }
+        dispatch({
+          type: 'SET_DECK_2_STATE',
+          payload: { isPlaying: nextPlaying },
+        });
+        break;
+      }
+
+      // ============================================
+      // TRANSPORT BUTTONS: CUE (Note 0x15 / 21 & Note 0x2F / 47)
+      // ============================================
+      case 'DECK_A_CUE': {
+        if (currentState.deck1.isPlaying) {
+          this.audioService.pause(1);
+          this.audioService.cue(1, true);
+          dispatch({
+            type: 'SET_DECK_1_STATE',
+            payload: { isPlaying: false, isCued: true },
+          });
+        } else {
+          this.audioService.cue(1, true);
+          dispatch({
+            type: 'SET_DECK_1_STATE',
+            payload: { isCued: true },
+          });
+        }
+        break;
+      }
+
+      case 'DECK_B_CUE': {
+        if (currentState.deck2.isPlaying) {
+          this.audioService.pause(2);
+          this.audioService.cue(2, true);
+          dispatch({
+            type: 'SET_DECK_2_STATE',
+            payload: { isPlaying: false, isCued: true },
+          });
+        } else {
+          this.audioService.cue(2, true);
+          dispatch({
+            type: 'SET_DECK_2_STATE',
+            payload: { isCued: true },
+          });
+        }
+        break;
+      }
+
+      // ============================================
+      // TRANSPORT BUTTONS: SYNC (Note 0x17 / 23 & Note 0x31 / 49)
+      // ============================================
+      case 'DECK_A_SYNC': {
+        const newSync = !this.audioService.isDeckSynced(1);
+        this.audioService.setSync(1, newSync);
+        break;
+      }
+
+      case 'DECK_B_SYNC': {
+        const newSync = !this.audioService.isDeckSynced(2);
+        this.audioService.setSync(2, newSync);
+        break;
+      }
+
+      // ============================================
+      // LOAD TRACK BUTTONS (Note 0x19 / 25 & Note 0x33 / 51)
+      // ============================================
+      case 'DECK_A_LOAD': {
+        const loadBtn = document.getElementById('deck1-load') || document.getElementById('file-input-1');
+        if (loadBtn) {
+          loadBtn.click();
+        }
+        break;
+      }
+
+      case 'DECK_B_LOAD': {
+        const loadBtn = document.getElementById('deck2-load') || document.getElementById('file-input-2');
+        if (loadBtn) {
+          loadBtn.click();
+        }
+        break;
+      }
+
+      default:
+        console.warn(`[MidiRouter] Unhandled Hercules action: ${parsed.action}`);
+        break;
+    }
   }
 
   private executeAction(action: string, event: RawMidiEvent): void {
