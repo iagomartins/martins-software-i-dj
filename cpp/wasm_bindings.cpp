@@ -48,14 +48,7 @@ extern "C" {
             deck1Processor->setEffect(effect, enabled);
         }
     }
-
-    EMSCRIPTEN_KEEPALIVE
-    void set_deck1_filter(float cutoff) {
-        if (deck1Processor) {
-            deck1Processor->setFilterCutoff(cutoff);
-        }
-    }
-
+    
     // Deck 2 controls
     EMSCRIPTEN_KEEPALIVE
     void set_deck2_volume(float volume) {
@@ -63,32 +56,25 @@ extern "C" {
             deck2Processor->setVolume(volume);
         }
     }
-
+    
     EMSCRIPTEN_KEEPALIVE
     void set_deck2_pitch(float pitch) {
         if (deck2Processor) {
             deck2Processor->setPitch(pitch);
         }
     }
-
+    
     EMSCRIPTEN_KEEPALIVE
     void set_deck2_eq(int band, float value) {
         if (deck2Processor) {
             deck2Processor->setEQ(band, value);
         }
     }
-
+    
     EMSCRIPTEN_KEEPALIVE
     void set_deck2_effect(int effect, bool enabled) {
         if (deck2Processor) {
             deck2Processor->setEffect(effect, enabled);
-        }
-    }
-
-    EMSCRIPTEN_KEEPALIVE
-    void set_deck2_filter(float cutoff) {
-        if (deck2Processor) {
-            deck2Processor->setFilterCutoff(cutoff);
         }
     }
     
@@ -117,13 +103,20 @@ extern "C" {
         bool deck1Active,
         bool deck2Active
     ) {
-        // Process deck 1 independently. Crossfader mixing is handled by the AudioWorklet.
+        // Process deck 1
         if (deck1Active && deck1Processor && deck1InputLeft && deck1OutputLeft) {
             deck1Processor->processStereo(
                 deck1InputLeft, deck1InputRight,
                 deck1OutputLeft, deck1OutputRight,
                 numSamples
             );
+            
+            // Apply crossfader to deck 1
+            float deck1Gain = (crossfaderValue <= 0.0f) ? 1.0f : (1.0f - crossfaderValue);
+            for (int i = 0; i < numSamples; i++) {
+                deck1OutputLeft[i] *= deck1Gain;
+                deck1OutputRight[i] *= deck1Gain;
+            }
         } else if (deck1OutputLeft) {
             // Clear output if deck not active
             for (int i = 0; i < numSamples; i++) {
@@ -131,14 +124,21 @@ extern "C" {
                 deck1OutputRight[i] = 0.0f;
             }
         }
-
-        // Process deck 2 independently.
+        
+        // Process deck 2
         if (deck2Active && deck2Processor && deck2InputLeft && deck2OutputLeft) {
             deck2Processor->processStereo(
                 deck2InputLeft, deck2InputRight,
                 deck2OutputLeft, deck2OutputRight,
                 numSamples
             );
+            
+            // Apply crossfader to deck 2
+            float deck2Gain = (crossfaderValue >= 0.0f) ? 1.0f : (1.0f + crossfaderValue);
+            for (int i = 0; i < numSamples; i++) {
+                deck2OutputLeft[i] *= deck2Gain;
+                deck2OutputRight[i] *= deck2Gain;
+            }
         } else if (deck2OutputLeft) {
             // Clear output if deck not active
             for (int i = 0; i < numSamples; i++) {
@@ -146,18 +146,12 @@ extern "C" {
                 deck2OutputRight[i] = 0.0f;
             }
         }
-
-        // Apply master volume to each deck output.
-        if (deck1OutputLeft) {
+        
+        // Mix decks and apply master volume
+        if (deck1OutputLeft && deck2OutputLeft) {
             for (int i = 0; i < numSamples; i++) {
-                deck1OutputLeft[i] *= masterVolume;
-                deck1OutputRight[i] *= masterVolume;
-            }
-        }
-        if (deck2OutputLeft) {
-            for (int i = 0; i < numSamples; i++) {
-                deck2OutputLeft[i] *= masterVolume;
-                deck2OutputRight[i] *= masterVolume;
+                deck1OutputLeft[i] = (deck1OutputLeft[i] + deck2OutputLeft[i]) * masterVolume;
+                deck1OutputRight[i] = (deck1OutputRight[i] + deck2OutputRight[i]) * masterVolume;
             }
         }
     }

@@ -97,7 +97,6 @@ export const useAudioEngine = () => {
     }
 
     globalAudioEngineInitPromise = (async () => {
-      console.log("🔊 Initializing AudioService (Singleton)...");
       await audioService.initialize();
 
       // Get AudioContext for device enumeration

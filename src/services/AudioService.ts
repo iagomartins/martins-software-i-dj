@@ -94,6 +94,8 @@ class AudioService {
       return AudioService.initializationPromise;
     }
 
+    console.log("Initializing AudioService...");
+
     AudioService.initializationPromise = (async () => {
       // Create AudioContext
       this.audioContext = new AudioContext({
@@ -377,15 +379,8 @@ class AudioService {
       if (source instanceof ArrayBuffer) {
         arrayBuffer = source;
       } else if (source instanceof Blob) {
-        // Blob or File: using URL.createObjectURL and fetch optimizes memory streaming in Chromium
-        const objectUrl = URL.createObjectURL(source);
-        try {
-          const res = await fetch(objectUrl);
-          if (!res.ok) throw new Error(`HTTP error reading audio: ${res.statusText}`);
-          arrayBuffer = await res.arrayBuffer();
-        } finally {
-          URL.revokeObjectURL(objectUrl);
-        }
+        // Blob or File: direct native arrayBuffer conversion
+        arrayBuffer = await source.arrayBuffer();
       } else if (typeof source === "string") {
         const res = await fetch(source);
         if (!res.ok) throw new Error(`HTTP error fetching audio: ${res.statusText}`);
@@ -417,7 +412,7 @@ class AudioService {
       deck.audioBuffer = audioBuffer;
       deck.pauseTime = 0;
 
-      console.log(`✅ Track loaded for deck ${deckId}:`, {
+      console.log(`Track loaded for deck ${deckId}:`, {
         duration: audioBuffer.duration,
         sampleRate: audioBuffer.sampleRate,
         channels: audioBuffer.numberOfChannels,
@@ -500,17 +495,23 @@ class AudioService {
       return;
     }
 
-    // Route audio through the AudioWorklet/Wasm processor instead of bypassing it.
+    // Connect: source -> deckGain -> deckCrossfaderGain -> destination
     sourceNode.connect(gainNode);
+    gainNode.connect(crossfaderGain);
+    crossfaderGain.connect(this.audioContext.destination);
+    console.log(
+      `🔗 Connected: source -> gain -> crossfaderGain -> destination for deck ${deckId}`
+    );
+    console.log(
+      `🎚️ Deck ${deckId} crossfader gain: ${crossfaderGain.gain.value}`
+    );
+
+    // Also connect to worklet for future processing (when worklet is working)
     const workletInputIndex = deckId - 1; // deckId 1 -> input 0, deckId 2 -> input 1
     gainNode.connect(this.workletNode, 0, workletInputIndex);
     console.log(
-      `🔗 Connected: source -> gain -> worklet input ${workletInputIndex} for deck ${deckId}`
+      `🔗 Also connected gainNode -> workletNode input ${workletInputIndex} for deck ${deckId}`
     );
-
-    // Keep the crossfader gain nodes available for optional direct fallback,
-    // but the main signal path is now the worklet output.
-    crossfaderGain.connect(this.audioContext.destination);
 
 
     // Also connect to headphone gain for pre-fader monitoring (if routing enabled)

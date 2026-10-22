@@ -68,7 +68,10 @@ class DJAudioProcessor extends AudioWorkletProcessor {
       case 'SET_DECK_FILTER':
         if (this.wasmInstance) {
           const deck = data.deck === 1 ? 'deck1' : 'deck2';
-          this.wasmInstance[`_set_${deck}_filter`](data.cutoff);
+          const fn = this.wasmInstance[`_set_${deck}_filter`];
+          if (typeof fn === 'function') {
+            fn(data.cutoff);
+          }
         }
         break;
       case 'SET_CROSSFADER':
