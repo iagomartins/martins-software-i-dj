@@ -466,6 +466,18 @@ class AudioService {
     console.log(`🔊 Master gain: ${this.masterGain?.gain.value}`);
     console.log(`🔊 Crossfader gain: ${this.crossfaderGain?.gain.value}`);
 
+    // Ensure any existing source node is stopped and disconnected without firing onended
+    if (deck.sourceNode) {
+      try {
+        deck.sourceNode.onended = null;
+        deck.sourceNode.stop();
+        deck.sourceNode.disconnect();
+      } catch (e) {
+        // Ignore if already stopped
+      }
+      deck.sourceNode = null;
+    }
+
     // Create new source node
     const sourceNode = this.audioContext.createBufferSource();
     sourceNode.buffer = deck.audioBuffer;
@@ -686,6 +698,8 @@ class AudioService {
 
     // Stop source node
     try {
+      // Nullify the handler BEFORE stopping to prevent the false 'ended' event
+      deck.sourceNode.onended = null;
       deck.sourceNode.stop();
       console.log(`⏸️ Stopped source node for deck ${deckId}`);
     } catch (error) {
