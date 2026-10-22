@@ -33,6 +33,7 @@ declare global {
       path?: {
         getDocumentsPath: () => Promise<{ success: boolean; path?: string; error?: string }>;
       };
+      openExternal?: (url: string) => Promise<{ success: boolean; error?: string }>;
     };
   }
 }

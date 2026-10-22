@@ -77,3 +77,36 @@ declare namespace WebMidi {
 interface Navigator {
   requestMIDIAccess(options?: WebMidi.MIDIOptions): Promise<WebMidi.MIDIAccess>;
 }
+
+interface Window {
+  electronAPI?: {
+    openExternal?: (url: string) => Promise<{ success: boolean; error?: string }>;
+    dialog?: {
+      showOpenDialog: (options: {
+        properties: string[];
+        filters: { name: string; extensions: string[] }[];
+      }) => Promise<{ canceled: boolean; filePaths: string[] }>;
+    };
+    fs?: {
+      writeFile: (
+        filePath: string,
+        data: ArrayBuffer | Uint8Array
+      ) => Promise<{ success: boolean; path?: string; error?: string }>;
+      readFile: (
+        filePath: string
+      ) => Promise<{ success: boolean; data?: Uint8Array | number[]; error?: string }>;
+      exists: (
+        filePath: string
+      ) => Promise<{ success: boolean; exists: boolean }>;
+      unlink: (
+        filePath: string
+      ) => Promise<{ success: boolean; error?: string }>;
+      mkdir: (
+        dirPath: string
+      ) => Promise<{ success: boolean; error?: string }>;
+    };
+    path?: {
+      getDocumentsPath: () => Promise<{ success: boolean; path?: string; error?: string }>;
+    };
+  };
+}
