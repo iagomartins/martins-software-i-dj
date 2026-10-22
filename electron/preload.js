@@ -39,6 +39,10 @@ try {
         return ipcRenderer.invoke("path:getDocumentsPath");
       },
     },
+    openExternal: (url) => {
+      console.log("📡 IPC: openExternal", url);
+      return ipcRenderer.invoke("shell:openExternal", url);
+    },
   });
 
   console.log("✅ Preload script completed successfully");

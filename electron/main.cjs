@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog, shell } = require("electron");
 const path = require("path");
 const fs = require("fs").promises; // Use promises version
 
@@ -26,6 +26,21 @@ function createWindow() {
   mainWindow.loadFile("dist/index.html");
   mainWindow.webContents.openDevTools();
 }
+
+// Shell open external URL safely in default browser
+ipcMain.handle("shell:openExternal", async (event, url) => {
+  try {
+    if (typeof url === "string" && (url.startsWith("http://") || url.startsWith("https://"))) {
+      await shell.openExternal(url);
+      console.log(`✅ Opened external URL: ${url}`);
+      return { success: true };
+    }
+    return { success: false, error: "Invalid URL protocol" };
+  } catch (error) {
+    console.error(`❌ Failed to open external URL: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+});
 
 // File dialog handler
 ipcMain.handle("dialog:showOpenDialog", async (event, options) => {

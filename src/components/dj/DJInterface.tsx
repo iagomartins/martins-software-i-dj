@@ -4,6 +4,7 @@ import { CrossFader } from "./CrossFader";
 import { DJKnob } from "./DJKnob";
 import { DJDeck } from "./DJDeck";
 import { ConfigModal } from "./ConfigModal";
+import { FooterBar } from "@/components/layout/FooterBar";
 // Import the logo directly
 import iDJLogo from "../../assets/iDJLogo.svg";
 import { useAudioEngine } from "@/hooks/useAudioEngine";
@@ -71,7 +72,7 @@ export function DJInterface() {
         </div>
       }
     >
-      <div className="min-h-screen bg-[#101010] text-[#F8FAFC] relative overflow-hidden">
+      <div className="min-h-screen bg-[#101010] text-[#F8FAFC] relative overflow-hidden flex flex-col justify-between">
         {/* Subtle radial glow background */}
         <div
           className="absolute inset-0 opacity-20 pointer-events-none"
@@ -217,6 +218,9 @@ export function DJInterface() {
             </div>
           </div>
         </main>
+
+        {/* Footer Bar */}
+        <FooterBar />
       </div>
 
       {/* Config Modal */}
