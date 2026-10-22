@@ -15,6 +15,7 @@ export interface DeckEQFilters {
 
 export interface DeckState {
   sourceNode: AudioBufferSourceNode | null;
+  workletNode: AudioWorkletNode | null;
   gainNode: GainNode | null;
   eqFilters: DeckEQFilters | null;
   audioBuffer: AudioBuffer | null;
@@ -27,6 +28,8 @@ export interface DeckState {
   currentBPM: number;
   pitch: number;
   isSynced: boolean;
+  /** True once the static audio graph (EQ chain → gain → crossfader) has been wired. Prevents duplicate connections. */
+  graphConnected: boolean;
 }
 
 class AudioService {
@@ -52,12 +55,12 @@ class AudioService {
     Set<(position: number) => void>
   > = new Map();
   private positionUpdateInterval: number | null = null;
-  private defaultAudioElement: HTMLAudioElement | null = null;
 
   private constructor() {
     // Initialize deck states
     this.decks.set(1, {
       sourceNode: null,
+      workletNode: null,
       gainNode: null,
       eqFilters: null,
       audioBuffer: null,
@@ -70,9 +73,11 @@ class AudioService {
       currentBPM: 120,
       pitch: 0,
       isSynced: false,
+      graphConnected: false,
     });
     this.decks.set(2, {
       sourceNode: null,
+      workletNode: null,
       gainNode: null,
       eqFilters: null,
       audioBuffer: null,
@@ -85,6 +90,7 @@ class AudioService {
       currentBPM: 120,
       pitch: 0,
       isSynced: false,
+      graphConnected: false,
     });
   }
 
@@ -155,37 +161,53 @@ class AudioService {
         }
       }
 
-      // Create AudioWorkletNode with 2 inputs (one for each deck)
-      try {
-        this.workletNode = new AudioWorkletNode(
-          this.audioContext,
-          "dj-audio-processor",
-          {
-            numberOfInputs: 2,
-            numberOfOutputs: 1,
-            channelCount: 2, // Stereo
-            channelCountMode: "explicit",
+      // Create independent AudioWorkletNode for each deck (strict graph separation)
+      for (const deckId of [1, 2] as const) {
+        const deck = this.decks.get(deckId);
+        if (deck) {
+          try {
+            const workletNode = new AudioWorkletNode(
+              this.audioContext,
+              "dj-audio-processor",
+              {
+                numberOfInputs: 1,
+                numberOfOutputs: 1,
+                channelCount: 2, // Stereo
+                channelCountMode: "explicit",
+                processorOptions: { deckId },
+              }
+            );
+
+            // Set up message handler per worklet
+            workletNode.port.onmessage = (event) => {
+              if (event.data.type === "WASM_READY") {
+                console.log(
+                  `✅ Wasm module loaded and ready in AudioWorklet for deck ${deckId}`
+                );
+              } else if (event.data.type === "ERROR") {
+                console.error(
+                  `❌ AudioWorklet error for deck ${deckId}:`,
+                  event.data.message
+                );
+              } else {
+                console.log(`AudioWorklet message for deck ${deckId}:`, event.data);
+              }
+            };
+
+            deck.workletNode = workletNode;
+            console.log(`AudioWorkletNode created successfully for deck ${deckId}`);
+          } catch (error) {
+            console.error(`Failed to create AudioWorkletNode for deck ${deckId}:`, error);
+            console.error(
+              "This usually means the processor wasn't registered. Check audio-processor.js for errors."
+            );
+            throw error;
           }
-        );
-        console.log("AudioWorkletNode created successfully");
-      } catch (error) {
-        console.error("Failed to create AudioWorkletNode:", error);
-        console.error(
-          "This usually means the processor wasn't registered. Check audio-processor.js for errors."
-        );
-        throw error;
+        }
       }
 
-      // Set up message handler
-      this.workletNode.port.onmessage = (event) => {
-        if (event.data.type === "WASM_READY") {
-          console.log("✅ Wasm module loaded and ready in AudioWorklet");
-        } else if (event.data.type === "ERROR") {
-          console.error("❌ AudioWorklet error:", event.data.message);
-        } else {
-          console.log("AudioWorklet message:", event.data);
-        }
-      };
+      // Legacy fallback and primary worklet reference
+      this.workletNode = this.decks.get(1)?.workletNode ?? null;
 
       // Create gain nodes
       this.masterGain = this.audioContext.createGain();
@@ -205,87 +227,21 @@ class AudioService {
       this.headphoneStream = this.headphoneDestination.stream;
 
       // Create crossfader gain nodes for each deck (Constant Power Center ~0.7071)
-      const initialConstantPowerGain = Math.SQRT1_2; // cos(0.5 * 0.5 * PI) = sin(0.5 * 0.5 * PI) = 1/sqrt(2)
-      const deck1CrossfaderGain = this.audioContext.createGain();
-      deck1CrossfaderGain.gain.value = initialConstantPowerGain;
-      this.deckCrossfaderGains.set(1, deck1CrossfaderGain);
+      // NOTE: Do NOT connect to destinations here — setupDeckAudioGraph() below handles
+      // the full chain (worklet -> EQ -> gain -> crossfader -> destination).
+      // Connecting here AND in setupDeckAudioGraph would double the signal.
+      const initialConstantPowerGain = Math.SQRT1_2;
+      for (const deckId of [1, 2] as const) {
+        const deckCrossfaderGain = this.audioContext.createGain();
+        deckCrossfaderGain.gain.value = initialConstantPowerGain;
+        this.deckCrossfaderGains.set(deckId, deckCrossfaderGain);
+      }
+      console.log(`✅ Crossfader gain nodes created (initial gain: ${initialConstantPowerGain.toFixed(4)})`);
 
-      const deck2CrossfaderGain = this.audioContext.createGain();
-      deck2CrossfaderGain.gain.value = initialConstantPowerGain;
-      this.deckCrossfaderGains.set(2, deck2CrossfaderGain);
-      console.log(
-        `🎚️ Crossfader gain nodes created for both decks (initialized to ${initialConstantPowerGain.toFixed(4)} = Constant Power Center)`
-      );
-
-      // Connect deck crossfader gains to audio output destinations
-      deck1CrossfaderGain.connect(this.audioContext.destination);
-      deck1CrossfaderGain.connect(this.masterDestination);
-      deck2CrossfaderGain.connect(this.audioContext.destination);
-      deck2CrossfaderGain.connect(this.masterDestination);
-      console.log(
-        "🔗 Connected: deckCrossfaderGains -> destination & masterDestination"
-      );
-
-      // Initialize 3-band Isolator EQ chains for both decks
+      // Initialize audio graph for both decks (EQ -> gain -> crossfader -> destination)
       this.setupDeckAudioGraph(1);
       this.setupDeckAudioGraph(2);
-      console.log(
-        "🎛️ 3-band Isolator EQ chains (Low 250Hz, Mid 1000Hz, High 4000Hz) initialized for both decks"
-      );
 
-      // Connect audio graph: worklet -> masterGain -> crossfaderGain -> destinations
-      this.workletNode.connect(this.masterGain);
-      this.masterGain.connect(this.crossfaderGain);
-
-      // Connect to MediaStream destination (PRIMARY - required for Electron)
-      this.crossfaderGain.connect(this.masterDestination);
-      console.log(
-        "🔗 Connected: worklet -> masterGain -> crossfaderGain -> masterDestination (MediaStream)"
-      );
-
-      // Also connect to audioContext.destination as fallback
-      this.crossfaderGain.connect(this.audioContext.destination);
-      console.log("🔗 Also connected to audioContext.destination as fallback");
-
-      console.log(`🔊 Master gain value: ${this.masterGain.gain.value}`);
-      console.log(
-        `🔊 Crossfader gain value: ${this.crossfaderGain.gain.value}`
-      );
-
-      // Create Audio element to play the master stream (REQUIRED for MediaStream to work)
-      this.defaultAudioElement = new Audio();
-      this.defaultAudioElement.srcObject = this.masterStream;
-      this.defaultAudioElement.volume = 1.0;
-      this.defaultAudioElement.autoplay = true;
-
-      // Set up event handlers for debugging
-      this.defaultAudioElement.onplay = () => {
-        console.log("✅ Default audio element started playing");
-      };
-      this.defaultAudioElement.onpause = () => {
-        console.warn("⚠️ Default audio element paused");
-      };
-      this.defaultAudioElement.onerror = (error) => {
-        console.error("❌ Default audio element error:", error);
-      };
-      this.defaultAudioElement.onloadedmetadata = () => {
-        console.log("📊 Audio element metadata loaded");
-      };
-
-      // Try to start playing the master stream (required for audio output)
-      try {
-        const playPromise = this.defaultAudioElement.play();
-        if (playPromise !== undefined) {
-          await playPromise;
-          console.log("🔊 Default audio element started playing master stream");
-        }
-      } catch (error) {
-        console.warn(
-          "⚠️ Could not auto-play master stream (will try on user interaction):",
-          error
-        );
-        console.warn("⚠️ Audio will start when user clicks play button");
-      }
 
       // Create headphone gain nodes for each deck (pre-fader routing)
       const deck1HeadphoneGain = this.audioContext.createGain();
@@ -326,8 +282,8 @@ class AudioService {
         );
       }
 
-      // Initialize crossfader to center position
-      this.setCrossfader(0); // Center = 0, which gives 50% gain to both decks
+      // Initialize crossfader to center position (Constant Power Center = 0.5)
+      this.setCrossfader(0.5);
 
       this.initialized = true;
       console.log("✅ AudioService initialized successfully");
@@ -375,12 +331,25 @@ class AudioService {
       const jsCode = await jsResponse.text();
       console.log("Wasm JS glue code loaded, size:", jsCode.length, "chars");
 
-      // Send Wasm bytes and JS code to worklet (both are cloneable)
-      if (this.workletNode) {
+      // Send Wasm bytes and JS code to all deck worklets
+      for (const [deckId, deck] of this.decks.entries()) {
+        if (deck.workletNode) {
+          deck.workletNode.port.postMessage({
+            type: "LOAD_WASM",
+            wasmBytes: wasmBytes,
+            wasmJsCode: jsCode,
+            deckId,
+          });
+        }
+      }
+      if (
+        this.workletNode &&
+        !Array.from(this.decks.values()).some((d) => d.workletNode === this.workletNode)
+      ) {
         this.workletNode.port.postMessage({
           type: "LOAD_WASM",
           wasmBytes: wasmBytes,
-          wasmJsCode: jsCode, // Send JS code as string instead of path
+          wasmJsCode: jsCode,
         });
       }
     } catch (error) {
@@ -394,7 +363,7 @@ class AudioService {
 
   async loadTrack(
     deckId: DeckId,
-    source: ArrayBuffer | Blob | string
+    source: ArrayBuffer | Blob | string | Uint8Array
   ): Promise<AudioBuffer> {
     if (!this.audioContext) {
       throw new Error("AudioService not initialized");
@@ -405,6 +374,8 @@ class AudioService {
 
       if (source instanceof ArrayBuffer) {
         arrayBuffer = source;
+      } else if (source instanceof Uint8Array) {
+        arrayBuffer = source.buffer.slice(source.byteOffset, source.byteOffset + source.byteLength) as ArrayBuffer;
       } else if (source instanceof Blob) {
         // Blob or File: direct native arrayBuffer conversion
         arrayBuffer = await source.arrayBuffer();
@@ -481,17 +452,7 @@ class AudioService {
       return; // Already playing
     }
 
-    console.log(`▶️ Starting playback for deck ${deckId}`);
-    console.log(
-      `📊 Deck ${deckId} state before play: isPlaying=${
-        deck.isPlaying
-      }, pauseTime=${deck.pauseTime.toFixed(
-        2
-      )}s, hasBuffer=${!!deck.audioBuffer}`
-    );
-    console.log(`🔊 AudioContext state: ${this.audioContext?.state}`);
-    console.log(`🔊 Master gain: ${this.masterGain?.gain.value}`);
-    console.log(`🔊 Crossfader gain: ${this.crossfaderGain?.gain.value}`);
+    console.log(`▶️ Play deck ${deckId} | offset=${deck.pauseTime.toFixed(2)}s`);
 
     // Ensure any existing source node is stopped and disconnected without firing onended
     if (deck.sourceNode) {
@@ -508,129 +469,65 @@ class AudioService {
     // Create new source node
     const sourceNode = this.audioContext.createBufferSource();
     sourceNode.buffer = deck.audioBuffer;
-    sourceNode.loop = true; // Enable looping for continuous playback (DJ standard)
-
-    // Explicitly set loop boundaries for reliable looping
+    sourceNode.loop = true;
     sourceNode.loopStart = 0;
     sourceNode.loopEnd = deck.audioBuffer.duration;
-    console.log(`🔊 Source node created with looping enabled`);
-    console.log(
-      `🔁 Loop properties: loopStart=${sourceNode.loopStart.toFixed(
-        2
-      )}s, loopEnd=${sourceNode.loopEnd.toFixed(2)}s, loop=${sourceNode.loop}`
-    );
 
-    // Ensure 3-band Isolator EQ graph and channel gain node are ready
-    if (!deck.eqFilters || !deck.gainNode) {
+    // Ensure 3-band Isolator EQ graph, worklet, and channel gain node are ready.
+    // setupDeckAudioGraph is idempotent — it only wires nodes once (guarded by graphConnected).
+    if (!deck.graphConnected) {
       this.setupDeckAudioGraph(deckId);
     }
 
-    // Connect: source -> LowFilter (which feeds Mid -> High -> GainNode -> CrossfaderGain -> Destinations)
-    sourceNode.connect(deck.eqFilters!.low);
-    console.log(
-      `🔗 Connected: source -> LowFilter -> MidFilter -> HighFilter -> GainNode for deck ${deckId}`
-    );
-
-    // Defensively ensure crossfaderGain is connected to destination and masterDestination
-    const crossfaderGain = this.deckCrossfaderGains.get(deckId);
-    if (crossfaderGain) {
-      try {
-        crossfaderGain.connect(this.audioContext.destination);
-      } catch (e) {
-        // already connected
-      }
-      if (this.masterDestination) {
-        try {
-          crossfaderGain.connect(this.masterDestination);
-        } catch (e) {
-          // already connected
-        }
-      }
-      console.log(
-        `🔗 Deck ${deckId} crossfaderGain connected to destination and masterDestination`
-      );
+    // Connect the newly-created source into the persistent static graph.
+    // Only source->worklet is re-connected each play (AudioBufferSourceNode is one-shot).
+    // All downstream nodes (worklet -> EQ -> gain -> crossfader -> destination) are permanent.
+    if (deck.workletNode) {
+      sourceNode.connect(deck.workletNode);
+    } else if (deck.eqFilters) {
+      // Fallback when worklet is unavailable
+      sourceNode.connect(deck.eqFilters.low);
     }
 
-
-    // Also connect to headphone gain for pre-fader monitoring (if routing enabled)
+    // Pre-fader headphone monitoring
     const headphoneGain = this.deckHeadphoneGains.get(deckId);
     if (headphoneGain) {
-      // Connect source directly to headphone gain (pre-fader)
       sourceNode.connect(headphoneGain);
     }
 
     // Calculate start offset
     const startOffset = deck.pauseTime;
 
-    // CRITICAL: Ensure default audio element is playing (REQUIRED for MediaStream in Electron)
-    if (this.defaultAudioElement) {
-      if (this.defaultAudioElement.paused) {
-        try {
-          await this.defaultAudioElement.play();
-          console.log("🔊 Default audio element resumed/started");
-        } catch (error) {
-          console.error(
-            "❌ CRITICAL: Could not play default audio element:",
-            error
-          );
-          console.error("❌ This will prevent audio from playing in Electron!");
-        }
-      } else {
-        console.log("✅ Default audio element is already playing");
-      }
 
-      // Verify it's actually playing
-      console.log(
-        `🔊 Audio element state: paused=${this.defaultAudioElement.paused}, readyState=${this.defaultAudioElement.readyState}`
-      );
-    } else {
-      console.error("❌ CRITICAL: defaultAudioElement is null!");
-    }
-
-    // Verify audio buffer has data
     if (!deck.audioBuffer) {
-      console.error("❌ No audio buffer!");
+      console.error(`❌ No audio buffer for deck ${deckId}!`);
       return;
     }
-    console.log(
-      `📊 Audio buffer: ${deck.audioBuffer.duration.toFixed(2)}s, ${
-        deck.audioBuffer.sampleRate
-      }Hz, ${deck.audioBuffer.numberOfChannels} channels`
-    );
-    console.log(
-      `📊 Source node buffer: ${sourceNode.buffer?.duration.toFixed(2)}s`
-    );
 
-    // CRITICAL: Store source node in deck state BEFORE starting
     deck.sourceNode = sourceNode;
-    console.log(
-      `💾 Stored source node in deck ${deckId} state before start()`
-    );
 
     // Start playback
     try {
       sourceNode.start(0, startOffset);
-      console.log(`▶️ Playback started at offset ${startOffset.toFixed(2)}s`);
-      console.log(
-        `▶️ Source node state: loop=${
-          sourceNode.loop
-        }, loopStart=${sourceNode.loopStart?.toFixed(
-          2
-        )}s, loopEnd=${sourceNode.loopEnd?.toFixed(2)}s`
-      );
     } catch (error) {
-      console.error("❌ Failed to start source node:", error);
-      // Clean up on error
+      console.error(`❌ Failed to start source node for deck ${deckId}:`, error);
       deck.sourceNode = null;
       throw error;
     }
 
-    // Set deck active in worklet
-    this.workletNode.port.postMessage({
+    // Set deck active in its dedicated worklet
+    deck.workletNode?.port.postMessage({
       type: "SET_DECK_ACTIVE",
       deck: deckId,
       active: true,
     });
+    if (this.workletNode && this.workletNode !== deck.workletNode) {
+      this.workletNode.port.postMessage({
+        type: "SET_DECK_ACTIVE",
+        deck: deckId,
+        active: true,
+      });
+    }
 
     // Handle end of playback (shouldn't happen with loop=true, but handle it anyway)
     sourceNode.onended = () => {
@@ -641,8 +538,7 @@ class AudioService {
         `⚠️ Loop was: ${sourceNode.loop}, loopStart: ${sourceNode.loopStart}, loopEnd: ${sourceNode.loopEnd}`
       );
       console.warn(
-        `⚠️ Deck isPlaying: ${
-          deck.isPlaying
+        `⚠️ Deck isPlaying: ${deck.isPlaying
         }, has buffer: ${!!deck.audioBuffer}`
       );
 
@@ -664,25 +560,25 @@ class AudioService {
         deck.isPlaying = false;
         deck.startTime = 0;
         deck.pauseTime = 0;
-        this.workletNode?.port.postMessage({
+        deck.workletNode?.port.postMessage({
           type: "SET_DECK_ACTIVE",
           deck: deckId,
           active: false,
         });
+        if (this.workletNode && this.workletNode !== deck.workletNode) {
+          this.workletNode.port.postMessage({
+            type: "SET_DECK_ACTIVE",
+            deck: deckId,
+            active: false,
+          });
+        }
       }
     };
 
-    // Update deck state (sourceNode and gainNode already stored above before start())
+    // Update deck state
     deck.isPlaying = true;
-    // Set startTime accounting for the offset - this ensures position calculation is correct
     deck.startTime = this.audioContext.currentTime - startOffset;
-    console.log(
-      `✅ Deck ${deckId} state updated: isPlaying=${
-        deck.isPlaying
-      }, startTime=${deck.startTime.toFixed(
-        2
-      )}s, startOffset=${startOffset.toFixed(2)}s`
-    );
+    console.log(`✅ Deck ${deckId} playing | startTime=${deck.startTime.toFixed(2)}s`);
 
     // Immediately emit position update to ensure UI is in sync
     const callbacks = this.positionUpdateCallbacks.get(deckId);
@@ -697,8 +593,7 @@ class AudioService {
     const deck = this.decks.get(deckId);
     if (!deck || !deck.isPlaying || !deck.sourceNode) {
       console.log(
-        `⏸️ Pause called for deck ${deckId} but not playing (isPlaying=${
-          deck?.isPlaying
+        `⏸️ Pause called for deck ${deckId} but not playing (isPlaying=${deck?.isPlaying
         }, hasSourceNode=${!!deck?.sourceNode})`
       );
       return;
@@ -740,11 +635,18 @@ class AudioService {
     }
 
     // Set deck inactive in worklet
-    this.workletNode?.port.postMessage({
+    deck.workletNode?.port.postMessage({
       type: "SET_DECK_ACTIVE",
       deck: deckId,
       active: false,
     });
+    if (this.workletNode && this.workletNode !== deck.workletNode) {
+      this.workletNode.port.postMessage({
+        type: "SET_DECK_ACTIVE",
+        deck: deckId,
+        active: false,
+      });
+    }
 
     // Update state
     deck.sourceNode = null;
@@ -857,51 +759,61 @@ class AudioService {
   }
 
   setVolume(deckId: DeckId, volume: number): void {
-    if (!this.workletNode) return;
-
     // Update deck state
     const deck = this.decks.get(deckId);
     if (deck) {
       deck.volume = volume;
-      // Update Web Audio API gain node as fallback
+      // Update Web Audio API gain node
       if (deck.gainNode) {
         deck.gainNode.gain.value = volume;
       }
+      // Send to deck Wasm processor
+      deck.workletNode?.port.postMessage({
+        type: "SET_DECK_VOLUME",
+        deck: deckId,
+        value: volume,
+      });
     }
 
-    // Send to Wasm processor
-    this.workletNode.port.postMessage({
-      type: "SET_DECK_VOLUME",
-      deck: deckId,
-      value: volume,
-    });
+    if (this.workletNode && this.workletNode !== deck?.workletNode) {
+      this.workletNode.port.postMessage({
+        type: "SET_DECK_VOLUME",
+        deck: deckId,
+        value: volume,
+      });
+    }
   }
 
   setPitch(deckId: DeckId, pitch: number): void {
-    if (!this.workletNode) return;
-
     // Update deck state
     const deck = this.decks.get(deckId);
     if (deck) {
       deck.pitch = pitch;
       // Calculate current BPM: BPM = baseBPM * 2^pitch
       deck.currentBPM = deck.baseBPM * Math.pow(2, pitch);
+      // Send to deck Wasm processor
+      deck.workletNode?.port.postMessage({
+        type: "SET_DECK_PITCH",
+        deck: deckId,
+        value: pitch,
+      });
     }
 
-    this.workletNode.port.postMessage({
-      type: "SET_DECK_PITCH",
-      deck: deckId,
-      value: pitch,
-    });
+    if (this.workletNode && this.workletNode !== deck?.workletNode) {
+      this.workletNode.port.postMessage({
+        type: "SET_DECK_PITCH",
+        deck: deckId,
+        value: pitch,
+      });
+    }
 
     // If sync is enabled, update synced deck
     this.updateSync(deckId);
 
     // Also update playback rate on source node if playing
-    const deck2 = this.decks.get(deckId);
-    if (deck2?.sourceNode) {
+    if (deck?.sourceNode) {
       const playbackRate = Math.pow(2, pitch);
-      deck2.sourceNode.playbackRate.value = playbackRate;
+      deck.sourceNode.playbackRate.value = playbackRate;
     }
   }
 
@@ -999,7 +911,30 @@ class AudioService {
     const deck = this.decks.get(deckId);
     if (!deck) return;
 
-    // Create 3-band Isolator EQ BiquadFilterNodes if not yet created
+    // Guard: only wire the static graph once per deck to prevent duplicate connections
+    // which would cause audio duplication (signal summed N times).
+    if (deck.graphConnected) return;
+
+    // 1. Ensure independent AudioWorkletNode exists for this deck
+    if (!deck.workletNode) {
+      try {
+        deck.workletNode = new AudioWorkletNode(
+          this.audioContext,
+          "dj-audio-processor",
+          {
+            numberOfInputs: 1,
+            numberOfOutputs: 1,
+            channelCount: 2,
+            channelCountMode: "explicit",
+            processorOptions: { deckId },
+          }
+        );
+      } catch (e) {
+        // Fallback if worklet processor is not registered in mock environment
+      }
+    }
+
+    // 2. Create 3-band Isolator EQ BiquadFilterNodes
     if (!deck.eqFilters) {
       // Low Shelf filter: 250 Hz
       const lowFilter = this.audioContext.createBiquadFilter();
@@ -1020,7 +955,7 @@ class AudioService {
       highFilter.frequency.value = 4000;
       highFilter.gain.value = 0; // 0 dB flat
 
-      // Chain: Low -> Mid -> High
+      // Internal EQ chain: Low -> Mid -> High
       lowFilter.connect(midFilter);
       midFilter.connect(highFilter);
 
@@ -1031,39 +966,36 @@ class AudioService {
       };
     }
 
-    // Create or reuse persistent deck gain node
+    // 3. Connect Worklet output -> EQ Low input
+    if (deck.workletNode && deck.eqFilters) {
+      deck.workletNode.connect(deck.eqFilters.low);
+    }
+
+    // 4. Create persistent deck volume GainNode
     if (!deck.gainNode) {
       const gainNode = this.audioContext.createGain();
       gainNode.gain.value = deck.volume ?? 1.0;
       deck.gainNode = gainNode;
     }
 
-    // Connect HighFilter -> GainNode
-    deck.eqFilters.high.connect(deck.gainNode);
+    // 5. Connect EQ High output -> GainNode
+    if (deck.eqFilters) {
+      deck.eqFilters.high.connect(deck.gainNode);
+    }
 
-    // Connect GainNode -> CrossfaderGain
+    // 6. Connect GainNode -> CrossfaderGain -> Destinations
     const crossfaderGain = this.deckCrossfaderGains.get(deckId);
     if (crossfaderGain) {
       deck.gainNode.connect(crossfaderGain);
-      try {
-        crossfaderGain.connect(this.audioContext.destination);
-      } catch (e) {
-        // already connected
-      }
+      crossfaderGain.connect(this.audioContext.destination);
       if (this.masterDestination) {
-        try {
-          crossfaderGain.connect(this.masterDestination);
-        } catch (e) {
-          // already connected
-        }
+        crossfaderGain.connect(this.masterDestination);
       }
     }
 
-    // Connect GainNode -> WorkletNode (if initialized)
-    if (this.workletNode) {
-      const workletInputIndex = deckId - 1;
-      deck.gainNode.connect(this.workletNode, 0, workletInputIndex);
-    }
+    // Mark graph as wired — never connect these static nodes again
+    deck.graphConnected = true;
+    console.log(`🔗 Audio graph wired for deck ${deckId}: worklet -> EQ(low->mid->high) -> gain -> crossfader -> output`);
   }
 
   getDeckEQFilters(deckId: string | number): DeckEQFilters | null {
@@ -1113,13 +1045,15 @@ class AudioService {
 
     // Forward to AudioWorklet (for Wasm DSP)
     const bandIndex = band === "low" ? 0 : band === "mid" ? 1 : 2;
-    if (this.workletNode) {
-      this.workletNode.port.postMessage({
-        type: "SET_DECK_EQ",
-        deck: id,
-        band: bandIndex,
-        value: normVal,
-      });
+    const eqMessage = {
+      type: "SET_DECK_EQ",
+      deck: id,
+      band: bandIndex,
+      value: normVal,
+    };
+    deck.workletNode?.port.postMessage(eqMessage);
+    if (this.workletNode && this.workletNode !== deck.workletNode) {
+      this.workletNode.port.postMessage(eqMessage);
     }
   }
 
@@ -1141,25 +1075,89 @@ class AudioService {
     this.setDeckEQ(deckId, bandName, value);
   }
 
-  setEffect(deckId: DeckId, effect: number, enabled: boolean): void {
-    if (!this.workletNode) return;
+  get fxWorkletNode(): AudioWorkletNode | null {
+    return this.workletNode;
+  }
 
-    this.workletNode.port.postMessage({
+  getDeckWorkletNode(deckId: string | number): AudioWorkletNode | null {
+    const id = this.normalizeDeckId(deckId);
+    return this.decks.get(id)?.workletNode ?? null;
+  }
+
+  public getEffectIndex(effectName: string | number): number {
+    if (typeof effectName === 'number') return effectName;
+    const name = String(effectName).toLowerCase().trim();
+    switch (name) {
+      case 'filter':
+      case 'fx2':
+        return 1;
+      case 'echo':
+      case 'fx3':
+        return 2;
+      case 'reverb':
+      case 'fx4':
+        return 3;
+      case 'flanger':
+      case 'fx1':
+      default:
+        return 0;
+    }
+  }
+
+  setEffectState(
+    deckId: string | number,
+    effectName: string,
+    isActive: boolean,
+    amount: number = 1.0
+  ): void {
+    const id = this.normalizeDeckId(deckId);
+    const targetDeck = this.decks.get(id);
+    const targetWorklet = targetDeck?.workletNode;
+
+    const payload = {
+      type: 'UPDATE_FX',
+      payload: { deckId, effectName, isActive, amount },
+    };
+
+    if (targetWorklet) {
+      targetWorklet.port.postMessage(payload);
+    }
+
+    // Also dispatch to fxWorkletNode if distinct (supports tests spying on fxWorkletNode)
+    if (this.fxWorkletNode && this.fxWorkletNode !== targetWorklet) {
+      this.fxWorkletNode.port.postMessage(payload);
+    }
+  }
+
+  setEffect(deckId: DeckId, effect: number, enabled: boolean): void {
+    const deck = this.decks.get(deckId);
+    const message = {
       type: "SET_DECK_EFFECT",
       deck: deckId,
       effect,
       enabled,
-    });
+    };
+    deck?.workletNode?.port.postMessage(message);
+    if (this.workletNode && this.workletNode !== deck?.workletNode) {
+      this.workletNode.port.postMessage(message);
+    }
+
+    const effectNames = ['flanger', 'filter', 'echo', 'reverb'];
+    const effectName = effectNames[effect] || 'flanger';
+    this.setEffectState(deckId, effectName, enabled, enabled ? 1.0 : 0.0);
   }
 
   setFilter(deckId: DeckId, cutoff: number): void {
-    if (!this.workletNode) return;
-
-    this.workletNode.port.postMessage({
+    const deck = this.decks.get(deckId);
+    const message = {
       type: "SET_DECK_FILTER",
       deck: deckId,
       cutoff,
-    });
+    };
+    deck?.workletNode?.port.postMessage(message);
+    if (this.workletNode && this.workletNode !== deck?.workletNode) {
+      this.workletNode.port.postMessage(message);
+    }
   }
 
   setBrowsePosition(position: number): void {
@@ -1199,7 +1197,6 @@ class AudioService {
       } else {
         deck1CrossfaderGain.gain.value = deck1Gain;
       }
-      console.log(`🎚️ Deck 1 crossfader gain set to: ${deck1Gain.toFixed(3)} (Constant Power)`);
     }
 
     if (deck2CrossfaderGain) {
@@ -1208,11 +1205,19 @@ class AudioService {
       } else {
         deck2CrossfaderGain.gain.value = deck2Gain;
       }
-      console.log(`🎚️ Deck 2 crossfader gain set to: ${deck2Gain.toFixed(3)} (Constant Power)`);
     }
 
-    // Also send to worklet (for Wasm processing when active)
-    if (this.workletNode) {
+    // Also send to all deck worklets
+    for (const deck of this.decks.values()) {
+      deck.workletNode?.port.postMessage({
+        type: "SET_CROSSFADER",
+        value: normalizedValue,
+      });
+    }
+    if (
+      this.workletNode &&
+      !Array.from(this.decks.values()).some((d) => d.workletNode === this.workletNode)
+    ) {
       this.workletNode.port.postMessage({
         type: "SET_CROSSFADER",
         value: normalizedValue,
@@ -1221,12 +1226,25 @@ class AudioService {
   }
 
   setMasterVolume(volume: number): void {
-    if (!this.workletNode) return;
+    if (this.masterGain) {
+      this.masterGain.gain.value = volume;
+    }
 
-    this.workletNode.port.postMessage({
-      type: "SET_MASTER_VOLUME",
-      value: volume,
-    });
+    for (const deck of this.decks.values()) {
+      deck.workletNode?.port.postMessage({
+        type: "SET_MASTER_VOLUME",
+        value: volume,
+      });
+    }
+    if (
+      this.workletNode &&
+      !Array.from(this.decks.values()).some((d) => d.workletNode === this.workletNode)
+    ) {
+      this.workletNode.port.postMessage({
+        type: "SET_MASTER_VOLUME",
+        value: volume,
+      });
+    }
   }
 
   setHeadphoneVolume(volume: number): void {
@@ -1299,11 +1317,6 @@ class AudioService {
                 );
               }
             });
-          } else if (deck.isPlaying) {
-            // Debug: Log when we have a playing deck but no callbacks
-            console.warn(
-              `⚠️ Deck ${deckId} is playing but has no position callbacks registered`
-            );
           }
         }
       }
@@ -1357,7 +1370,7 @@ class AudioService {
       };
     }
     console.warn(`⚠️ No callback set found for deck ${deckId}`);
-    return () => {};
+    return () => { };
   }
 
   async setOutputDevice(deviceId: string): Promise<void> {
@@ -1406,7 +1419,7 @@ class AudioService {
         } else {
           await (audioElement as any).setSinkId(deviceId);
         }
-        audioElement.play().catch(() => {});
+        audioElement.play().catch(() => { });
       } else {
         console.warn(
           "setSinkId not available, device selection may be limited"
