@@ -22,7 +22,7 @@ REM Store JSON strings in variables to avoid quote parsing issues
 set "EXPORTED_FUNCS=[\"_init_processors\",\"_set_deck1_volume\",\"_set_deck1_pitch\",\"_set_deck1_eq\",\"_set_deck1_effect\",\"_set_deck2_volume\",\"_set_deck2_pitch\",\"_set_deck2_eq\",\"_set_deck2_effect\",\"_set_crossfader\",\"_set_master_volume\",\"_process_deck_audio\",\"_malloc\",\"_free\"]"
 set "EXPORTED_METHODS=[\"ccall\",\"cwrap\",\"UTF8ToString\",\"stringToUTF8\"]"
 
-emcc audio_processor.cpp wasm_bindings.cpp -o ../public/audio_processor.js -O3 -s WASM=1 -s EXPORTED_FUNCTIONS=!EXPORTED_FUNCS! -s EXPORTED_RUNTIME_METHODS=!EXPORTED_METHODS! -s ALLOW_MEMORY_GROWTH=1 -s MODULARIZE=1 -s EXPORT_NAME=createAudioProcessorModule -s ENVIRONMENT=web,worker --no-entry
+emcc audio_processor.cpp wasm_bindings.cpp -o ../public/audio_processor.js -O3 -s WASM=1 -s EXPORTED_FUNCTIONS=!EXPORTED_FUNCS! -s EXPORTED_RUNTIME_METHODS=!EXPORTED_METHODS! -s ALLOW_MEMORY_GROWTH=1 -s MAXIMUM_MEMORY=2GB -s MODULARIZE=1 -s EXPORT_NAME=createAudioProcessorModule -s ENVIRONMENT=web,worker --no-entry
 
 if !ERRORLEVEL! EQU 0 (
     echo.

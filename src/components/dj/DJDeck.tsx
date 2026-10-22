@@ -28,6 +28,7 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
     updateVolume,
     updatePitch,
     updateEffects,
+    setEffectState,
     loadTrack,
     setDeckPlaying,
     setCuePoint,
@@ -103,11 +104,26 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
     }
   }, [deckData?.isCued, isCued]);
 
+  // Synchronize effect state from global store without unnecessary DOM re-renders
   useEffect(() => {
-    if (deckData?.effects) {
-      setEffectsActive(deckData.effects);
-    }
-  }, [deckData?.effects]);
+    if (!deckData?.effects) return;
+    setEffectsActive((prev) => {
+      if (
+        prev.flanger === deckData.effects.flanger &&
+        prev.filter === deckData.effects.filter &&
+        prev.echo === deckData.effects.echo &&
+        prev.reverb === deckData.effects.reverb
+      ) {
+        return prev; // Identical values - retain identity to avoid re-renders
+      }
+      return deckData.effects;
+    });
+  }, [
+    deckData?.effects?.flanger,
+    deckData?.effects?.filter,
+    deckData?.effects?.echo,
+    deckData?.effects?.reverb,
+  ]);
 
   // UI Handlers with bidirectional store update
   const handleVolumeChange = (newVolume: number) => {
@@ -174,11 +190,13 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
   // Audio playback is now handled by AudioService
 
   const toggleEffect = (effectType: keyof AudioEffects) => {
+    const nextActive = !effectsActive[effectType];
     const newEffects = {
       ...effectsActive,
-      [effectType]: !effectsActive[effectType],
+      [effectType]: nextActive,
     };
     setEffectsActive(newEffects);
+    setEffectState(deckNumber, effectType, nextActive, nextActive ? 1.0 : 0.0);
     updateEffects(deckNumber, newEffects);
     dispatch({
       type: deckNumber === 1 ? 'SET_DECK_1_STATE' : 'SET_DECK_2_STATE',
@@ -198,14 +216,14 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
 
   // Audio handling functions
 
-  const handleAudioLoad = async (file: File) => {
+  const handleAudioLoad = (file: File) => {
     setAudioFile(file);
     setCurrentAudioBuffer(null);
     setCurrentTime(0);
     setDuration(0);
     setIsPlaying(false);
 
-    // Notify global state loading started
+    // 1. Tell UI to show loading overlay FIRST (update global store)
     dispatch({
       type: "SET_TRACK_LOADING",
       deck: deckNumber,
@@ -217,73 +235,76 @@ function DJDeck({ deckNumber, deckState }: DJDeckProps) {
       },
     });
 
-    try {
-      // Initialize audio context
-      await initAudioContext();
-      dispatch({
-        type: "SET_TRACK_LOADING",
-        deck: deckNumber,
-        payload: { progress: 35 },
-      });
+    // 2. Yield to the browser's render pipeline so React can commit and paint the DOM
+    setTimeout(async () => {
+      try {
+        // 3. Do the heavy lifting (init context, fetch, decodeAudioData, Wasm allocation)
+        await initAudioContext();
+        dispatch({
+          type: "SET_TRACK_LOADING",
+          deck: deckNumber,
+          payload: { progress: 35 },
+        });
 
-      // Stream & decode track into AudioService without redundant memory copies
-      const audioBuffer = await loadTrack(deckNumber, file);
+        // Stream & decode track into AudioService without redundant memory copies
+        const audioBuffer = await loadTrack(deckNumber, file);
 
-      dispatch({
-        type: "SET_TRACK_LOADING",
-        deck: deckNumber,
-        payload: { progress: 75 },
-      });
+        dispatch({
+          type: "SET_TRACK_LOADING",
+          deck: deckNumber,
+          payload: { progress: 75 },
+        });
 
-      // Detect BPM directly using the decoded AudioBuffer (zero redundant decoding)
-      const detectedBPM = await detectBPM(audioBuffer);
-      setBaseBpm(detectedBPM);
-      setBaseBPM(deckNumber, detectedBPM);
-      setBpm(detectedBPM);
-      setDuration(audioBuffer.duration);
-      setCurrentAudioBuffer(audioBuffer);
+        // Detect BPM directly using the decoded AudioBuffer (zero redundant decoding)
+        const detectedBPM = await detectBPM(audioBuffer);
+        setBaseBpm(detectedBPM);
+        setBaseBPM(deckNumber, detectedBPM);
+        setBpm(detectedBPM);
+        setDuration(audioBuffer.duration);
+        setCurrentAudioBuffer(audioBuffer);
 
-      dispatch({
-        type: "SET_TRACK_LOADING",
-        deck: deckNumber,
-        payload: {
-          isLoading: false,
-          progress: 100,
-          error: null,
-        },
-      });
+        dispatch({
+          type: "SET_TRACK_LOADING",
+          deck: deckNumber,
+          payload: {
+            isLoading: false,
+            progress: 100,
+            error: null,
+          },
+        });
 
-      toast.success(`Track carregada no Deck ${deckNumber}`, {
-        description: `${file.name} • ${detectedBPM.toFixed(1)} BPM`,
-      });
+        toast.success(`Track carregada no Deck ${deckNumber}`, {
+          description: `${file.name} • ${detectedBPM.toFixed(1)} BPM`,
+        });
 
-      console.log(`✅ Track loaded for deck ${deckNumber}: ${file.name}`);
-    } catch (error: any) {
-      console.error(`❌ Failed to load track for deck ${deckNumber}:`, error);
+        console.log(`✅ Track loaded for deck ${deckNumber}: ${file.name}`);
+      } catch (error: any) {
+        console.error(`❌ Failed to load track for deck ${deckNumber}:`, error);
 
-      // Reset deck state to prevent inconsistent playback
-      setAudioFile(null);
-      setCurrentAudioBuffer(null);
-      setCurrentTime(0);
-      setDuration(0);
+        // Reset deck state to prevent inconsistent playback
+        setAudioFile(null);
+        setCurrentAudioBuffer(null);
+        setCurrentTime(0);
+        setDuration(0);
 
-      const errorMessage =
-        error?.message || "O arquivo é muito grande ou não pôde ser decodificado.";
+        const errorMessage =
+          error?.message || "O arquivo é muito grande ou não pôde ser decodificado.";
 
-      dispatch({
-        type: "SET_TRACK_LOADING",
-        deck: deckNumber,
-        payload: {
-          isLoading: false,
-          progress: 0,
-          error: errorMessage,
-        },
-      });
+        dispatch({
+          type: "SET_TRACK_LOADING",
+          deck: deckNumber,
+          payload: {
+            isLoading: false,
+            progress: 0,
+            error: errorMessage,
+          },
+        });
 
-      toast.error(`Deck ${deckNumber}: Falha no áudio`, {
-        description: "O arquivo é muito grande ou não pôde ser decodificado.",
-      });
-    }
+        toast.error(`Deck ${deckNumber}: Falha no áudio`, {
+          description: errorMessage,
+        });
+      }
+    }, 50); // 50ms is enough for React to commit and paint the DOM
   };
 
   const handleTimeUpdate = (time: number) => {

@@ -5,16 +5,18 @@ if (typeof self === 'undefined') {
 }
 
 class DJAudioProcessor extends AudioWorkletProcessor {
-  constructor() {
+  constructor(options) {
     super();
+    this.deckId = options?.processorOptions?.deckId ?? null;
     this.wasmModule = null;
     this.wasmInstance = null;
+    this.wasm = null;
     this.initialized = false;
     this.sampleRate = 44100;
     
     // Deck states
-    this.deck1Active = false;
-    this.deck2Active = false;
+    this.deck1Active = this.deckId === 1;
+    this.deck2Active = this.deckId === 2;
     
     // Crossfader state (-1 = full deck1, 0 = center, +1 = full deck2)
     this.crossfader = 0;
@@ -38,6 +40,9 @@ class DJAudioProcessor extends AudioWorkletProcessor {
   
   handleMessage(data) {
     switch (data.type) {
+      case 'SET_DECK_ID':
+        this.deckId = data.deckId;
+        break;
       case 'LOAD_WASM':
         this.loadWasmModule(data.wasmBytes, data.wasmJsCode);
         break;
@@ -65,6 +70,64 @@ class DJAudioProcessor extends AudioWorkletProcessor {
           this.wasmInstance[`_set_${deck}_effect`](data.effect, data.enabled);
         }
         break;
+      case 'UPDATE_FX': {
+        const payload = data.payload || data;
+        const { deckId, effectName, isActive, amount } = payload;
+
+        // Normalize deckId (supports 1, 2, '1', '2', 'deck1', 'deck2', 'deck_a', 'deck_b')
+        let deckNum = 1;
+        if (typeof deckId === 'number') {
+          deckNum = deckId === 2 ? 2 : 1;
+        } else if (typeof deckId === 'string') {
+          const clean = deckId.toLowerCase();
+          if (clean.includes('2') || clean.includes('b')) {
+            deckNum = 2;
+          }
+        }
+        const deckKey = deckNum === 1 ? 'deck1' : 'deck2';
+
+        // Map effectName to integer index: 0=flanger, 1=filter, 2=echo, 3=reverb
+        let fxIndex = 0;
+        if (typeof effectName === 'number') {
+          fxIndex = effectName;
+        } else if (typeof effectName === 'string') {
+          const name = effectName.toLowerCase().trim();
+          if (name === 'filter' || name === 'fx2') {
+            fxIndex = 1;
+          } else if (name === 'echo' || name === 'fx3') {
+            fxIndex = 2;
+          } else if (name === 'reverb' || name === 'fx4') {
+            fxIndex = 3;
+          } else {
+            fxIndex = 0; // flanger / fx1
+          }
+        }
+
+        const wasm = this.wasmInstance || this.wasm;
+        if (wasm) {
+          // Call exported C function: _set_deck1_effect / _set_deck2_effect
+          const effectFn = wasm[`_set_${deckKey}_effect`];
+          if (typeof effectFn === 'function') {
+            effectFn(fxIndex, Boolean(isActive));
+          }
+
+          // Call set_effect_param if available on wasm module
+          const paramFn = wasm.set_effect_param || wasm._set_effect_param;
+          if (typeof paramFn === 'function') {
+            const fxAmount = typeof amount === 'number' ? amount : (isActive ? 1.0 : 0.0);
+            paramFn(deckNum, fxIndex, fxAmount);
+          }
+
+          // If filter effect has cutoff / amount parameter
+          if (fxIndex === 1 && typeof amount === 'number') {
+            const filterFn = wasm[`_set_${deckKey}_filter`];
+            if (typeof filterFn === 'function') {
+              filterFn(amount);
+            }
+          }
+        }
+        break;
+      }
       case 'SET_DECK_FILTER':
         if (this.wasmInstance) {
           const deck = data.deck === 1 ? 'deck1' : 'deck2';
@@ -87,10 +150,18 @@ class DJAudioProcessor extends AudioWorkletProcessor {
         }
         break;
       case 'SET_DECK_ACTIVE':
-        if (data.deck === 1) {
-          this.deck1Active = data.active;
+        if (this.deckId) {
+          if (this.deckId === 1) {
+            this.deck1Active = Boolean(data.active);
+          } else if (this.deckId === 2) {
+            this.deck2Active = Boolean(data.active);
+          }
         } else {
-          this.deck2Active = data.active;
+          if (data.deck === 1) {
+            this.deck1Active = Boolean(data.active);
+          } else {
+            this.deck2Active = Boolean(data.active);
+          }
         }
         break;
     }
@@ -143,6 +214,19 @@ class DJAudioProcessor extends AudioWorkletProcessor {
       // Instantiate the Wasm module with the bytes
       this.wasmModule = await moduleFactory({ wasmBinary: wasmBytes });
       this.wasmInstance = this.wasmModule;
+      this.wasm = this.wasmInstance;
+
+      // Provide set_effect_param on wasm instance if not exported natively
+      if (this.wasmInstance && !this.wasmInstance.set_effect_param) {
+        this.wasmInstance.set_effect_param = (deck, effect, amount) => {
+          const deckKey = deck === 2 || deck === 'deck2' || (typeof deck === 'string' && (deck.includes('2') || deck.includes('b'))) ? 'deck2' : 'deck1';
+          const isEnabled = typeof amount === 'boolean' ? amount : amount > 0;
+          const fn = this.wasmInstance[`_set_${deckKey}_effect`];
+          if (typeof fn === 'function') {
+            fn(effect, isEnabled);
+          }
+        };
+      }
       
       // Initialize processors with sample rate
       if (this.wasmInstance._init_processors) {
@@ -161,7 +245,7 @@ class DJAudioProcessor extends AudioWorkletProcessor {
   }
   
   allocateBuffers(size) {
-    if (!this.wasmInstance) return;
+    if (!this.wasmInstance || !size || size <= 0) return;
     
     // Free old buffers if they exist
     if (this.deck1InputLeftPtr) {
@@ -173,10 +257,19 @@ class DJAudioProcessor extends AudioWorkletProcessor {
       this.wasmInstance._free(this.deck2InputRightPtr);
       this.wasmInstance._free(this.deck2OutputLeftPtr);
       this.wasmInstance._free(this.deck2OutputRightPtr);
+      this.deck1InputLeftPtr = null;
+      this.deck1InputRightPtr = null;
+      this.deck1OutputLeftPtr = null;
+      this.deck1OutputRightPtr = null;
+      this.deck2InputLeftPtr = null;
+      this.deck2InputRightPtr = null;
+      this.deck2OutputLeftPtr = null;
+      this.deck2OutputRightPtr = null;
     }
     
-    // Allocate new buffers (4 bytes per float)
-    const bufferSizeBytes = size * 4;
+    // Allocate new buffers (4 bytes per 32-bit float)
+    const allocSize = Math.max(128, size);
+    const bufferSizeBytes = allocSize * 4;
     this.deck1InputLeftPtr = this.wasmInstance._malloc(bufferSizeBytes);
     this.deck1InputRightPtr = this.wasmInstance._malloc(bufferSizeBytes);
     this.deck1OutputLeftPtr = this.wasmInstance._malloc(bufferSizeBytes);
@@ -186,7 +279,7 @@ class DJAudioProcessor extends AudioWorkletProcessor {
     this.deck2OutputLeftPtr = this.wasmInstance._malloc(bufferSizeBytes);
     this.deck2OutputRightPtr = this.wasmInstance._malloc(bufferSizeBytes);
     
-    this.bufferSize = size;
+    this.bufferSize = allocSize;
   }
   
   process(inputs, outputs, parameters) {
@@ -210,6 +303,19 @@ class DJAudioProcessor extends AudioWorkletProcessor {
     }
     
     if (!this.initialized || !this.wasmInstance) {
+      if (this.deckId) {
+        // Dedicated worklet for a single deck (pass-through when Wasm not ready)
+        const input = inputs[0];
+        if (input && input[0] && input[1]) {
+          output[0].set(input[0]);
+          output[1].set(input[1]);
+        } else {
+          output[0].fill(0);
+          output[1].fill(0);
+        }
+        return true;
+      }
+
       // Pass through if not initialized - mix both deck inputs
       const deck1Input = inputs[0];
       const deck2Input = inputs[1];
@@ -238,6 +344,122 @@ class DJAudioProcessor extends AudioWorkletProcessor {
       }
       return true;
     }
+
+    if (this.deckId) {
+      // Dedicated worklet for a single deck
+      const input = inputs[0];
+      const numSamples = (input && input[0]) ? input[0].length : 128;
+
+      if (!this.deck1InputLeftPtr || numSamples > this.bufferSize) {
+        this.allocateBuffers(numSamples);
+      }
+      if (!this.deck1InputLeftPtr) {
+        return true;
+      }
+
+      let heap = this.wasmInstance.HEAPF32;
+      if (!heap || heap.buffer.byteLength === 0) {
+        if (typeof this.wasmInstance.updateMemoryViews === 'function') {
+          this.wasmInstance.updateMemoryViews();
+          heap = this.wasmInstance.HEAPF32;
+        }
+      }
+      if (!heap || heap.length === 0) return true;
+
+      const heapOffset = heap.byteOffset / 4;
+      const startIndex1L = (this.deck1InputLeftPtr / 4) + heapOffset;
+      if (startIndex1L + numSamples > heap.length) {
+        this.allocateBuffers(numSamples);
+        heap = this.wasmInstance.HEAPF32;
+      }
+
+      if (this.deckId === 2) {
+        const deck2InputLeft = heap.subarray(
+          (this.deck2InputLeftPtr / 4) + heapOffset,
+          (this.deck2InputLeftPtr / 4) + heapOffset + numSamples
+        );
+        const deck2InputRight = heap.subarray(
+          (this.deck2InputRightPtr / 4) + heapOffset,
+          (this.deck2InputRightPtr / 4) + heapOffset + numSamples
+        );
+        if (input && input[0] && input[1]) {
+          deck2InputLeft.set(input[0]);
+          deck2InputRight.set(input[1]);
+        } else {
+          deck2InputLeft.fill(0);
+          deck2InputRight.fill(0);
+        }
+
+        // Set crossfader to 1.0 in Wasm so deck 2 outputs at unity gain
+        if (this.wasmInstance._set_crossfader) {
+          this.wasmInstance._set_crossfader(1.0);
+        }
+
+        this.wasmInstance._process_deck_audio(
+          this.deck1InputLeftPtr, this.deck1InputRightPtr,
+          this.deck1OutputLeftPtr, this.deck1OutputRightPtr,
+          this.deck2InputLeftPtr, this.deck2InputRightPtr,
+          this.deck2OutputLeftPtr, this.deck2OutputRightPtr,
+          numSamples,
+          false,
+          true
+        );
+
+        const deck2OutputLeft = heap.subarray(
+          (this.deck2OutputLeftPtr / 4) + heapOffset,
+          (this.deck2OutputLeftPtr / 4) + heapOffset + numSamples
+        );
+        const deck2OutputRight = heap.subarray(
+          (this.deck2OutputRightPtr / 4) + heapOffset,
+          (this.deck2OutputRightPtr / 4) + heapOffset + numSamples
+        );
+        output[0].set(deck2OutputLeft);
+        output[1].set(deck2OutputRight);
+      } else {
+        const deck1InputLeft = heap.subarray(
+          (this.deck1InputLeftPtr / 4) + heapOffset,
+          (this.deck1InputLeftPtr / 4) + heapOffset + numSamples
+        );
+        const deck1InputRight = heap.subarray(
+          (this.deck1InputRightPtr / 4) + heapOffset,
+          (this.deck1InputRightPtr / 4) + heapOffset + numSamples
+        );
+        if (input && input[0] && input[1]) {
+          deck1InputLeft.set(input[0]);
+          deck1InputRight.set(input[1]);
+        } else {
+          deck1InputLeft.fill(0);
+          deck1InputRight.fill(0);
+        }
+
+        // Set crossfader to 0.0 in Wasm so deck 1 outputs at unity gain
+        if (this.wasmInstance._set_crossfader) {
+          this.wasmInstance._set_crossfader(0.0);
+        }
+
+        this.wasmInstance._process_deck_audio(
+          this.deck1InputLeftPtr, this.deck1InputRightPtr,
+          this.deck1OutputLeftPtr, this.deck1OutputRightPtr,
+          this.deck2InputLeftPtr, this.deck2InputRightPtr,
+          this.deck2OutputLeftPtr, this.deck2OutputRightPtr,
+          numSamples,
+          true,
+          false
+        );
+
+        const deck1OutputLeft = heap.subarray(
+          (this.deck1OutputLeftPtr / 4) + heapOffset,
+          (this.deck1OutputLeftPtr / 4) + heapOffset + numSamples
+        );
+        const deck1OutputRight = heap.subarray(
+          (this.deck1OutputRightPtr / 4) + heapOffset,
+          (this.deck1OutputRightPtr / 4) + heapOffset + numSamples
+        );
+        output[0].set(deck1OutputLeft);
+        output[1].set(deck1OutputRight);
+      }
+      return true;
+    }
     
     // Get inputs for both decks (input[0] = deck1, input[1] = deck2)
     const deck1Input = inputs[0];
@@ -251,14 +473,33 @@ class DJAudioProcessor extends AudioWorkletProcessor {
       numSamples = deck2Input[0].length;
     }
     
-    // Reallocate buffers if size changed
-    if (numSamples !== this.bufferSize) {
+    // Reallocate buffers if size changed or not yet allocated
+    if (!this.deck1InputLeftPtr || numSamples > this.bufferSize) {
       this.allocateBuffers(numSamples);
     }
+    if (!this.deck1InputLeftPtr) {
+      return true;
+    }
     
-    // Get Wasm memory views
-    const heap = new Float32Array(this.wasmInstance.HEAPF32.buffer);
-    const heapOffset = this.wasmInstance.HEAPF32.byteOffset / 4;
+    // Get fresh Wasm memory views (protect against detached ArrayBuffer after memory growth)
+    let heap = this.wasmInstance.HEAPF32;
+    if (!heap || heap.buffer.byteLength === 0) {
+      if (typeof this.wasmInstance.updateMemoryViews === 'function') {
+        this.wasmInstance.updateMemoryViews();
+        heap = this.wasmInstance.HEAPF32;
+      }
+    }
+    if (!heap || heap.length === 0) {
+      return true;
+    }
+    const heapOffset = heap.byteOffset / 4;
+    
+    // Validate bounds before creating subarrays
+    const startIndex1L = (this.deck1InputLeftPtr / 4) + heapOffset;
+    if (startIndex1L + numSamples > heap.length) {
+      this.allocateBuffers(numSamples);
+      heap = this.wasmInstance.HEAPF32;
+    }
     
     // Copy deck1 input to Wasm memory
     const deck1InputLeft = heap.subarray(

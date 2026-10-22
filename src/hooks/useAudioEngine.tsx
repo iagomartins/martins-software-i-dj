@@ -269,10 +269,25 @@ export const useAudioEngine = () => {
       const audioService = audioServiceRef.current;
       if (!audioService) return;
 
+      audioService.setEffectState(deckNumber, 'flanger', effects.flanger, effects.flanger ? 1.0 : 0.0);
+      audioService.setEffectState(deckNumber, 'filter', effects.filter, effects.filter ? 1.0 : 0.0);
+      audioService.setEffectState(deckNumber, 'echo', effects.echo, effects.echo ? 1.0 : 0.0);
+      audioService.setEffectState(deckNumber, 'reverb', effects.reverb, effects.reverb ? 1.0 : 0.0);
+
       audioService.setEffect(deckNumber, 0, effects.flanger);
       audioService.setEffect(deckNumber, 1, effects.filter);
       audioService.setEffect(deckNumber, 2, effects.echo);
       audioService.setEffect(deckNumber, 3, effects.reverb);
+    },
+    []
+  );
+
+  // Set individual effect state
+  const setEffectState = useCallback(
+    (deckId: string | number, effectName: string, isActive: boolean, amount: number = 1.0) => {
+      const audioService = audioServiceRef.current;
+      if (!audioService) return;
+      audioService.setEffectState(deckId, effectName, isActive, amount);
     },
     []
   );
@@ -393,6 +408,7 @@ export const useAudioEngine = () => {
     updateVolume,
     updatePitch,
     updateEffects,
+    setEffectState,
     updateFilter,
     updateHeadphoneVolume,
     setDeckChain,

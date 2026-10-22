@@ -67,17 +67,25 @@ export const AudioWaveform = ({
           if (window.electronAPI?.fs) {
             const readResult = await window.electronAPI.fs.readFile(filePath);
             if (readResult.success && readResult.data) {
-              // Convert number array to ArrayBuffer
-              const arrayBuffer = new ArrayBuffer(readResult.data.length);
-              const view = new Uint8Array(arrayBuffer);
-              readResult.data.forEach((byte, index) => {
-                view[index] = byte;
-              });
+              const fileName = filePath.split(/[/\\]/).pop() || "audio";
+              let arrayBuffer: ArrayBuffer;
+              if (readResult.data instanceof Uint8Array) {
+                arrayBuffer = readResult.data.buffer.slice(
+                  readResult.data.byteOffset,
+                  readResult.data.byteOffset + readResult.data.byteLength
+                );
+              } else if (Array.isArray(readResult.data)) {
+                const uint8 = new Uint8Array(readResult.data);
+                arrayBuffer = uint8.buffer;
+              } else if ((readResult.data as any).buffer instanceof ArrayBuffer) {
+                arrayBuffer = (readResult.data as any).buffer;
+              } else {
+                arrayBuffer = readResult.data as unknown as ArrayBuffer;
+              }
 
               // Create File object from ArrayBuffer
-              const fileName = filePath.split(/[/\\]/).pop() || "audio";
               const file = new File([arrayBuffer], fileName, {
-                type: "audio/mpeg",
+                type: fileName.toLowerCase().endsWith(".wav") ? "audio/wav" : "audio/mpeg",
               });
               onLoad(file);
             }

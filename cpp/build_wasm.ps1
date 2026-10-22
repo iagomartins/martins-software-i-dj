@@ -26,6 +26,7 @@ $exportedMethods = '["ccall","cwrap","UTF8ToString","stringToUTF8"]'
     -s "EXPORTED_FUNCTIONS=$exportedFuncs" `
     -s "EXPORTED_RUNTIME_METHODS=$exportedMethods" `
     -s ALLOW_MEMORY_GROWTH=1 `
+    -s MAXIMUM_MEMORY=2GB `
     -s MODULARIZE=1 `
     -s EXPORT_NAME=createAudioProcessorModule `
     -s "ENVIRONMENT=web,worker" `

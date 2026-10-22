@@ -9,6 +9,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { DJKnob } from '../DJKnob';
 import { CrossFader } from '../CrossFader';
 import { DeckLoadingOverlay } from '../DeckLoadingOverlay';
+import { DJButton } from '../DJButton';
 
 describe('DJKnob Component (Isolated)', () => {
   it('renders label and correctly applies rotation transform style', () => {
@@ -172,5 +173,42 @@ describe('DeckLoadingOverlay Component (Isolated)', () => {
     fireEvent.click(dismissButton);
 
     expect(handleDismiss).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('DJButton Component (FX & Controls)', () => {
+  it('renders FX button in inactive state and triggers click callback', () => {
+    const handleClick = vi.fn();
+    render(
+      <DJButton
+        id="deck1-fx1"
+        label="FX1"
+        active={false}
+        onClick={handleClick}
+        size="xs"
+      />
+    );
+
+    const button = screen.getByRole('button', { name: 'FX1' });
+    expect(button).toBeInTheDocument();
+    expect(button).not.toHaveClass('bg-neon-cyan');
+
+    fireEvent.click(button);
+    expect(handleClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders FX button in active state with highlight styling', () => {
+    render(
+      <DJButton
+        id="deck1-fx2"
+        label="FX2"
+        active={true}
+        onClick={vi.fn()}
+        size="xs"
+      />
+    );
+
+    const button = screen.getByRole('button', { name: 'FX2' });
+    expect(button).toHaveClass('active');
   });
 });

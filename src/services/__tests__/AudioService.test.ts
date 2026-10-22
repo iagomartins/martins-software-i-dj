@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * AudioService Unit Tests - Singleton & Memory Integrity
  * Location: src/services/__tests__/AudioService.test.ts
@@ -66,6 +67,14 @@ describe('AudioService - Track Loading & Memory Safety', () => {
 
     expect(audioBuffer).toBeDefined();
     expect(service.getDeckAudioBuffer(2)).toBe(audioBuffer);
+  });
+
+  it('safely handles direct Uint8Array sources from zero-copy Electron IPC without re-allocation', async () => {
+    const rawUint8 = new Uint8Array([0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0]); // 'RIFF'
+    const audioBuffer = await service.loadTrack(1, rawUint8);
+
+    expect(audioBuffer).toBeDefined();
+    expect(service.getDeckAudioBuffer(1)).toBe(audioBuffer);
   });
 
   it('rejects unsupported source types cleanly with descriptive error', async () => {
@@ -211,8 +220,9 @@ describe('AudioService - 3-Band DJ Isolator EQ', () => {
     expect(deckState?.sourceNode).toBeDefined();
     expect(filters).toBeDefined();
 
-    // Source must connect to LowFilter on play
-    expect(deckState?.sourceNode?.connect).toHaveBeenCalledWith(filters?.low);
+    // Source must connect to WorkletNode, which feeds LowFilter on play
+    expect(deckState?.sourceNode?.connect).toHaveBeenCalledWith(deckState?.workletNode);
+    expect(deckState?.workletNode?.connect).toHaveBeenCalledWith(filters?.low);
 
     // Verify filter chain wiring on setup
     (deckState as any).eqFilters = null;
@@ -233,4 +243,160 @@ describe('AudioService - 3-Band DJ Isolator EQ', () => {
     expect(crossfaderGain.connect).toHaveBeenCalledWith((service as any).masterDestination);
   });
 });
+
+describe('AudioService - Effects (FX) Integration', () => {
+  let service: AudioService;
+
+  beforeEach(async () => {
+    service = AudioService.getInstance();
+    await service.initialize();
+  });
+
+  it('exposes fxWorkletNode getter referencing the active AudioWorkletNode', () => {
+    expect(service.fxWorkletNode).toBeDefined();
+    expect(service.fxWorkletNode?.port?.postMessage).toBeDefined();
+  });
+
+  it('implements setEffectState and posts UPDATE_FX payload to AudioWorkletNode', () => {
+    const postMessageSpy = vi.spyOn(service.fxWorkletNode!.port, 'postMessage');
+
+    service.setEffectState('deck1', 'flanger', true, 0.75);
+
+    expect(postMessageSpy).toHaveBeenCalledWith({
+      type: 'UPDATE_FX',
+      payload: {
+        deckId: 'deck1',
+        effectName: 'flanger',
+        isActive: true,
+        amount: 0.75,
+      },
+    });
+  });
+
+  it('handles disabling effects with setEffectState', () => {
+    const postMessageSpy = vi.spyOn(service.fxWorkletNode!.port, 'postMessage');
+
+    service.setEffectState('deck2', 'echo', false, 0.0);
+
+    expect(postMessageSpy).toHaveBeenCalledWith({
+      type: 'UPDATE_FX',
+      payload: {
+        deckId: 'deck2',
+        effectName: 'echo',
+        isActive: false,
+        amount: 0.0,
+      },
+    });
+  });
+});
+
+describe('AudioService - Strict Graph Separation & Routing Isolation', () => {
+  let service: AudioService;
+
+  beforeEach(async () => {
+    service = AudioService.getInstance();
+    await service.initialize();
+  });
+
+  it('instantiates dedicated, isolated AudioWorkletNode instances for each deck', () => {
+    const deck1 = service.getDeckState(1);
+    const deck2 = service.getDeckState(2);
+
+    expect(deck1?.workletNode).toBeDefined();
+    expect(deck2?.workletNode).toBeDefined();
+    expect(deck1?.workletNode).not.toBe(deck2?.workletNode);
+  });
+
+  it('enforces single path: Source -> Worklet -> Low -> Mid -> High -> VolumeGain -> CrossfaderGain -> Destination', async () => {
+    const ctx = (service as any).audioContext;
+    ctx.decodeAudioData = vi.fn().mockResolvedValue(
+      new MockAudioBuffer({ duration: 120, sampleRate: 44100, numberOfChannels: 2 })
+    );
+
+    const deck1 = service.getDeckState(1);
+    (deck1 as any).eqFilters = null;
+    (deck1 as any).gainNode = null;
+    service.setupDeckAudioGraph(1);
+
+    const mockArrayBuffer = new Uint8Array([0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0]).buffer;
+    const mockBlob = new Blob([mockArrayBuffer], { type: 'audio/wav' });
+    vi.spyOn(mockBlob, 'arrayBuffer').mockResolvedValue(mockArrayBuffer);
+    await service.loadTrack(1, mockBlob);
+
+    await service.play(1);
+
+    const filters = service.getDeckEQFilters(1);
+    const crossfaderGain = (service as any).deckCrossfaderGains.get(1);
+
+    // 1. Source must connect to Worklet
+    expect(deck1?.sourceNode?.connect).toHaveBeenCalledWith(deck1?.workletNode);
+
+    // 2. Worklet must connect to LowFilter
+    expect(deck1?.workletNode?.connect).toHaveBeenCalledWith(filters?.low);
+
+    // 3. LowFilter -> MidFilter -> HighFilter
+    expect(filters?.low.connect).toHaveBeenCalledWith(filters?.mid);
+    expect(filters?.mid.connect).toHaveBeenCalledWith(filters?.high);
+
+    // 4. HighFilter -> VolumeGain
+    expect(filters?.high.connect).toHaveBeenCalledWith(deck1?.gainNode);
+
+    // 5. VolumeGain -> CrossfaderGain
+    expect(deck1?.gainNode?.connect).toHaveBeenCalledWith(crossfaderGain);
+
+    // 6. CrossfaderGain -> Destination and masterDestination
+    expect(crossfaderGain.connect).toHaveBeenCalledWith(ctx.destination);
+    expect(crossfaderGain.connect).toHaveBeenCalledWith((service as any).masterDestination);
+
+    // 7. Prohibit rogue bypass connections
+    expect(deck1?.sourceNode?.connect).not.toHaveBeenCalledWith(ctx.destination);
+    expect(deck1?.sourceNode?.connect).not.toHaveBeenCalledWith((service as any).masterDestination);
+    expect(deck1?.sourceNode?.connect).not.toHaveBeenCalledWith((service as any).masterGain);
+    expect(deck1?.workletNode?.connect).not.toHaveBeenCalledWith((service as any).masterGain);
+    expect(deck1?.gainNode?.connect).not.toHaveBeenCalledWith(ctx.destination);
+  });
+
+  it('routes Deck 2 dynamically through Deck 2 dedicated nodes without crosstalk or Deck 1 leaks', async () => {
+    const ctx = (service as any).audioContext;
+    ctx.decodeAudioData = vi.fn().mockResolvedValue(
+      new MockAudioBuffer({ duration: 120, sampleRate: 44100, numberOfChannels: 2 })
+    );
+
+    const deck2 = service.getDeckState(2);
+    (deck2 as any).eqFilters = null;
+    (deck2 as any).gainNode = null;
+    service.setupDeckAudioGraph(2);
+
+    const mockArrayBuffer = new Uint8Array([0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0]).buffer;
+    const mockBlob = new Blob([mockArrayBuffer], { type: 'audio/wav' });
+    vi.spyOn(mockBlob, 'arrayBuffer').mockResolvedValue(mockArrayBuffer);
+    await service.loadTrack(2, mockBlob);
+
+    await service.play(2);
+
+    const filters2 = service.getDeckEQFilters(2);
+    const crossfaderGain2 = (service as any).deckCrossfaderGains.get(2);
+
+    expect(deck2?.sourceNode).toBeDefined();
+    expect(deck2?.workletNode).toBeDefined();
+
+    // Source2 must connect to Worklet2
+    expect(deck2?.sourceNode?.connect).toHaveBeenCalledWith(deck2?.workletNode);
+    // Worklet2 must connect to LowFilter2
+    expect(deck2?.workletNode?.connect).toHaveBeenCalledWith(filters2?.low);
+    // LowFilter2 -> MidFilter2 -> HighFilter2
+    expect(filters2?.low.connect).toHaveBeenCalledWith(filters2?.mid);
+    expect(filters2?.mid.connect).toHaveBeenCalledWith(filters2?.high);
+    // HighFilter2 must connect to GainNode2
+    expect(filters2?.high.connect).toHaveBeenCalledWith(deck2?.gainNode);
+    // GainNode2 must connect to CrossfaderGain2
+    expect(deck2?.gainNode?.connect).toHaveBeenCalledWith(crossfaderGain2);
+
+    // Verify Deck 2 is NOT connected to Deck 1 nodes
+    const deck1 = service.getDeckState(1);
+    expect(deck2?.sourceNode?.connect).not.toHaveBeenCalledWith(deck1?.workletNode);
+    expect(deck2?.gainNode?.connect).not.toHaveBeenCalledWith((service as any).deckCrossfaderGains.get(1));
+  });
+});
+
 
